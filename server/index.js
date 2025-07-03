@@ -1,13 +1,11 @@
 import express from 'express';
-const cors = require('cors');
+import cors from 'cors';
+
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Enable CORS for the frontend
-app.use(cors({
-  origin: 'http://localhost:5173', // Vite's default dev server port
-  credentials: true
-}));
+// Enable CORS for all origins
+app.use(cors());
 
 app.use(express.json());
 
