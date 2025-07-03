@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Filter, BarChart2 } from 'lucide-react';
+import { Plus, Search, Filter, BarChart2, AlertTriangle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent } from '../components/ui/Card';
@@ -119,9 +119,31 @@ const Surveys: React.FC = () => {
     description: '',
   });
   const { user } = useAuth();
+  const [apiSurveys, setApiSurveys] = useState<any>(null); // For data from /api/surveys
+  const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadSurveys();
+    // Fetch data from the backend API
+    const fetchApiSurveys = async () => {
+      try {
+        const response = await fetch('/api/surveys');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setApiSurveys(data);
+        console.log('Fetched from /api/surveys:', data);
+        // You might want to integrate this data with your existing 'surveys' state
+        // or use it directly, depending on your application logic.
+        // For now, it's stored separately.
+      } catch (error: any) {
+        console.error('Error fetching from /api/surveys:', error);
+        setApiError(error.message || 'Failed to fetch surveys from API');
+      }
+    };
+
+    fetchApiSurveys();
+    loadSurveys(); // Keep existing localStorage logic for now
   }, []);
 
   const loadSurveys = () => {
@@ -136,7 +158,7 @@ const Surveys: React.FC = () => {
         localStorage.setItem('surveys', JSON.stringify(INITIAL_SURVEYS));
       }
     } catch (error) {
-      console.error('Error loading surveys:', error);
+      console.error('Error loading surveys from localStorage:', error);
       setSurveys(INITIAL_SURVEYS);
     } finally {
       setIsLoading(false);
@@ -269,6 +291,20 @@ const Surveys: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {apiError && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+          <strong className="font-bold mr-1">API Error!</strong>
+          <span className="block sm:inline">{apiError}</span>
+          <AlertTriangle className="inline ml-2 h-5 w-5" />
+        </div>
+      )}
+      {/* Optional: Display data fetched from API for debugging/verification */}
+      {/* {apiSurveys && (
+        <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative mb-4">
+          <p className="font-bold">Data from /api/surveys:</p>
+          <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(apiSurveys, null, 2)}</pre>
+        </div>
+      )} */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Surveys</h1>
         {(user?.role === 'admin' || user?.role === 'agent') && (

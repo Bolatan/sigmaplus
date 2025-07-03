@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, FileText, Download } from 'lucide-react';
+import { Plus, Search, Filter, FileText, Download, AlertTriangle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent } from '../components/ui/Card';
@@ -27,45 +27,53 @@ const Reports: React.FC = () => {
     surveyId: '',
   });
   const { user } = useAuth();
+  const [apiError, setApiError] = useState<string | null>(null); // For API error messages
 
   useEffect(() => {
     fetchReports();
   }, []);
 
   const fetchReports = async () => {
+    setIsLoading(true);
+    setApiError(null);
     try {
       const token = localStorage.getItem('authToken');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
+      // If VITE_API_URL is just the base (e.g. http://localhost:5000), then /api/reports is correct.
+      // If VITE_API_URL includes /api, then it might become /api/api/reports.
+      // Assuming VITE_API_URL is base, so constructing path as /api/reports.
+      // For local mock server, we'll use /api/reports directly.
+      const apiUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/reports` : '/api/reports';
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reports`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
+      const headers: HeadersInit = {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
-        },
-      });
+        };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(apiUrl, { headers });
       
       if (!response.ok) {
-        let errorMessage = 'Failed to fetch reports';
-        const contentType = response.headers.get('content-type');
-        
-        if (contentType && contentType.includes('application/json')) {
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
           const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } else {
-          errorMessage = await response.text() || errorMessage;
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (e) {
+          // If response is not JSON, use the status text
+          errorMessage = response.statusText || errorMessage;
         }
-        
         throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      setReports(data.data || []);
-    } catch (error) {
+      setReports(data.data || data || []); // Handle if data is directly the array or nested under 'data'
+      console.log('Fetched from /api/reports:', data);
+    } catch (error: any) {
       console.error('Error fetching reports:', error);
-      setReports([]);
+      setApiError(error.message || 'Failed to fetch reports');
+      setReports([]); // Clear reports on error
     } finally {
       setIsLoading(false);
     }
@@ -129,6 +137,13 @@ const Reports: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {apiError && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+          <strong className="font-bold mr-1">API Error!</strong>
+          <span className="block sm:inline">{apiError}</span>
+          <AlertTriangle className="inline ml-2 h-5 w-5" />
+        </div>
+      )}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
         {(user?.role === 'admin' || user?.role === 'agent') && (
