@@ -9,6 +9,7 @@ import Reports from './pages/Reports';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
 import Companies from './pages/Companies';
+import SurveyResponsePage from './pages/SurveyResponsePage'; // Import the new page
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -76,6 +77,13 @@ const AppRoutes: React.FC = () => {
         <ProtectedRoute>
           <Layout>
             {user?.role === 'admin' ? <Companies /> : <Navigate to="/" />}
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/surveys/:surveyId/respond" element={
+        <ProtectedRoute>
+          <Layout>
+            <SurveyResponsePage />
           </Layout>
         </ProtectedRoute>
       } />

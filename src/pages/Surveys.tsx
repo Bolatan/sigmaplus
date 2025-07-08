@@ -5,6 +5,7 @@ import { Input } from '../components/ui/Input';
 import { Card, CardContent } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 interface Survey {
   id: string;
@@ -83,6 +84,7 @@ const Surveys: React.FC = () => {
     description: '',
   });
   const { user } = useAuth();
+  const navigate = useNavigate(); // Initialize useNavigate
   const [apiSurveys, setApiSurveys] = useState<any>(null); // For data from /api/surveys
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -421,10 +423,19 @@ const Surveys: React.FC = () => {
                     >
                       View Details
                     </Button>
+                    {survey.status === 'active' && (
+                       <Button
+                        variant="success" // Assuming you have a success variant or use primary/secondary
+                        size="sm"
+                        onClick={() => navigate(`/surveys/${survey.id}/respond`)}
+                      >
+                        Take Survey
+                      </Button>
+                    )}
                   </div>
                 </div>
                 
-                {(user?.role === 'admin' || user?.role === 'agent') && (
+                {(user?.role === 'admin' || user?.role === 'agent') && ( // Admin/Agent specific actions
                   <div className="mt-3 flex space-x-2">
                     {survey.status === 'draft' && (
                       <Button

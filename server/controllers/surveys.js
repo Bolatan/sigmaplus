@@ -217,42 +217,59 @@ export const deleteSurvey = async (req, res, next) => {
   }
 };
 
-// submitSurveyResponse needs to be refactored for MongoDB as well.
-// This will be done in a subsequent step.
 export const submitSurveyResponse = async (req, res, next) => {
   try {
-    // const survey = surveys.find(s => s.id === req.params.id); // Mock
     const db = getDb();
-    const { id: surveyId } = req.params;
-     if (!ObjectId.isValid(surveyId)) {
-      throw new ApiError(404, 'Survey not found (invalid ID format)');
+    const { id: surveyIdParam } = req.params; // surveyId from URL param
+    const { id: userId } = req.user; // userId from authenticated user
+    const { data: responseData, location, demographics } = req.body; // 'data' is the key for responseData from route validation
+
+    if (!ObjectId.isValid(surveyIdParam)) {
+      throw new ApiError(400, 'Invalid Survey ID format.');
     }
-    const survey = await db.collection('surveys').findOne({ _id: new ObjectId(surveyId) });
-    
+    const surveyObjectId = new ObjectId(surveyIdParam);
+
+    // 1. Validate Survey
+    const survey = await db.collection('surveys').findOne({ _id: surveyObjectId });
     if (!survey) {
-      throw new ApiError(404, 'Survey not found');
+      throw new ApiError(404, 'Survey not found.');
+    }
+    if (survey.status !== 'active') {
+      throw new ApiError(400, `Survey is not active. Current status: ${survey.status}.`);
     }
 
-    // TODO: Create a 'responses' collection and insert the response data.
-    // For now, logging and returning a placeholder.
-    console.log('Received response for survey:', surveyId, 'Data:', req.body.data, 'User:', req.user.id);
+    // `responseData` is already validated as notEmpty by the route.
+    // Further structural validation of responseData can be added here if needed based on survey.questions
 
-    // Example of what inserting a response might look like:
-    /*
     const newResponse = {
-      surveyId: new ObjectId(surveyId),
-      userId: new ObjectId(req.user.id), // Assuming respondent is a logged-in user
-      responseData: req.body.data,
+      surveyId: surveyObjectId,
+      userId: new ObjectId(userId),
+      responseData: responseData, // This comes from req.body.data
       submittedAt: new Date(),
-      // location, demographics etc.
     };
-    await db.collection('responses').insertOne(newResponse);
-    // Potentially update survey's responseCount
-    await db.collection('surveys').updateOne({ _id: new ObjectId(surveyId) }, { $inc: { responseCount: 1 } });
-    */
+    if (location) newResponse.location = location;
+    if (demographics) newResponse.demographics = demographics;
 
-    res.status(201).json({ status: 'success', message: 'Response submitted (mock - DB not implemented yet)', data: req.body.data });
+    // 2. Insert into 'responses' collection
+    const insertResult = await db.collection('responses').insertOne(newResponse);
+
+    // 3. Increment responseCount on the survey (atomically)
+    await db.collection('surveys').updateOne(
+      { _id: surveyObjectId },
+      { $inc: { responseCount: 1 }, $set: { updatedAt: new Date() } } // Also update survey's updatedAt
+    );
+
+    // Fetch the newly created response to return it
+    const createdResponse = await db.collection('responses').findOne({ _id: insertResult.insertedId });
+
+    res.status(201).json({ status: 'success', data: createdResponse });
+
   } catch (error) {
-    next(error);
+    console.error("Error in submitSurveyResponse controller:", error);
+    if (error instanceof ApiError) { // Pass ApiError directly
+        next(error);
+    } else { // Wrap other errors
+        next(new ApiError(500, error.message || 'Failed to submit survey response.'));
+    }
   }
 };
