@@ -19,21 +19,17 @@ interface User {
   status: 'active' | 'inactive';
 }
 
-// INITIAL_USERS array removed. Data is now fetched from API.
-
-// Separate UserForm component to prevent re-renders
+// Fixed UserForm component
 const UserForm: React.FC<{
   formData: {
     name: string;
     email: string;
-    name: string;
-    email: string;
     role: UserRole;
     companyId: string;
-    password?: string; // Optional for edit mode
-    confirmPassword?: string; // Optional for edit mode
+    password?: string;
+    confirmPassword?: string;
   };
-  isEditMode: boolean; // To conditionally show password fields
+  isEditMode: boolean;
   onFormDataChange: (data: any) => void;
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onCancel: () => void;
@@ -57,7 +53,7 @@ const UserForm: React.FC<{
         value={formData.email}
         onChange={(e) => handleInputChange('email', e.target.value)}
         required
-        disabled={isEditMode} // Email typically not editable after creation
+        disabled={isEditMode}
       />
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -74,7 +70,6 @@ const UserForm: React.FC<{
           <option value={UserRole.ADMIN}>Admin</option>
         </select>
       </div>
-      {/* Company ID might be relevant for agent/client roles */}
       {(formData.role === UserRole.CLIENT || formData.role === UserRole.AGENT) && (
         <Input
           label="Company ID (Optional)"
@@ -83,7 +78,7 @@ const UserForm: React.FC<{
           placeholder="Enter valid Company ObjectId"
         />
       )}
-      {!isEditMode && ( // Password fields only for Add User mode
+      {!isEditMode && (
         <>
           <Input
             label="Password"
@@ -130,7 +125,6 @@ const Users: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  // Add password and confirmPassword to formData state for the add user form
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -142,70 +136,20 @@ const Users: React.FC = () => {
   const { user: loggedInUser } = useAuth();
   const [apiError, setApiError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setIsLoading(true);
-      setApiError(null);
-      const token = localStorage.getItem('authToken');
+  // Move resetForm before it's used
+  const resetForm = useCallback(() => {
+    setFormData({
+      name: '',
+      email: '',
+      role: UserRole.CLIENT,
+      companyId: '',
+      password: '',
+      confirmPassword: '',
+    });
+    setEditingUser(null);
+  }, []);
 
-      if (!token) {
-        setApiError("No authentication token found. Please login.");
-        setIsLoading(false);
-        setUsers([]); // Clear any existing mock users
-        return;
-      }
-
-      if (loggedInUser?.role !== UserRole.ADMIN) {
-        setApiError("Access Denied: You do not have permission to view users.");
-        setIsLoading(false);
-        setUsers([]);
-        return;
-      }
-
-      try {
-        const response = await fetch('/api/users', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            const errorData = await response.json();
-            setApiError(errorData.msg || errorData.error || `Error: ${response.statusText}`);
-          } else {
-            setApiError(`Error fetching users: ${response.statusText}`);
-          }
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        // Assuming the API returns { data: User[] }
-        // And backend User type matches frontend User type (or needs mapping)
-        // For now, let's map _id to id for consistency with existing mock data structure
-        const fetchedUsers = result.data.map((u: any) => ({
-          ...u,
-          id: u._id,
-        }));
-        setUsers(fetchedUsers);
-      } catch (error) {
-        console.error('Error fetching users from API:', error);
-        if (!apiError) { // Don't overwrite specific 401/403 messages
-          setApiError('Failed to fetch users. Please try again.');
-        }
-        setUsers([]); // Clear users on error
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    // loadUsers(); // This was for localStorage, removing it.
-    fetchUsers();
-  }, [loggedInUser]); // Depend on loggedInUser to re-check role if it changes
-
-  // saveUsers function is removed as it's no longer needed.
-
-
+  // Fixed fetchUsers - removed apiError dependency
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     setApiError(null);
@@ -241,7 +185,7 @@ const Users: React.FC = () => {
           } catch (e) { /* ignore */ }
         }
         setApiError(errorMsg);
-        throw new Error(errorMsg); // Throw to be caught by catch block
+        throw new Error(errorMsg);
       }
 
       const result = await response.json();
@@ -254,32 +198,26 @@ const Users: React.FC = () => {
       setUsers(fetchedUsers);
     } catch (error: any) {
       console.error('Error fetching users from API:', error);
-      if (!apiError) { // Avoid overwriting more specific error from response.ok check
-        setApiError(error.message || 'Failed to fetch users. Please try again.');
-      }
       setUsers([]);
     } finally {
       setIsLoading(false);
     }
-  }, [loggedInUser, apiError]); // apiError dependency might be problematic, review if it causes loops. Better to pass fetchUsers to child if needed.
+  }, [loggedInUser]);
 
-  // This useEffect handles initial data fetch and re-fetch on user change.
-   useEffect(() => {
+  // Fixed useEffect dependency
+  useEffect(() => {
     if (loggedInUser && loggedInUser.role === UserRole.ADMIN) {
-        fetchUsers();
-    } else if (loggedInUser && loggedInUser.role !== UserRole.ADMIN) { // If logged in but not admin
-        setApiError("Access Denied: You do not have permission to view users.");
-        setIsLoading(false);
-        setUsers([]);
-    } else if (!loggedInUser && !localStorage.getItem('authToken')) { // Explicitly not logged in (no token)
-        setApiError("No authentication token found. Please login.");
-        setIsLoading(false);
-        setUsers([]);
+      fetchUsers();
+    } else if (loggedInUser && loggedInUser.role !== UserRole.ADMIN) {
+      setApiError("Access Denied: You do not have permission to view users.");
+      setIsLoading(false);
+      setUsers([]);
+    } else if (!loggedInUser && !localStorage.getItem('authToken')) {
+      setApiError("No authentication token found. Please login.");
+      setIsLoading(false);
+      setUsers([]);
     }
-    // If !loggedInUser but authToken exists, AuthContext is still loading, so we wait.
-    // The fetchUsers dependency on loggedInUser will trigger when it resolves.
   }, [loggedInUser, fetchUsers]);
-
 
   const handleAddUser = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -295,12 +233,12 @@ const Users: React.FC = () => {
       return;
     }
     if (!formData.password || formData.password.length < 6) {
-        setApiError("Password must be at least 6 characters.");
-        return;
+      setApiError("Password must be at least 6 characters.");
+      return;
     }
 
     try {
-      const response = await fetch('/api/auth/register', { // Using register endpoint for admin creation
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -311,7 +249,7 @@ const Users: React.FC = () => {
           email: formData.email,
           password: formData.password,
           role: formData.role,
-          companyId: formData.companyId || undefined, // Send undefined if empty
+          companyId: formData.companyId || undefined,
         }),
       });
 
@@ -320,9 +258,7 @@ const Users: React.FC = () => {
         throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to add user: ${response.statusText}`);
       }
 
-      // const newUserFromApi = await response.json(); // Contains { token, user }
-      // We don't need the token here, just refetch users list to include the new one with all fields.
-      await fetchUsers(); // Re-fetch the user list to include the new user
+      await fetchUsers();
       setIsAddModalOpen(false);
       resetForm();
     } catch (error: any) {
@@ -348,12 +284,9 @@ const Users: React.FC = () => {
       name: formData.name,
       role: formData.role,
     };
-    // Only include companyId if it's explicitly provided (even if empty string to unset)
-    // The backend controller handles empty string as potentially unsetting.
     if (formData.companyId !== undefined) {
-        payload.companyId = formData.companyId === '' ? null : formData.companyId;
+      payload.companyId = formData.companyId === '' ? null : formData.companyId;
     }
-
 
     try {
       const response = await fetch(`/api/users/${editingUser.id}`, {
@@ -372,12 +305,12 @@ const Users: React.FC = () => {
 
       const updatedUserFromApi = await response.json();
       const updatedUser = {
-        ...(updatedUserFromApi.data || updatedUserFromApi), // Backend might wrap in 'data'
+        ...(updatedUserFromApi.data || updatedUserFromApi),
         id: (updatedUserFromApi.data || updatedUserFromApi)._id,
       };
 
       setUsers(prevUsers =>
-        prevUsers.map(u => (u.id === updatedUser.id ? { ...u, ...updatedUser } : u)) // Merge, preserving fields like avatar if not in API response
+        prevUsers.map(u => (u.id === updatedUser.id ? { ...u, ...updatedUser } : u))
       );
       setIsEditModalOpen(false);
       resetForm();
@@ -385,8 +318,7 @@ const Users: React.FC = () => {
       console.error('Error updating user via API:', error);
       setApiError(error.message || 'An unexpected error occurred while updating the user.');
     }
-  }, [formData, editingUser, resetForm, users]); // Added users to dep array for optimistic update reference if needed, though not strictly for this version
-
+  }, [formData, editingUser, resetForm]);
 
   const handleToggleUserStatus = useCallback(async (userId: string, currentStatus: 'active' | 'inactive') => {
     setApiError(null);
@@ -399,7 +331,6 @@ const Users: React.FC = () => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     const originalUsers = [...users];
 
-    // Optimistic UI update
     setUsers(prevUsers =>
       prevUsers.map(u =>
         u.id === userId ? { ...u, status: newStatus, avatar: u.avatar || `https://ui-avatars.com/api/?name=${u.name}&background=random` } : u
@@ -418,15 +349,14 @@ const Users: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        setUsers(originalUsers); // Revert optimistic update
+        setUsers(originalUsers);
         throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update user status: ${response.statusText}`);
       }
 
-      // Optionally, update with the exact data from API if it differs from optimistic update (e.g. updatedAt)
       const updatedUserFromApi = await response.json();
       const finalUpdatedUser = {
-         ...(updatedUserFromApi.data || updatedUserFromApi),
-         id: (updatedUserFromApi.data || updatedUserFromApi)._id,
+        ...(updatedUserFromApi.data || updatedUserFromApi),
+        id: (updatedUserFromApi.data || updatedUserFromApi)._id,
       };
       setUsers(prevUsers =>
         prevUsers.map(u => (u.id === finalUpdatedUser.id ? { ...u, ...finalUpdatedUser, avatar: u.avatar } : u))
@@ -435,9 +365,9 @@ const Users: React.FC = () => {
     } catch (error: any) {
       console.error('Error updating user status via API:', error);
       setApiError(error.message || 'An unexpected error occurred while updating user status.');
-      setUsers(originalUsers); // Ensure reversion on any catch
+      setUsers(originalUsers);
     }
-  }, [users]); // `users` is a dependency for optimistic update and revert
+  }, [users]);
 
   const startEdit = useCallback((user: User) => {
     setEditingUser(user);
@@ -446,20 +376,10 @@ const Users: React.FC = () => {
       email: user.email,
       role: user.role,
       companyId: user.companyId || '',
-    });
-    setIsEditModalOpen(true);
-  }, []);
-
-  const resetForm = useCallback(() => {
-    setFormData({
-      name: '',
-      email: '',
-      role: UserRole.CLIENT,
-      companyId: '',
-      password: '', // Reset password fields too
+      password: '',
       confirmPassword: '',
     });
-    setEditingUser(null);
+    setIsEditModalOpen(true);
   }, []);
 
   const handleFormDataChange = useCallback((newFormData: any) => {
@@ -526,14 +446,14 @@ const Users: React.FC = () => {
       )}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-        {loggedInUser?.role === UserRole.ADMIN && ( // Only admins can add users via this UI for now
-            <Button
-                variant="primary"
-                leftIcon={<UserPlus className="h-5 w-5" />}
-                onClick={() => setIsAddModalOpen(true)}
-            >
-                Add User
-            </Button>
+        {loggedInUser?.role === UserRole.ADMIN && (
+          <Button
+            variant="primary"
+            leftIcon={<UserPlus className="h-5 w-5" />}
+            onClick={() => setIsAddModalOpen(true)}
+          >
+            Add User
+          </Button>
         )}
       </div>
 
@@ -626,7 +546,7 @@ const Users: React.FC = () => {
       >
         <UserForm
           formData={formData}
-          isEditMode={false} // For Add User modal
+          isEditMode={false}
           onFormDataChange={handleFormDataChange}
           onSubmit={handleAddUser}
           onCancel={handleCancelAdd}
@@ -641,7 +561,7 @@ const Users: React.FC = () => {
       >
         <UserForm
           formData={formData}
-          isEditMode={true} // For Edit User modal
+          isEditMode={true}
           onFormDataChange={handleFormDataChange}
           onSubmit={handleEditUser}
           onCancel={handleCancelEdit}
@@ -649,7 +569,7 @@ const Users: React.FC = () => {
         />
       </Modal>
 
-      {filteredUsers.length === 0 && !isLoading && !apiError && ( // Show "No users" only if not loading and no error
+      {filteredUsers.length === 0 && !isLoading && !apiError && (
         <div className="text-center py-12">
           <div className="text-gray-400 mb-4">
             <UserPlus className="h-12 w-12 mx-auto" />
