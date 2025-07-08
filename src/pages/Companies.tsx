@@ -145,31 +145,67 @@ const Companies: React.FC = () => {
     address: '',
     employeeCount: 0
   });
-  const { user } = useAuth();
+  const { user: loggedInUser } = useAuth(); // Using loggedInUser from context
+  const [apiError, setApiError] = useState<string | null>(null);
+
 
   useEffect(() => {
-    loadCompanies();
-  }, []);
+    const fetchCompanies = async () => {
+      setIsLoading(true);
+      setApiError(null);
+      const token = localStorage.getItem('authToken');
 
-  const loadCompanies = () => {
-    try {
-      // Load companies from localStorage or use initial data
-      const savedCompanies = localStorage.getItem('companies');
-      if (savedCompanies) {
-        setCompanies(JSON.parse(savedCompanies));
-      } else {
-        // Initialize with default companies and save to localStorage
-        setCompanies(INITIAL_COMPANIES);
-        localStorage.setItem('companies', JSON.stringify(INITIAL_COMPANIES));
+      if (!token) {
+        setApiError("No authentication token found. Please login.");
+        setIsLoading(false);
+        setCompanies([]); // Clear any existing mock companies
+        return;
       }
-    } catch (error) {
-      console.error('Error loading companies:', error);
-      setCompanies(INITIAL_COMPANIES);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
+      try {
+        const response = await fetch('/api/companies', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            const errorData = await response.json();
+            setApiError(errorData.msg || errorData.error || `Error: ${response.statusText}`);
+          } else {
+            setApiError(`Error fetching companies: ${response.statusText}`);
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        // Assuming the API returns { data: Company[] }
+        // And backend Company type matches frontend Company type (or needs mapping)
+        // Map _id to id for consistency
+        const fetchedCompanies = result.data.map((c: any) => ({
+          ...c,
+          id: c._id,
+          // Ensure logo is generated if not present, similar to mock
+          logo: c.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=random`,
+        }));
+        setCompanies(fetchedCompanies);
+      } catch (error) {
+        console.error('Error fetching companies from API:', error);
+         if (!apiError) { // Don't overwrite specific 401/403 messages
+          setApiError('Failed to fetch companies. Please try again.');
+        }
+        setCompanies([]); // Clear companies on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // loadCompanies(); // Removing localStorage based loading
+    fetchCompanies();
+  }, [loggedInUser]); // Re-fetch if loggedInUser changes, ensuring token is likely fresh or user context is updated
+
+  // saveCompanies was for localStorage, will need backend integration for add/edit/delete
   const saveCompanies = useCallback((updatedCompanies: Company[]) => {
     try {
       localStorage.setItem('companies', JSON.stringify(updatedCompanies));
@@ -298,15 +334,24 @@ const Companies: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {apiError && (
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+          <p className="font-bold">Error</p>
+          <p>{apiError}</p>
+        </div>
+      )}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Companies</h1>
-        <Button
-          variant="primary"
-          leftIcon={<Plus className="h-5 w-5" />}
-          onClick={() => setIsAddModalOpen(true)}
-        >
-          Add Company
-        </Button>
+        {/* Add Company button might be role-restricted, e.g., admin only */}
+        {loggedInUser?.role === 'admin' && (
+            <Button
+                variant="primary"
+                leftIcon={<Plus className="h-5 w-5" />}
+                onClick={() => setIsAddModalOpen(true)}
+            >
+                Add Company
+            </Button>
+        )}
       </div>
 
       <div className="flex space-x-4">

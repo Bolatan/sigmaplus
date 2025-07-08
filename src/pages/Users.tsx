@@ -159,31 +159,71 @@ const Users: React.FC = () => {
     role: UserRole.CLIENT,
     companyId: '',
   });
-  const { user } = useAuth();
+  const { user: loggedInUser } = useAuth(); // Renamed to avoid conflict with 'users' state
+  const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadUsers();
-  }, []);
+    const fetchUsers = async () => {
+      setIsLoading(true);
+      setApiError(null);
+      const token = localStorage.getItem('authToken');
 
-  const loadUsers = () => {
-    try {
-      // Load users from localStorage or use initial data
-      const savedUsers = localStorage.getItem('users');
-      if (savedUsers) {
-        setUsers(JSON.parse(savedUsers));
-      } else {
-        // Initialize with default users and save to localStorage
-        setUsers(INITIAL_USERS);
-        localStorage.setItem('users', JSON.stringify(INITIAL_USERS));
+      if (!token) {
+        setApiError("No authentication token found. Please login.");
+        setIsLoading(false);
+        setUsers([]); // Clear any existing mock users
+        return;
       }
-    } catch (error) {
-      console.error('Error loading users:', error);
-      setUsers(INITIAL_USERS);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
+      if (loggedInUser?.role !== UserRole.ADMIN) {
+        setApiError("Access Denied: You do not have permission to view users.");
+        setIsLoading(false);
+        setUsers([]);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/users', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            const errorData = await response.json();
+            setApiError(errorData.msg || errorData.error || `Error: ${response.statusText}`);
+          } else {
+            setApiError(`Error fetching users: ${response.statusText}`);
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        // Assuming the API returns { data: User[] }
+        // And backend User type matches frontend User type (or needs mapping)
+        // For now, let's map _id to id for consistency with existing mock data structure
+        const fetchedUsers = result.data.map((u: any) => ({
+          ...u,
+          id: u._id,
+        }));
+        setUsers(fetchedUsers);
+      } catch (error) {
+        console.error('Error fetching users from API:', error);
+        if (!apiError) { // Don't overwrite specific 401/403 messages
+          setApiError('Failed to fetch users. Please try again.');
+        }
+        setUsers([]); // Clear users on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // loadUsers(); // This was for localStorage, removing it.
+    fetchUsers();
+  }, [loggedInUser]); // Depend on loggedInUser to re-check role if it changes
+
+  // saveUsers was for localStorage, we might need different BE calls for add/edit/delete later
   const saveUsers = useCallback((updatedUsers: User[]) => {
     try {
       localStorage.setItem('users', JSON.stringify(updatedUsers));
@@ -321,15 +361,23 @@ const Users: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {apiError && (
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+          <p className="font-bold">Error</p>
+          <p>{apiError}</p>
+        </div>
+      )}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-        <Button
-          variant="primary"
-          leftIcon={<UserPlus className="h-5 w-5" />}
-          onClick={() => setIsAddModalOpen(true)}
-        >
-          Add User
-        </Button>
+        {loggedInUser?.role === UserRole.ADMIN && ( // Only admins can add users via this UI for now
+            <Button
+                variant="primary"
+                leftIcon={<UserPlus className="h-5 w-5" />}
+                onClick={() => setIsAddModalOpen(true)}
+            >
+                Add User
+            </Button>
+        )}
       </div>
 
       <div className="flex space-x-4">
