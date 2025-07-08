@@ -19,70 +19,26 @@ interface User {
   status: 'active' | 'inactive';
 }
 
-// Mock users data that will be stored in localStorage
-const INITIAL_USERS: User[] = [
-  {
-    id: '1',
-    name: 'Admin User',
-    email: 'admin@example.com',
-    role: UserRole.ADMIN,
-    avatar: 'https://i.pravatar.cc/150?img=1',
-    createdAt: '2024-01-01T08:00:00.000Z',
-    status: 'active'
-  },
-  {
-    id: '2',
-    name: 'Agent User',
-    email: 'agent@example.com',
-    role: UserRole.AGENT,
-    avatar: 'https://i.pravatar.cc/150?img=2',
-    createdAt: '2024-01-05T08:00:00.000Z',
-    status: 'active'
-  },
-  {
-    id: '3',
-    name: 'Client User',
-    email: 'client@example.com',
-    role: UserRole.CLIENT,
-    companyId: '1',
-    avatar: 'https://i.pravatar.cc/150?img=3',
-    createdAt: '2024-01-10T08:00:00.000Z',
-    status: 'active'
-  },
-  {
-    id: '4',
-    name: 'John Smith',
-    email: 'john.smith@example.com',
-    role: UserRole.CLIENT,
-    companyId: '1',
-    avatar: 'https://i.pravatar.cc/150?img=4',
-    createdAt: '2024-01-15T08:00:00.000Z',
-    status: 'active'
-  },
-  {
-    id: '5',
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@example.com',
-    role: UserRole.AGENT,
-    avatar: 'https://i.pravatar.cc/150?img=5',
-    createdAt: '2024-01-20T08:00:00.000Z',
-    status: 'active'
-  }
-];
+// INITIAL_USERS array removed. Data is now fetched from API.
 
 // Separate UserForm component to prevent re-renders
 const UserForm: React.FC<{
   formData: {
     name: string;
     email: string;
+    name: string;
+    email: string;
     role: UserRole;
     companyId: string;
+    password?: string; // Optional for edit mode
+    confirmPassword?: string; // Optional for edit mode
   };
+  isEditMode: boolean; // To conditionally show password fields
   onFormDataChange: (data: any) => void;
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onCancel: () => void;
   buttonText: string;
-}> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText }) => {
+}> = React.memo(({ formData, isEditMode, onFormDataChange, onSubmit, onCancel, buttonText }) => {
   const handleInputChange = useCallback((field: string, value: string) => {
     onFormDataChange({ ...formData, [field]: value });
   }, [formData, onFormDataChange]);
@@ -101,6 +57,7 @@ const UserForm: React.FC<{
         value={formData.email}
         onChange={(e) => handleInputChange('email', e.target.value)}
         required
+        disabled={isEditMode} // Email typically not editable after creation
       />
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -117,13 +74,33 @@ const UserForm: React.FC<{
           <option value={UserRole.ADMIN}>Admin</option>
         </select>
       </div>
-      {formData.role === UserRole.CLIENT && (
+      {/* Company ID might be relevant for agent/client roles */}
+      {(formData.role === UserRole.CLIENT || formData.role === UserRole.AGENT) && (
         <Input
-          label="Company ID"
+          label="Company ID (Optional)"
           value={formData.companyId}
           onChange={(e) => handleInputChange('companyId', e.target.value)}
-          required
+          placeholder="Enter valid Company ObjectId"
         />
+      )}
+      {!isEditMode && ( // Password fields only for Add User mode
+        <>
+          <Input
+            label="Password"
+            type="password"
+            value={formData.password || ''}
+            onChange={(e) => handleInputChange('password', e.target.value)}
+            required
+            minLength={6}
+          />
+          <Input
+            label="Confirm Password"
+            type="password"
+            value={formData.confirmPassword || ''}
+            onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+            required
+          />
+        </>
       )}
       <div className="flex justify-end space-x-2 mt-6">
         <Button
@@ -153,13 +130,16 @@ const Users: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  // Add password and confirmPassword to formData state for the add user form
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     role: UserRole.CLIENT,
     companyId: '',
+    password: '',
+    confirmPassword: '',
   });
-  const { user: loggedInUser } = useAuth(); // Renamed to avoid conflict with 'users' state
+  const { user: loggedInUser } = useAuth();
   const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -223,66 +203,241 @@ const Users: React.FC = () => {
     fetchUsers();
   }, [loggedInUser]); // Depend on loggedInUser to re-check role if it changes
 
-  // saveUsers was for localStorage, we might need different BE calls for add/edit/delete later
-  const saveUsers = useCallback((updatedUsers: User[]) => {
-    try {
-      localStorage.setItem('users', JSON.stringify(updatedUsers));
-      setUsers(updatedUsers);
-    } catch (error) {
-      console.error('Error saving users:', error);
+  // saveUsers function is removed as it's no longer needed.
+
+
+  const fetchUsers = useCallback(async () => {
+    setIsLoading(true);
+    setApiError(null);
+    const token = localStorage.getItem('authToken');
+
+    if (!token) {
+      setApiError("No authentication token found. Please login.");
+      setIsLoading(false);
+      setUsers([]);
+      return;
     }
-  }, []);
+
+    if (loggedInUser?.role !== UserRole.ADMIN) {
+      setApiError("Access Denied: You do not have permission to view users.");
+      setIsLoading(false);
+      setUsers([]);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/users', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        let errorMsg = `Error fetching users: ${response.statusText}`;
+        if (response.status === 401 || response.status === 403) {
+          try {
+            const errorData = await response.json();
+            errorMsg = errorData.msg || errorData.error || errorMsg;
+          } catch (e) { /* ignore */ }
+        }
+        setApiError(errorMsg);
+        throw new Error(errorMsg); // Throw to be caught by catch block
+      }
+
+      const result = await response.json();
+      const fetchedUsers = (result.data || []).map((u: any) => ({
+        ...u,
+        id: u._id,
+        status: u.status || 'inactive',
+        createdAt: u.createdAt || new Date().toISOString(),
+      }));
+      setUsers(fetchedUsers);
+    } catch (error: any) {
+      console.error('Error fetching users from API:', error);
+      if (!apiError) { // Avoid overwriting more specific error from response.ok check
+        setApiError(error.message || 'Failed to fetch users. Please try again.');
+      }
+      setUsers([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loggedInUser, apiError]); // apiError dependency might be problematic, review if it causes loops. Better to pass fetchUsers to child if needed.
+
+  // This useEffect handles initial data fetch and re-fetch on user change.
+   useEffect(() => {
+    if (loggedInUser && loggedInUser.role === UserRole.ADMIN) {
+        fetchUsers();
+    } else if (loggedInUser && loggedInUser.role !== UserRole.ADMIN) { // If logged in but not admin
+        setApiError("Access Denied: You do not have permission to view users.");
+        setIsLoading(false);
+        setUsers([]);
+    } else if (!loggedInUser && !localStorage.getItem('authToken')) { // Explicitly not logged in (no token)
+        setApiError("No authentication token found. Please login.");
+        setIsLoading(false);
+        setUsers([]);
+    }
+    // If !loggedInUser but authToken exists, AuthContext is still loading, so we wait.
+    // The fetchUsers dependency on loggedInUser will trigger when it resolves.
+  }, [loggedInUser, fetchUsers]);
+
 
   const handleAddUser = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const newUser: User = {
-        id: Date.now().toString(),
-        ...formData,
-        createdAt: new Date().toISOString(),
-        status: 'active',
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}&background=random`,
-      };
+    setApiError(null);
+    const token = localStorage.getItem('authToken');
 
-      const updatedUsers = [...users, newUser];
-      saveUsers(updatedUsers);
+    if (!token) {
+      setApiError("Authentication required.");
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setApiError("Passwords do not match.");
+      return;
+    }
+    if (!formData.password || formData.password.length < 6) {
+        setApiError("Password must be at least 6 characters.");
+        return;
+    }
+
+    try {
+      const response = await fetch('/api/auth/register', { // Using register endpoint for admin creation
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+          companyId: formData.companyId || undefined, // Send undefined if empty
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to add user: ${response.statusText}`);
+      }
+
+      // const newUserFromApi = await response.json(); // Contains { token, user }
+      // We don't need the token here, just refetch users list to include the new one with all fields.
+      await fetchUsers(); // Re-fetch the user list to include the new user
       setIsAddModalOpen(false);
       resetForm();
-    } catch (error) {
-      console.error('Error adding user:', error);
+    } catch (error: any) {
+      console.error('Error adding user via API:', error);
+      setApiError(error.message || 'An unexpected error occurred while adding the user.');
     }
-  }, [formData, users, saveUsers]);
+  }, [formData, resetForm, fetchUsers]);
 
   const handleEditUser = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingUser) return;
+    if (!editingUser || !editingUser.id) {
+      setApiError("No user selected for editing or user ID is missing.");
+      return;
+    }
+    setApiError(null);
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setApiError("Authentication required.");
+      return;
+    }
+
+    const payload: any = {
+      name: formData.name,
+      role: formData.role,
+    };
+    // Only include companyId if it's explicitly provided (even if empty string to unset)
+    // The backend controller handles empty string as potentially unsetting.
+    if (formData.companyId !== undefined) {
+        payload.companyId = formData.companyId === '' ? null : formData.companyId;
+    }
+
 
     try {
-      const updatedUser: User = {
-        ...editingUser,
-        ...formData,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}&background=random`,
+      const response = await fetch(`/api/users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update user: ${response.statusText}`);
+      }
+
+      const updatedUserFromApi = await response.json();
+      const updatedUser = {
+        ...(updatedUserFromApi.data || updatedUserFromApi), // Backend might wrap in 'data'
+        id: (updatedUserFromApi.data || updatedUserFromApi)._id,
       };
 
-      const updatedUsers = users.map(user => 
-        user.id === editingUser.id ? updatedUser : user
+      setUsers(prevUsers =>
+        prevUsers.map(u => (u.id === updatedUser.id ? { ...u, ...updatedUser } : u)) // Merge, preserving fields like avatar if not in API response
       );
-      saveUsers(updatedUsers);
       setIsEditModalOpen(false);
       resetForm();
-    } catch (error) {
-      console.error('Error updating user:', error);
+    } catch (error: any) {
+      console.error('Error updating user via API:', error);
+      setApiError(error.message || 'An unexpected error occurred while updating the user.');
     }
-  }, [formData, editingUser, users, saveUsers]);
+  }, [formData, editingUser, resetForm, users]); // Added users to dep array for optimistic update reference if needed, though not strictly for this version
 
-  const handleDeactivateUser = useCallback((userId: string) => {
-    const updatedUsers = users.map(user =>
-      user.id === userId 
-        ? { ...user, status: user.status === 'active' ? 'inactive' : 'active' as 'active' | 'inactive' }
-        : user
+
+  const handleToggleUserStatus = useCallback(async (userId: string, currentStatus: 'active' | 'inactive') => {
+    setApiError(null);
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setApiError("Authentication required.");
+      return;
+    }
+
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    const originalUsers = [...users];
+
+    // Optimistic UI update
+    setUsers(prevUsers =>
+      prevUsers.map(u =>
+        u.id === userId ? { ...u, status: newStatus, avatar: u.avatar || `https://ui-avatars.com/api/?name=${u.name}&background=random` } : u
+      )
     );
-    saveUsers(updatedUsers);
-  }, [users, saveUsers]);
+
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        setUsers(originalUsers); // Revert optimistic update
+        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update user status: ${response.statusText}`);
+      }
+
+      // Optionally, update with the exact data from API if it differs from optimistic update (e.g. updatedAt)
+      const updatedUserFromApi = await response.json();
+      const finalUpdatedUser = {
+         ...(updatedUserFromApi.data || updatedUserFromApi),
+         id: (updatedUserFromApi.data || updatedUserFromApi)._id,
+      };
+      setUsers(prevUsers =>
+        prevUsers.map(u => (u.id === finalUpdatedUser.id ? { ...u, ...finalUpdatedUser, avatar: u.avatar } : u))
+      );
+
+    } catch (error: any) {
+      console.error('Error updating user status via API:', error);
+      setApiError(error.message || 'An unexpected error occurred while updating user status.');
+      setUsers(originalUsers); // Ensure reversion on any catch
+    }
+  }, [users]); // `users` is a dependency for optimistic update and revert
 
   const startEdit = useCallback((user: User) => {
     setEditingUser(user);
@@ -301,6 +456,8 @@ const Users: React.FC = () => {
       email: '',
       role: UserRole.CLIENT,
       companyId: '',
+      password: '', // Reset password fields too
+      confirmPassword: '',
     });
     setEditingUser(null);
   }, []);
@@ -452,7 +609,7 @@ const Users: React.FC = () => {
                 <Button
                   variant={user.status === 'active' ? 'danger' : 'secondary'}
                   size="sm"
-                  onClick={() => handleDeactivateUser(user.id)}
+                  onClick={() => handleToggleUserStatus(user.id, user.status)}
                 >
                   {user.status === 'active' ? 'Deactivate' : 'Activate'}
                 </Button>
@@ -469,6 +626,7 @@ const Users: React.FC = () => {
       >
         <UserForm
           formData={formData}
+          isEditMode={false} // For Add User modal
           onFormDataChange={handleFormDataChange}
           onSubmit={handleAddUser}
           onCancel={handleCancelAdd}
@@ -483,6 +641,7 @@ const Users: React.FC = () => {
       >
         <UserForm
           formData={formData}
+          isEditMode={true} // For Edit User modal
           onFormDataChange={handleFormDataChange}
           onSubmit={handleEditUser}
           onCancel={handleCancelEdit}
@@ -490,7 +649,7 @@ const Users: React.FC = () => {
         />
       </Modal>
 
-      {filteredUsers.length === 0 && (
+      {filteredUsers.length === 0 && !isLoading && !apiError && ( // Show "No users" only if not loading and no error
         <div className="text-center py-12">
           <div className="text-gray-400 mb-4">
             <UserPlus className="h-12 w-12 mx-auto" />

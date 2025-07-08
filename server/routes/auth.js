@@ -46,31 +46,34 @@ router.post(
         email,
         password: hashedPassword,
         role,
+        status: 'active', // Default status for new users
         createdAt: new Date(),
+        updatedAt: new Date(), // Add updatedAt
       };
 
-      if (companyId) { // Only add companyId if provided and valid (checked by isMongoId)
+      if (companyId) {
         newUserDocument.companyId = new ObjectId(companyId);
       }
 
       const result = await db.collection('users').insertOne(newUserDocument);
 
-      const registeredUser = {
-        _id: result.insertedId,
-        name: newUserDocument.name,
-        email: newUserDocument.email,
-        role: newUserDocument.role,
-        createdAt: newUserDocument.createdAt,
-      };
-      if (newUserDocument.companyId) {
-        registeredUser.companyId = newUserDocument.companyId;
+      // Fetch the full user document to ensure all fields are present in the response
+      const createdUser = await db.collection('users').findOne({ _id: result.insertedId });
+
+      // Remove password before sending back
+      if (createdUser) {
+        delete createdUser.password;
       }
 
-      // Optionally, generate a token upon registration as well
-      const payload = { user: { id: result.insertedId, email: registeredUser.email, role: registeredUser.role } };
+      const payload = { user: { id: createdUser._id, email: createdUser.email, role: createdUser.role } };
       jwt.sign(payload, JWT_SECRET, { expiresIn: '5h' }, (err, token) => {
-        if (err) throw err;
-        res.status(201).json({ token, user: registeredUser }); // Send token and user info
+        if (err) {
+            console.error('JWT sign error during registration: ', err);
+            // Don't throw here, as user is already created. Log and potentially send user without token, or specific error.
+            // For now, we'll send user if token fails, but ideally this should be robust.
+            return res.status(201).json({ user: createdUser, token: null, error: "Token signing failed" });
+        }
+        res.status(201).json({ token, user: createdUser });
       });
 
     } catch (err) {

@@ -11,10 +11,10 @@ import authRoutes from './routes/auth.js';
 import { verifyToken, authorizeRole } from './middleware/auth.js';
 import { body, validationResult } from 'express-validator'; // Import for validation
 
-import surveyRoutes from './routes/surveys.js'; // Import survey routes
-// import reportRoutes from './routes/reports.js'; // Assuming you have/will have this
-// import userRoutes from './routes/users.js'; // Assuming you have/will have this
-// import companyRoutes from './routes/companies.js'; // Assuming you have/will have this
+import surveyRoutes from './routes/surveys.js';
+import userRoutes from './routes/users.js'; // Import user routes
+// import reportRoutes from './routes/reports.js';
+// import companyRoutes from './routes/companies.js';
 
 
 // ES module equivalents for __dirname
@@ -39,10 +39,10 @@ app.use(express.static(path.join(__dirname, '..', 'dist')));
 app.use('/api/auth', authRoutes); // Mount authentication routes
 
 // --- Application API Routes ---
-app.use('/api/surveys', surveyRoutes); // Mount survey routes
-// app.use('/api/reports', reportRoutes); // Example for future
-// app.use('/api/users', userRoutes); // Example for future (note: some user GET routes are still here)
-// app.use('/api/companies', companyRoutes); // Example for future (note: some company GET routes are still here)
+app.use('/api/surveys', surveyRoutes);
+app.use('/api/users', userRoutes); // Mount user routes
+// app.use('/api/reports', reportRoutes);
+// app.use('/api/companies', companyRoutes);
 
 // --- Stats Routes ---
 // GET /api/stats/survey-statuses - Get counts of surveys by status
@@ -89,36 +89,8 @@ app.get('/api/reports', verifyToken, async (req, res) => {
   }
 });
 
-// Users API: Only accessible to 'admin' role
-app.get('/api/users', verifyToken, authorizeRole(['admin']), async (req, res) => {
-  try {
-    const db = getDb();
-    const users = await db.collection('users').find({}).toArray();
-    res.json({ data: users });
-  } catch (err) {
-    console.error("Failed to fetch users:", err);
-    res.status(500).json({ error: "Failed to fetch users from database" });
-  }
-});
-
-app.get('/api/users/:id', verifyToken, authorizeRole(['admin']), async (req, res) => {
-  try {
-    const db = getDb();
-    const { id } = req.params;
-    if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ error: "Invalid user ID format" });
-    }
-    // Admins can fetch any user by ID
-    const user = await db.collection('users').findOne({ _id: new ObjectId(id) });
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-    res.json({ data: user });
-  } catch (err) {
-    console.error("Failed to fetch user:", err);
-    res.status(500).json({ error: "Failed to fetch user from database" });
-  }
-});
+// Users API routes are now handled by server/routes/users.js
+// The GET /api/users and GET /api/users/:id that were here have been moved.
 
 // Companies API: Accessible to any authenticated user
 app.get('/api/companies', verifyToken, async (req, res) => {
