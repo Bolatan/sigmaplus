@@ -9,6 +9,13 @@ import { ObjectId } from 'mongodb'; // Import ObjectId
 import { connectToServer, getDb } from './utils/db.js';
 import authRoutes from './routes/auth.js';
 import { verifyToken, authorizeRole } from './middleware/auth.js';
+import { body, validationResult } from 'express-validator'; // Import for validation
+
+import surveyRoutes from './routes/surveys.js'; // Import survey routes
+// import reportRoutes from './routes/reports.js'; // Assuming you have/will have this
+// import userRoutes from './routes/users.js'; // Assuming you have/will have this
+// import companyRoutes from './routes/companies.js'; // Assuming you have/will have this
+
 
 // ES module equivalents for __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -31,21 +38,18 @@ app.use(express.static(path.join(__dirname, '..', 'dist')));
 // --- Auth Routes ---
 app.use('/api/auth', authRoutes); // Mount authentication routes
 
-// --- Protected API Routes ---
+// --- Application API Routes ---
+app.use('/api/surveys', surveyRoutes); // Mount survey routes
+// app.use('/api/reports', reportRoutes); // Example for future
+// app.use('/api/users', userRoutes); // Example for future (note: some user GET routes are still here)
+// app.use('/api/companies', companyRoutes); // Example for future (note: some company GET routes are still here)
 
-// Surveys API: Accessible to any authenticated user
-app.get('/api/surveys', verifyToken, async (req, res) => {
-  try {
-    const db = getDb();
-    const surveys = await db.collection('surveys').find({}).toArray();
-    res.json({ data: surveys });
-  } catch (err) {
-    console.error("Failed to fetch surveys:", err);
-    res.status(500).json({ error: "Failed to fetch surveys from database" });
-  }
-});
+
+// --- Protected API Routes (that are still in server/index.js) ---
+// Consider moving these to their respective route files as well for better organization.
 
 // Reports API: Accessible to any authenticated user
+// TODO: Move to server/routes/reports.js
 app.get('/api/reports', verifyToken, async (req, res) => {
   try {
     const db = getDb();
