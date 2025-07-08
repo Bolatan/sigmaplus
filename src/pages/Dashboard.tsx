@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Users, BarChart3, ClipboardList, TrendingUp, Building2, UserCheck } from 'lucide-react'; // Added Building2, UserCheck
+import { Users, BarChart3, ClipboardList, TrendingUp, Building2, UserCheck, PieChart as PieChartIcon } from 'lucide-react'; // Added PieChartIcon
 import { Card, CardContent } from '../components/ui/Card';
 import { DashboardCard } from '../components/dashboard/DashboardCard';
 import { StatCard } from '../components/dashboard/StatCard';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from 'chart.js';
+import { Pie } from 'react-chartjs-2';
+
+ChartJS.register(ArcElement, Tooltip, Legend, Title);
 
 interface DashboardStats {
   totalSurveys: number;
@@ -40,15 +44,25 @@ const Dashboard: React.FC = () => {
   // const isAgent = user?.role === UserRole.AGENT; // Available for role-specific dashboard views
   // const isClient = user?.role === UserRole.CLIENT; // Available for role-specific dashboard views
 
-  useEffect(() => {
-    const fetchDashboardStats = async () => {
-      setIsLoading(true);
-      setError(null);
-      const token = localStorage.getItem('authToken');
+  // State for survey status chart
+  const [surveyStatusChartData, setSurveyStatusChartData] = useState<any>(null);
+  const [isSurveyStatusChartLoading, setIsSurveyStatusChartLoading] = useState(true);
+  const [surveyStatusChartError, setSurveyStatusChartError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setIsLoading(true); // For overall page stats
+      setIsSurveyStatusChartLoading(true); // For chart
+      setError(null);
+      setSurveyStatusChartError(null);
+
+      const token = localStorage.getItem('authToken');
       if (!token) {
-        setError('Authentication token not found. Please log in.');
+        const authError = 'Authentication token not found. Please log in.';
+        setError(authError);
+        setSurveyStatusChartError(authError);
         setIsLoading(false);
+        setIsSurveyStatusChartLoading(false);
         return;
       }
 
@@ -57,6 +71,7 @@ const Dashboard: React.FC = () => {
         'Content-Type': 'application/json'
       };
 
+      // For main stats
       let finalStats: Partial<DashboardStats> = {
         totalSurveys: 0,
         totalResponses: 0,
@@ -211,22 +226,47 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Charts and Visualizations (Placeholders) */}
+      {/* Charts and Visualizations */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <DashboardCard
-          title="Brand Awareness Trends"
-          variant="line"
+          title="Survey Status Distribution"
+          variant="pie" // Or use a new variant if DashboardCard's icon logic is tied to it
+          isLoading={isSurveyStatusChartLoading}
         >
-          <div className="h-[300px] flex items-center justify-center p-4">
-            <div className="text-center text-gray-500">
-              <p className="text-lg">Sample Line Chart</p>
-              <p className="text-sm">Showing brand awareness over time</p>
+          {surveyStatusChartError && (
+            <div className="h-[300px] flex items-center justify-center p-4 text-red-500">
+              <p>{surveyStatusChartError}</p>
             </div>
-          </div>
+          )}
+          {!isSurveyStatusChartLoading && !surveyStatusChartError && surveyStatusChartData && (
+            <div className="h-[300px] p-4 flex justify-center items-center"> {/* Ensure chart has height */}
+              <Pie
+                data={surveyStatusChartData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: 'top' as const,
+                    },
+                    title: {
+                      display: false, // Title is on DashboardCard
+                      text: 'Survey Statuses',
+                    },
+                  },
+                }}
+              />
+            </div>
+          )}
+           {!isSurveyStatusChartLoading && !surveyStatusChartError && !surveyStatusChartData && (
+             <div className="h-[300px] flex items-center justify-center p-4 text-gray-500">
+                <p>No survey status data available.</p>
+             </div>
+           )}
         </DashboardCard>
         
         <DashboardCard
-          title="Market Share Distribution"
+          title="Market Share Distribution (Placeholder)"
           variant="pie"
         >
           <div className="h-[300px] flex items-center justify-center p-4">

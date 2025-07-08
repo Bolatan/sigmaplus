@@ -23,7 +23,9 @@
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
     "express-validator": "^7.1.0",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "chart.js": "^4.4.3",
+    "react-chartjs-2": "^5.2.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.15",
