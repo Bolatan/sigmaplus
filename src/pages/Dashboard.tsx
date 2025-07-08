@@ -37,8 +37,6 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const isAdmin = user?.role === UserRole.ADMIN;
-  // const isAgent = user?.role === UserRole.AGENT; // Not used yet, but available
-  const isAdmin = user?.role === UserRole.ADMIN;
   // const isAgent = user?.role === UserRole.AGENT; // Available for role-specific dashboard views
   // const isClient = user?.role === UserRole.CLIENT; // Available for role-specific dashboard views
 
@@ -59,52 +57,66 @@ const Dashboard: React.FC = () => {
         'Content-Type': 'application/json'
       };
 
-      const currentStats: Partial<DashboardStats> = {
+      let finalStats: Partial<DashboardStats> = {
         totalSurveys: 0,
         totalResponses: 0,
         reportsGenerated: 0,
         averageCompletionRate: 0,
-        totalCompanies: 0,
+        totalCompanies: 0, // This will be fetched globally
       };
 
       try {
-        // Fetch Surveys
+        // Fetch all data first
         const surveysResponse = await fetch('/api/surveys', { headers });
         if (!surveysResponse.ok) throw new Error(`Surveys: ${surveysResponse.statusText}`);
-        const surveysData = await surveysResponse.json();
-        const surveys = surveysData.data || [];
-        currentStats.totalSurveys = surveys.length;
-        currentStats.totalResponses = surveys.reduce((acc: number, survey: any) => acc + (survey.responseCount || 0), 0);
-        const completedSurveys = surveys.filter((survey: any) => survey.status === 'completed').length;
-        currentStats.averageCompletionRate = surveys.length > 0 ? (completedSurveys / surveys.length) * 100 : 0;
+        let allSurveys = (await surveysResponse.json()).data || [];
 
-        // Fetch Reports
         const reportsResponse = await fetch('/api/reports', { headers });
         if (!reportsResponse.ok) throw new Error(`Reports: ${reportsResponse.statusText}`);
-        const reportsData = await reportsResponse.json();
-        currentStats.reportsGenerated = (reportsData.data || []).length;
+        let allReports = (await reportsResponse.json()).data || [];
 
-        // Fetch Companies
         const companiesResponse = await fetch('/api/companies', { headers });
         if (!companiesResponse.ok) throw new Error(`Companies: ${companiesResponse.statusText}`);
-        const companiesData = await companiesResponse.json();
-        currentStats.totalCompanies = (companiesData.data || []).length;
+        finalStats.totalCompanies = ((await companiesResponse.json()).data || []).length;
 
-        // Fetch Users (only if admin)
         if (isAdmin) {
           const usersResponse = await fetch('/api/users', { headers });
           if (!usersResponse.ok) throw new Error(`Users: ${usersResponse.statusText}`);
-          const usersData = await usersResponse.json();
-          currentStats.totalUsers = (usersData.data || []).length;
+          finalStats.totalUsers = ((await usersResponse.json()).data || []).length;
         }
 
-        setStats(currentStats);
+        // Filter for clients
+        let relevantSurveys = allSurveys;
+        let relevantReports = allReports;
+
+        if (user?.role === UserRole.CLIENT && user.companyId) {
+          const clientCompanyId = user.companyId.toString(); // Ensure comparison with string
+          relevantSurveys = allSurveys.filter((s: any) => s.companyId && s.companyId.toString() === clientCompanyId);
+          relevantReports = allReports.filter((r: any) => r.companyId && r.companyId.toString() === clientCompanyId);
+          // Note: Reports need companyId field for this to work.
+        }
+
+        // Calculate stats based on relevant (possibly filtered) data
+        finalStats.totalSurveys = relevantSurveys.length;
+        finalStats.totalResponses = relevantSurveys.reduce((acc: number, survey: any) => acc + (survey.responseCount || 0), 0);
+        const completedSurveys = relevantSurveys.filter((survey: any) => survey.status === 'completed').length;
+        finalStats.averageCompletionRate = relevantSurveys.length > 0 ? (completedSurveys / relevantSurveys.length) * 100 : 0;
+        finalStats.reportsGenerated = relevantReports.length;
+
+        setStats(finalStats);
 
       } catch (err: any) {
         console.error('Error fetching dashboard stats:', err);
         setError(err.message || 'Failed to load some dashboard data.');
         // Set stats with what might have been fetched before error, or keep defaults
-        setStats(prevStats => ({ ...prevStats, ...currentStats }));
+        // but ensure client-specific data is not shown if filtering failed partially
+        setStats(prevStats => ({
+            ...prevStats, // keep any global stats like totalCompanies if fetched
+            totalSurveys: (user?.role === UserRole.CLIENT && user.companyId) ? 0 : prevStats.totalSurveys, // Reset client specific if error
+            totalResponses: (user?.role === UserRole.CLIENT && user.companyId) ? 0 : prevStats.totalResponses,
+            reportsGenerated: (user?.role === UserRole.CLIENT && user.companyId) ? 0 : prevStats.reportsGenerated,
+            averageCompletionRate: (user?.role === UserRole.CLIENT && user.companyId) ? 0 : prevStats.averageCompletionRate,
+         }));
       } finally {
         setIsLoading(false);
       }
