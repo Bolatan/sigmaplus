@@ -138,7 +138,7 @@ const Dashboard: React.FC = () => {
     };
 
     if (user) { // Only fetch if user is loaded (to ensure role is available for isAdmin check)
-        fetchDashboardStats();
+        fetchDashboardData(); // Corrected function name
     } else if (!localStorage.getItem('authToken')) { // If no token at all, probably not logged in
         setIsLoading(false);
         setError('Please log in to view the dashboard.');
