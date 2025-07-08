@@ -158,7 +158,7 @@ const Companies: React.FC = () => {
       if (!token) {
         setApiError("No authentication token found. Please login.");
         setIsLoading(false);
-        setCompanies([]); // Clear any existing mock companies
+        setCompanies([]);
         return;
       }
 
@@ -170,40 +170,48 @@ const Companies: React.FC = () => {
         });
 
         if (!response.ok) {
+          let errorMsg = `Error fetching companies: ${response.statusText}`;
           if (response.status === 401 || response.status === 403) {
-            const errorData = await response.json();
-            setApiError(errorData.msg || errorData.error || `Error: ${response.statusText}`);
-          } else {
-            setApiError(`Error fetching companies: ${response.statusText}`);
+            try {
+              const errorData = await response.json();
+              errorMsg = errorData.msg || errorData.error || errorMsg;
+            } catch (e) { /* ignore if error response not json */ }
           }
+          setApiError(errorMsg);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
-        // Assuming the API returns { data: Company[] }
-        // And backend Company type matches frontend Company type (or needs mapping)
-        // Map _id to id for consistency
-        const fetchedCompanies = result.data.map((c: any) => ({
+        const fetchedCompanies = (result.data || []).map((c: any) => ({
           ...c,
           id: c._id,
-          // Ensure logo is generated if not present, similar to mock
           logo: c.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=random`,
         }));
         setCompanies(fetchedCompanies);
       } catch (error) {
         console.error('Error fetching companies from API:', error);
-         if (!apiError) { // Don't overwrite specific 401/403 messages
+         if (!apiError) {
           setApiError('Failed to fetch companies. Please try again.');
         }
-        setCompanies([]); // Clear companies on error
+        setCompanies([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    // loadCompanies(); // Removing localStorage based loading
-    fetchCompanies();
-  }, [loggedInUser]); // Re-fetch if loggedInUser changes, ensuring token is likely fresh or user context is updated
+    if (loggedInUser) { // Only attempt fetch if loggedInUser context is available
+        fetchCompanies();
+    } else if (!localStorage.getItem('authToken')) { // If no token at all, user is not logged in
+        setApiError("Please login to view companies.");
+        setIsLoading(false);
+        setCompanies([]);
+    }
+    // If authToken exists but loggedInUser is null, AuthContext is still loading.
+    // The page will show its own loading spinner or wait for AuthContext.
+    // No explicit fetchCompanies() call here to avoid race conditions with AuthContext initialization.
+    // The dependency on loggedInUser will trigger fetchCompanies when AuthContext resolves.
+
+  }, [loggedInUser]);
 
   // saveCompanies was for localStorage, will need backend integration for add/edit/delete
   const saveCompanies = useCallback((updatedCompanies: Company[]) => {
