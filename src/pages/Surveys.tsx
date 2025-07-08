@@ -139,6 +139,8 @@ const Surveys: React.FC = () => {
           const fetchedSurveys = (result.data || []).map((s: any) => ({
             ...s,
             id: s._id,
+            title: s.title || 'Untitled Survey',
+            description: s.description || 'No description',
             createdAt: s.createdAt || new Date().toISOString(),
             responseCount: s.responseCount || 0,
             status: s.status || 'draft',
@@ -307,8 +309,8 @@ const Surveys: React.FC = () => {
   }, []);
 
   const filteredSurveys = surveys.filter(survey =>
-    survey.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    survey.description.toLowerCase().includes(searchTerm.toLowerCase())
+    (survey.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (survey.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
   const getStatusColor = (status: string) => {
