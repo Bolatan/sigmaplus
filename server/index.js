@@ -1,9 +1,14 @@
+import dotenv from 'dotenv';
+dotenv.config(); // Load environment variables from .env file
+
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { ObjectId } from 'mongodb'; // Import ObjectId
 import { connectToServer, getDb } from './utils/db.js';
+import authRoutes from './routes/auth.js';
+import { verifyToken, authorizeRole } from './middleware/auth.js';
 
 // ES module equivalents for __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -23,8 +28,13 @@ app.use(express.json());
 // For a typical setup where /api/* is backend and everything else is frontend, this order is fine.
 app.use(express.static(path.join(__dirname, '..', 'dist')));
 
-// API routes
-app.get('/api/surveys', async (req, res) => {
+// --- Auth Routes ---
+app.use('/api/auth', authRoutes); // Mount authentication routes
+
+// --- Protected API Routes ---
+
+// Surveys API: Accessible to any authenticated user
+app.get('/api/surveys', verifyToken, async (req, res) => {
   try {
     const db = getDb();
     const surveys = await db.collection('surveys').find({}).toArray();
@@ -35,7 +45,8 @@ app.get('/api/surveys', async (req, res) => {
   }
 });
 
-app.get('/api/reports', async (req, res) => {
+// Reports API: Accessible to any authenticated user
+app.get('/api/reports', verifyToken, async (req, res) => {
   try {
     const db = getDb();
     const reports = await db.collection('reports').find({}).toArray();
@@ -46,8 +57,8 @@ app.get('/api/reports', async (req, res) => {
   }
 });
 
-// Users API Endpoints
-app.get('/api/users', async (req, res) => {
+// Users API: Only accessible to 'admin' role
+app.get('/api/users', verifyToken, authorizeRole(['admin']), async (req, res) => {
   try {
     const db = getDb();
     const users = await db.collection('users').find({}).toArray();
@@ -58,13 +69,14 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-app.get('/api/users/:id', async (req, res) => {
+app.get('/api/users/:id', verifyToken, authorizeRole(['admin']), async (req, res) => {
   try {
     const db = getDb();
     const { id } = req.params;
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ error: "Invalid user ID format" });
     }
+    // Admins can fetch any user by ID
     const user = await db.collection('users').findOne({ _id: new ObjectId(id) });
     if (!user) {
       return res.status(404).json({ error: "User not found" });
@@ -76,8 +88,8 @@ app.get('/api/users/:id', async (req, res) => {
   }
 });
 
-// Companies API Endpoints
-app.get('/api/companies', async (req, res) => {
+// Companies API: Accessible to any authenticated user
+app.get('/api/companies', verifyToken, async (req, res) => {
   try {
     const db = getDb();
     const companies = await db.collection('companies').find({}).toArray();
@@ -88,7 +100,7 @@ app.get('/api/companies', async (req, res) => {
   }
 });
 
-app.get('/api/companies/:id', async (req, res) => {
+app.get('/api/companies/:id', verifyToken, async (req, res) => {
   try {
     const db = getDb();
     const { id } = req.params;
@@ -106,6 +118,8 @@ app.get('/api/companies/:id', async (req, res) => {
   }
 });
 
+
+// --- Frontend Catchall ---
 // The "catchall" handler: for any request that doesn't
 // match an API route or a static file, send back React's index.html file.
 // This needs to be after all other specific GET routes.

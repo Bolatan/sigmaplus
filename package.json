@@ -19,7 +19,11 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.6.2",
     "tailwind-merge": "^3.3.0",
-    "mongodb": "^6.7.0"
+    "mongodb": "^6.7.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "express-validator": "^7.1.0",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "@types/react": "^18.2.15",
