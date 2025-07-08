@@ -26,7 +26,7 @@ const SurveyResponsePage: React.FC = () => {
   const [survey, setSurvey] = useState<SurveyWithQuestions | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [responses, setResponses] = useState<Record<string, string>>({});
+  const [responses, setResponses] = useState<Record<string, string | string[]>>({}); // Allow string array for multi-choice
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -61,16 +61,16 @@ const SurveyResponsePage: React.FC = () => {
         }
 
         const surveyData = await response.json();
-        // Ensure backend returns survey with _id, map to id. Assume questions are part of surveyData.data
-        // For now, if questions are not on surveyData.data, we'll add a mock one.
+        const surveyFromApi = surveyData.data || surveyData;
+
+        if (!surveyFromApi || !surveyFromApi._id) {
+            throw new Error("Fetched survey data is invalid or missing ID.");
+        }
+
         const fetchedSurvey = {
-            ...(surveyData.data || surveyData),
-            id: (surveyData.data || surveyData)._id,
-            // MOCK QUESTIONS if not present - REMOVE THIS when backend provides questions
-            questions: (surveyData.data || surveyData).questions || [
-                { id: 'q1', text: 'What is your overall satisfaction? (Mock)', type: 'text' },
-                { id: 'q2', text: 'Any comments? (Mock)', type: 'textarea' }
-            ]
+            ...surveyFromApi,
+            id: surveyFromApi._id, // Map _id to id
+            questions: surveyFromApi.questions || [] // Ensure questions is an array, even if empty from backend
         };
         setSurvey(fetchedSurvey);
 
@@ -91,11 +91,21 @@ const SurveyResponsePage: React.FC = () => {
     // If token exists but user is null, AuthContext is loading, page will show its own loader.
   }, [surveyId, user]);
 
-  const handleInputChange = (questionId: string, value: string) => {
-    setResponses(prev => ({
-      ...prev,
-      [questionId]: value,
-    }));
+  const handleInputChange = (questionId: string, value: string, questionType: SurveyQuestion['type']) => {
+    setResponses(prev => {
+      const newResponses = { ...prev };
+      if (questionType === 'multiple-choice') {
+        const currentAnswers = (newResponses[questionId] || []) as string[];
+        if (currentAnswers.includes(value)) {
+          newResponses[questionId] = currentAnswers.filter(ans => ans !== value);
+        } else {
+          newResponses[questionId] = [...currentAnswers, value];
+        }
+      } else {
+        newResponses[questionId] = value;
+      }
+      return newResponses;
+    });
   };
 
   const handleSubmitResponse = async (e: React.FormEvent) => {
@@ -219,23 +229,63 @@ const SurveyResponsePage: React.FC = () => {
                     {q.type === 'text' && (
                       <Input
                         id={q.id || `q-input-${index}`}
-                        value={responses[q.id || `q-${index}`] || ''}
-                        onChange={(e) => handleInputChange(q.id || `q-${index}`, e.target.value)}
+                        value={(responses[q.id || `q-${index}`] as string) || ''}
+                        onChange={(e) => handleInputChange(q.id || `q-${index}`, e.target.value, q.type)}
                         className="mt-1"
                         disabled={isSubmitting || !!successMessage}
+                        required={q.isRequired}
                       />
                     )}
                     {q.type === 'textarea' && (
-                       <textarea
+                      <textarea
                         id={q.id || `q-input-${index}`}
-                        value={responses[q.id || `q-${index}`] || ''}
-                        onChange={(e) => handleInputChange(q.id || `q-${index}`, e.target.value)}
+                        value={(responses[q.id || `q-${index}`] as string) || ''}
+                        onChange={(e) => handleInputChange(q.id || `q-${index}`, e.target.value, q.type)}
                         rows={3}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                         disabled={isSubmitting || !!successMessage}
+                        required={q.isRequired}
                       />
                     )}
-                    {/* Add other question types (e.g., 'choice') here later */}
+                    {q.type === 'single-choice' && q.options && q.options.length > 0 && (
+                      <div className="mt-2 space-y-2">
+                        {q.options.map((option, optIndex) => (
+                          <label key={optIndex} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name={q.id || `q-radio-${index}`}
+                              value={option}
+                              checked={(responses[q.id || `q-${index}`] as string) === option}
+                              onChange={(e) => handleInputChange(q.id || `q-${index}`, e.target.value, q.type)}
+                              className="text-primary-600 focus:ring-primary-500"
+                              disabled={isSubmitting || !!successMessage}
+                              required={q.isRequired && optIndex === 0} // Basic required validation on first radio
+                            />
+                            <span>{option}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    {q.type === 'multiple-choice' && q.options && q.options.length > 0 && (
+                       <div className="mt-2 space-y-2">
+                        {q.options.map((option, optIndex) => (
+                          <label key={optIndex} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              name={`${q.id || `q-check-${index}`}-${optIndex}`}
+                              value={option}
+                              checked={((responses[q.id || `q-${index}`] || []) as string[]).includes(option)}
+                              onChange={(e) => handleInputChange(q.id || `q-${index}`, e.target.value, q.type)}
+                              className="rounded text-primary-600 focus:ring-primary-500"
+                              disabled={isSubmitting || !!successMessage}
+                            />
+                            <span>{option}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    {/* Add other question types here later */}
+                    {q.isRequired && <span className="text-xs text-error-500 ml-1">Required</span>}
                   </div>
                 ))
               ) : (

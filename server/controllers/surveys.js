@@ -8,15 +8,35 @@ import { ObjectId } from 'mongodb';
 
 export const createSurvey = async (req, res, next) => {
   try {
-    const { title, description, questions, status, companyId: bodyCompanyId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId } = req.body;
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user; // User details from verifyToken
 
     const db = getDb();
 
+    // Basic validation for questions structure
+    const validatedQuestions = (inputQuestions || []).map((q: any, index: number) => {
+      if (!q.id || typeof q.id !== 'string') {
+        throw new ApiError(400, `Question at index ${index} is missing a valid 'id'.`);
+      }
+      if (!q.text || typeof q.text !== 'string' || q.text.trim() === '') {
+        throw new ApiError(400, `Question '${q.id}' (index ${index}) must have non-empty 'text'.`);
+      }
+      if (!q.type || typeof q.type !== 'string' || !['text', 'textarea', 'single-choice', 'multiple-choice', 'rating'].includes(q.type)) {
+        throw new ApiError(400, `Question '${q.id}' (index ${index}) has an invalid 'type'.`);
+      }
+      return {
+        id: q.id, // Assuming frontend sends a unique ID like UUID
+        text: q.text.trim(),
+        type: q.type,
+        options: q.options && Array.isArray(q.options) ? q.options.map(String) : [], // Ensure options are strings
+        isRequired: !!q.isRequired, // Coerce to boolean
+      };
+    });
+
     const newSurveyData = {
       title,
       description: description || '',
-      questions: questions || [],
+      questions: validatedQuestions, // Use validated questions
       status: status || 'draft',
       createdBy: new ObjectId(userId),
       createdAt: new Date(),
@@ -122,7 +142,7 @@ export const updateSurvey = async (req, res, next) => {
     const db = getDb();
     const { id: surveyId } = req.params;
     const { id: userId, role: userRole } = req.user;
-    const { title, description, questions, status, companyId: bodyCompanyId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId } = req.body;
 
     if (!ObjectId.isValid(surveyId)) {
       throw new ApiError(404, 'Survey not found (invalid ID format)');
@@ -138,11 +158,32 @@ export const updateSurvey = async (req, res, next) => {
       throw new ApiError(403, 'Forbidden: You can only update surveys you created.');
     }
 
-    const updateFields = {};
-    if (title !== undefined) updateFields.title = title;
-    if (description !== undefined) updateFields.description = description;
-    if (questions !== undefined) updateFields.questions = questions;
+    const updateFields: any = {}; // Use 'any' for updateFields or define a more specific Partial<Survey> type
+    if (title !== undefined) updateFields.title = title.trim();
+    if (description !== undefined) updateFields.description = description.trim();
     if (status !== undefined) updateFields.status = status;
+
+    if (inputQuestions !== undefined) {
+      // Validate incoming questions array if provided
+      updateFields.questions = (inputQuestions || []).map((q: any, index: number) => {
+        if (!q.id || typeof q.id !== 'string') {
+          throw new ApiError(400, `Update: Question at index ${index} is missing a valid 'id'.`);
+        }
+        if (!q.text || typeof q.text !== 'string' || q.text.trim() === '') {
+          throw new ApiError(400, `Update: Question '${q.id}' (index ${index}) must have non-empty 'text'.`);
+        }
+        if (!q.type || typeof q.type !== 'string' || !['text', 'textarea', 'single-choice', 'multiple-choice', 'rating'].includes(q.type)) {
+          throw new ApiError(400, `Update: Question '${q.id}' (index ${index}) has an invalid 'type'.`);
+        }
+        return {
+          id: q.id,
+          text: q.text.trim(),
+          type: q.type,
+          options: q.options && Array.isArray(q.options) ? q.options.map(String) : [],
+          isRequired: !!q.isRequired,
+        };
+      });
+    }
 
     // Handle companyId update - only admins should freely change it.
     // Agents might not be allowed to change it, or only to their own company.

@@ -21,15 +21,28 @@ export interface Company {
   secondaryColor?: string;
 }
 
+export type QuestionType = 'text' | 'textarea' | 'single-choice' | 'multiple-choice' | 'rating';
+
+export interface SurveyQuestion {
+  id: string; // Frontend generated unique ID (e.g., UUID)
+  text: string;
+  type: QuestionType;
+  options?: string[]; // For single-choice, multiple-choice
+  isRequired?: boolean;
+  // Add other question-specific properties like 'maxRating' for 'rating' type later
+}
+
 export interface Survey {
-  id: string;
+  id: string; // Corresponds to _id from MongoDB
   title: string;
   description: string;
-  companyId: string;
+  companyId?: string; // Made optional, or ensure it's always set by backend
   createdAt: string;
   updatedAt: string;
   status: 'draft' | 'active' | 'completed';
   responseCount: number;
+  questions: SurveyQuestion[]; // Array of questions
+  createdBy?: string; // ObjectId as string, ref User
 }
 
 export interface SurveyResponse {

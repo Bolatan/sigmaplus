@@ -6,32 +6,53 @@ import { Card, CardContent } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { Survey, SurveyQuestion, QuestionType } from '../types'; // Import Survey types
+import { v4 as uuidv4 } from 'uuid'; // For generating unique question IDs
 
-interface Survey {
-  id: string;
+// Update SurveyForm props to include questions
+interface SurveyFormData {
   title: string;
   description: string;
-  status: 'draft' | 'active' | 'completed';
-  responseCount: number;
-  createdAt: string;
+  questions: SurveyQuestion[];
 }
 
 const SurveyForm: React.FC<{
-  formData: {
-    title: string;
-    description: string;
-  };
-  onFormDataChange: (data: any) => void;
+  formData: SurveyFormData;
+  onFormDataChange: (data: SurveyFormData) => void;
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onCancel: () => void;
   buttonText: string;
 }> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText }) => {
-  const handleInputChange = useCallback((field: string, value: string) => {
+
+  const handleInputChange = useCallback((field: keyof Omit<SurveyFormData, 'questions'>, value: string) => {
     onFormDataChange({ ...formData, [field]: value });
   }, [formData, onFormDataChange]);
 
+  const handleQuestionChange = useCallback((index: number, field: keyof SurveyQuestion, value: any) => {
+    const newQuestions = [...formData.questions];
+    // @ts-ignore // Allow dynamic assignment
+    newQuestions[index] = { ...newQuestions[index], [field]: value };
+    onFormDataChange({ ...formData, questions: newQuestions });
+  }, [formData, onFormDataChange]);
+
+  const addQuestion = useCallback(() => {
+    const newQuestion: SurveyQuestion = {
+      id: uuidv4(),
+      text: '',
+      type: 'text', // Default type
+      isRequired: false,
+      options: []
+    };
+    onFormDataChange({ ...formData, questions: [...formData.questions, newQuestion] });
+  }, [formData, onFormDataChange]);
+
+  const removeQuestion = useCallback((index: number) => {
+    const newQuestions = formData.questions.filter((_, i) => i !== index);
+    onFormDataChange({ ...formData, questions: newQuestions });
+  }, [formData, onFormDataChange]);
+
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-6">
       <Input
         label="Survey Title"
         value={formData.title}
@@ -39,29 +60,119 @@ const SurveyForm: React.FC<{
         required
       />
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="surveyDescription" className="block text-sm font-medium text-gray-700 mb-1">
           Description
         </label>
         <textarea
+          id="surveyDescription"
           value={formData.description}
           onChange={(e) => handleInputChange('description', e.target.value)}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-          rows={4}
+          rows={3}
           required
         />
       </div>
+
+      {/* Questions Section */}
+      <div className="space-y-4 border-t pt-4">
+        <h3 className="text-md font-semibold">Questions</h3>
+        {formData.questions.map((q, index) => (
+          <div key={q.id} className="p-3 border rounded-md space-y-2 bg-gray-50">
+            <Input
+              label={`Question ${index + 1} Text`}
+              value={q.text}
+              onChange={(e) => handleQuestionChange(index, 'text', e.target.value)}
+              required
+            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Question Type
+              </label>
+              <select
+                value={q.type}
+                onChange={(e) => handleQuestionChange(index, 'type', e.target.value as QuestionType)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+              >
+                <option value="text">Text</option>
+                <option value="textarea">Textarea</option>
+                <option value="single-choice">Single Choice (Radio)</option>
+                <option value="multiple-choice">Multiple Choice (Checkbox)</option>
+                {/* <option value="rating">Rating</option> */}
+              </select>
+            </div>
+
+            {/* Options for choice-based questions */}
+            {(q.type === 'single-choice' || q.type === 'multiple-choice') && (
+              <div className="mt-2 space-y-2 pl-4 border-l-2">
+                {q.options?.map((opt, optIndex) => (
+                  <div key={optIndex} className="flex items-center space-x-2">
+                    <Input
+                      type="text"
+                      value={opt}
+                      placeholder={`Option ${optIndex + 1}`}
+                      onChange={(e) => {
+                        const newOptions = [...(q.options || [])];
+                        newOptions[optIndex] = e.target.value;
+                        handleQuestionChange(index, 'options', newOptions);
+                      }}
+                      className="flex-grow"
+                    />
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      onClick={() => {
+                        const newOptions = (q.options || []).filter((_, i) => i !== optIndex);
+                        handleQuestionChange(index, 'options', newOptions);
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newOptions = [...(q.options || []), 'New Option']; // Add a default new option
+                    handleQuestionChange(index, 'options', newOptions);
+                  }}
+                  leftIcon={<Plus className="h-3 w-3" />}
+                >
+                  Add Option
+                </Button>
+              </div>
+            )}
+            {/* End Options UI */}
+
+            <div className="mt-2">
+               <label className="flex items-center space-x-2">
+                <input
+                    type="checkbox"
+                    checked={!!q.isRequired}
+                    onChange={(e) => handleQuestionChange(index, 'isRequired', e.target.checked)}
+                    className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50"
+                />
+                <span className="text-sm text-gray-700">Required</span>
+              </label>
+            </div>
+
+            <Button type="button" variant="danger" size="sm" onClick={() => removeQuestion(index)} className="mt-2">
+              Remove Question
+            </Button>
+          </div>
+        ))}
+        <Button type="button" variant="outline" onClick={addQuestion} leftIcon={<Plus className="h-4 w-4" />} className="mt-2">
+          Add Question
+        </Button>
+      </div>
+
       <div className="flex justify-end space-x-2 mt-6">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-        >
+        <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button
-          type="submit"
-          variant="primary"
-        >
+        <Button type="submit" variant="primary">
           {buttonText}
         </Button>
       </div>
@@ -72,43 +183,21 @@ const SurveyForm: React.FC<{
 SurveyForm.displayName = 'SurveyForm';
 
 const Surveys: React.FC = () => {
-  const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [surveys, setSurveys] = useState<Survey[]>([]); // Uses Survey from types
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSurvey, setEditingSurvey] = useState<Survey | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<SurveyFormData>({ // Use new SurveyFormData type
     title: '',
     description: '',
+    questions: [], // Initialize with empty questions array
   });
   const { user } = useAuth();
   const navigate = useNavigate();
   const [apiSurveys, setApiSurveys] = useState<any>(null);
   const [apiError, setApiError] = useState<string | null>(null);
-
-  // Move resetForm before other functions that use it
-  const resetForm = useCallback(() => {
-    setFormData({
-      title: '',
-      description: '',
-    });
-    setEditingSurvey(null);
-  }, []);
-
-  const handleFormDataChange = useCallback((newFormData: any) => {
-    setFormData(newFormData);
-  }, []);
-
-  const handleCancelAdd = useCallback(() => {
-    setIsAddModalOpen(false);
-    resetForm();
-  }, [resetForm]);
-
-  const handleCancelEdit = useCallback(() => {
-    setIsEditModalOpen(false);
-    resetForm();
-  }, [resetForm]);
 
   useEffect(() => {
     const fetchApiSurveys = async () => {
@@ -139,8 +228,6 @@ const Surveys: React.FC = () => {
           const fetchedSurveys = (result.data || []).map((s: any) => ({
             ...s,
             id: s._id,
-            title: s.title || 'Untitled Survey',
-            description: s.description || 'No description',
             createdAt: s.createdAt || new Date().toISOString(),
             responseCount: s.responseCount || 0,
             status: s.status || 'draft',
@@ -308,9 +395,31 @@ const Surveys: React.FC = () => {
     setIsEditModalOpen(true);
   }, []);
 
+  const resetForm = useCallback(() => {
+    setFormData({
+      title: '',
+      description: '',
+    });
+    setEditingSurvey(null);
+  }, []);
+
+  const handleFormDataChange = useCallback((newFormData: any) => {
+    setFormData(newFormData);
+  }, []);
+
+  const handleCancelAdd = useCallback(() => {
+    setIsAddModalOpen(false);
+    resetForm();
+  }, [resetForm]);
+
+  const handleCancelEdit = useCallback(() => {
+    setIsEditModalOpen(false);
+    resetForm();
+  }, [resetForm]);
+
   const filteredSurveys = surveys.filter(survey =>
-    (survey.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (survey.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+    survey.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    survey.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getStatusColor = (status: string) => {
