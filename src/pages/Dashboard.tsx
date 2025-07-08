@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, BarChart3, ClipboardList, TrendingUp } from 'lucide-react';
+import { Users, BarChart3, ClipboardList, TrendingUp, Building2, UserCheck } from 'lucide-react'; // Added Building2, UserCheck
 import { Card, CardContent } from '../components/ui/Card';
 import { DashboardCard } from '../components/dashboard/DashboardCard';
 import { StatCard } from '../components/dashboard/StatCard';
@@ -10,91 +10,121 @@ interface DashboardStats {
   totalSurveys: number;
   totalResponses: number;
   reportsGenerated: number;
-  averageCompletionRate: number;
-  surveyTrend: number;
-  responseTrend: number;
-  reportTrend: number;
-  completionRateTrend: number;
+  averageCompletionRate: number; // Will be calculated from surveys
+  totalUsers?: number; // Optional because only admins see this
+  totalCompanies: number;
+  // Trends can be added back later if actual trend data is available
+  // surveyTrend: number;
+  // responseTrend: number;
+  // reportTrend: number;
+  // completionRateTrend: number;
 }
 
 const Dashboard: React.FC = () => {
-  const { user } = useAuth();
-  const [stats, setStats] = useState<DashboardStats>({
+  const { user } = useAuth(); // Contains user role
+  const [stats, setStats] = useState<Partial<DashboardStats>>({ // Partial because users might be undefined
     totalSurveys: 0,
     totalResponses: 0,
     reportsGenerated: 0,
     averageCompletionRate: 0,
-    surveyTrend: 0,
-    responseTrend: 0,
-    reportTrend: 0,
-    completionRateTrend: 0
+    totalCompanies: 0,
+    // surveyTrend: 0,
+    // responseTrend: 0,
+    // reportTrend: 0,
+    // completionRateTrend: 0
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const isAdmin = user?.role === UserRole.ADMIN;
-  const isAgent = user?.role === UserRole.AGENT;
-  const isClient = user?.role === UserRole.CLIENT;
+  // const isAgent = user?.role === UserRole.AGENT; // Not used yet, but available
+  const isAdmin = user?.role === UserRole.ADMIN;
+  // const isAgent = user?.role === UserRole.AGENT; // Available for role-specific dashboard views
+  // const isClient = user?.role === UserRole.CLIENT; // Available for role-specific dashboard views
 
   useEffect(() => {
-    fetchDashboardStats();
-  }, []);
-
-  const fetchDashboardStats = async () => {
-    try {
+    const fetchDashboardStats = async () => {
+      setIsLoading(true);
+      setError(null);
       const token = localStorage.getItem('authToken');
+
       if (!token) {
-        throw new Error('No authentication token found');
+        setError('Authentication token not found. Please log in.');
+        setIsLoading(false);
+        return;
       }
 
-      // Fetch surveys count
-      const surveysResponse = await fetch(`${import.meta.env.VITE_API_URL}/surveys`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+
+      const currentStats: Partial<DashboardStats> = {
+        totalSurveys: 0,
+        totalResponses: 0,
+        reportsGenerated: 0,
+        averageCompletionRate: 0,
+        totalCompanies: 0,
+      };
+
+      try {
+        // Fetch Surveys
+        const surveysResponse = await fetch('/api/surveys', { headers });
+        if (!surveysResponse.ok) throw new Error(`Surveys: ${surveysResponse.statusText}`);
+        const surveysData = await surveysResponse.json();
+        const surveys = surveysData.data || [];
+        currentStats.totalSurveys = surveys.length;
+        currentStats.totalResponses = surveys.reduce((acc: number, survey: any) => acc + (survey.responseCount || 0), 0);
+        const completedSurveys = surveys.filter((survey: any) => survey.status === 'completed').length;
+        currentStats.averageCompletionRate = surveys.length > 0 ? (completedSurveys / surveys.length) * 100 : 0;
+
+        // Fetch Reports
+        const reportsResponse = await fetch('/api/reports', { headers });
+        if (!reportsResponse.ok) throw new Error(`Reports: ${reportsResponse.statusText}`);
+        const reportsData = await reportsResponse.json();
+        currentStats.reportsGenerated = (reportsData.data || []).length;
+
+        // Fetch Companies
+        const companiesResponse = await fetch('/api/companies', { headers });
+        if (!companiesResponse.ok) throw new Error(`Companies: ${companiesResponse.statusText}`);
+        const companiesData = await companiesResponse.json();
+        currentStats.totalCompanies = (companiesData.data || []).length;
+
+        // Fetch Users (only if admin)
+        if (isAdmin) {
+          const usersResponse = await fetch('/api/users', { headers });
+          if (!usersResponse.ok) throw new Error(`Users: ${usersResponse.statusText}`);
+          const usersData = await usersResponse.json();
+          currentStats.totalUsers = (usersData.data || []).length;
         }
-      });
-      const surveysData = await surveysResponse.json();
-      const surveys = surveysData.data || [];
 
-      // Calculate total responses
-      const totalResponses = surveys.reduce((acc: number, survey: any) => 
-        acc + (survey.responseCount || 0), 0);
+        setStats(currentStats);
 
-      // Fetch reports count
-      const reportsResponse = await fetch(`${import.meta.env.VITE_API_URL}/reports`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const reportsData = await reportsResponse.json();
-      const reports = reportsData.data || [];
+      } catch (err: any) {
+        console.error('Error fetching dashboard stats:', err);
+        setError(err.message || 'Failed to load some dashboard data.');
+        // Set stats with what might have been fetched before error, or keep defaults
+        setStats(prevStats => ({ ...prevStats, ...currentStats }));
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-      // Calculate completion rate
-      const completedSurveys = surveys.filter((survey: any) => 
-        survey.status === 'completed').length;
-      const averageCompletionRate = surveys.length > 0 
-        ? (completedSurveys / surveys.length) * 100 
-        : 0;
-
-      setStats({
-        totalSurveys: surveys.length,
-        totalResponses,
-        reportsGenerated: reports.length,
-        averageCompletionRate,
-        surveyTrend: 8,
-        responseTrend: 12,
-        reportTrend: 5,
-        completionRateTrend: -2
-      });
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-      // Keep the previous stats on error
-    } finally {
-      setIsLoading(false);
+    if (user) { // Only fetch if user is loaded (to ensure role is available for isAdmin check)
+        fetchDashboardStats();
+    } else if (!localStorage.getItem('authToken')) { // If no token at all, probably not logged in
+        setIsLoading(false);
+        setError('Please log in to view the dashboard.');
     }
-  };
+    // If there's a token but user isn't loaded yet from AuthContext, useEffect in AuthContext will handle it.
+    // The isLoading from AuthContext can also be used here for a more global loading state.
+  }, [isAdmin, user]); // Depend on user to ensure role is available and re-fetch if user changes.
 
-  if (isLoading) {
+  // Combined loading state: true if this page is loading OR if auth context is still loading user
+  const pageIsLoading = isLoading || (!user && !!localStorage.getItem('authToken'));
+
+
+  if (pageIsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
@@ -102,13 +132,24 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  const getDashboardTitle = () => {
+    if (user?.role === UserRole.ADMIN) return "Admin Dashboard";
+    if (user?.role === UserRole.AGENT) return "Agent Dashboard";
+    if (user?.role === UserRole.CLIENT) return "Client Dashboard";
+    return "Dashboard";
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
+       {error && (
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+          <p className="font-bold">Error</p>
+          <p>{error}</p>
+        </div>
+      )}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">
-          {isAdmin && "Admin Dashboard"}
-          {isAgent && "Agent Dashboard"}
-          {isClient && "Client Dashboard"}
+          {getDashboardTitle()}
         </h2>
         <div className="text-sm text-gray-500">
           {new Date().toLocaleDateString('en-US', {
@@ -120,40 +161,46 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Total Surveys"
-          value={stats.totalSurveys.toString()}
-          icon={<ClipboardList className="h-6 w-6 text-primary-500" />}
-          change={stats.surveyTrend}
-          trend={stats.surveyTrend >= 0 ? 'up' : 'down'}
-        />
-        <StatCard
-          title="Total Responses"
-          value={stats.totalResponses.toLocaleString()}
-          icon={<Users className="h-6 w-6 text-secondary-500" />}
-          change={stats.responseTrend}
-          trend={stats.responseTrend >= 0 ? 'up' : 'down'}
-        />
-        <StatCard
-          title="Reports Generated"
-          value={stats.reportsGenerated.toString()}
-          icon={<BarChart3 className="h-6 w-6 text-accent-500" />}
-          change={stats.reportTrend}
-          trend={stats.reportTrend >= 0 ? 'up' : 'down'}
-        />
-        <StatCard
-          title="Average Completion Rate"
-          value={`${Math.round(stats.averageCompletionRate)}%`}
-          icon={<TrendingUp className="h-6 w-6 text-success-500" />}
-          change={Math.abs(stats.completionRateTrend)}
-          trend={stats.completionRateTrend >= 0 ? 'up' : 'down'}
-        />
-      </div>
+      {(Object.keys(stats).length > 0 || !error) && ( // Render stat cards if stats are loaded or no error stopped everything
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            title="Total Surveys"
+            value={stats.totalSurveys?.toString() || '0'}
+            icon={<ClipboardList className="h-6 w-6 text-primary-500" />}
+            // trend related props removed
+          />
+          <StatCard
+            title="Total Responses"
+            value={stats.totalResponses?.toLocaleString() || '0'}
+            icon={<Users className="h-6 w-6 text-secondary-500" />}
+          />
+          <StatCard
+            title="Reports Generated"
+            value={stats.reportsGenerated?.toString() || '0'}
+            icon={<BarChart3 className="h-6 w-6 text-accent-500" />}
+          />
+          <StatCard
+            title="Avg. Completion Rate"
+            value={`${Math.round(stats.averageCompletionRate || 0)}%`}
+            icon={<TrendingUp className="h-6 w-6 text-success-500" />}
+          />
+          <StatCard
+            title="Total Companies"
+            value={stats.totalCompanies?.toString() || '0'}
+            icon={<Building2 className="h-6 w-6 text-indigo-500" />}
+          />
+          {isAdmin && ( // Only show Total Users card if user is admin
+            <StatCard
+              title="Total Users"
+              value={stats.totalUsers?.toString() || 'N/A'}
+              icon={<UserCheck className="h-6 w-6 text-teal-500" />}
+            />
+          )}
+        </div>
+      )}
 
-      {/* Charts and Visualizations */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Charts and Visualizations (Placeholders) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <DashboardCard
           title="Brand Awareness Trends"
           variant="line"
