@@ -87,6 +87,29 @@ const Surveys: React.FC = () => {
   const [apiSurveys, setApiSurveys] = useState<any>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
+  // Move resetForm before other functions that use it
+  const resetForm = useCallback(() => {
+    setFormData({
+      title: '',
+      description: '',
+    });
+    setEditingSurvey(null);
+  }, []);
+
+  const handleFormDataChange = useCallback((newFormData: any) => {
+    setFormData(newFormData);
+  }, []);
+
+  const handleCancelAdd = useCallback(() => {
+    setIsAddModalOpen(false);
+    resetForm();
+  }, [resetForm]);
+
+  const handleCancelEdit = useCallback(() => {
+    setIsEditModalOpen(false);
+    resetForm();
+  }, [resetForm]);
+
   useEffect(() => {
     const fetchApiSurveys = async () => {
       setIsLoading(true);
@@ -282,28 +305,6 @@ const Surveys: React.FC = () => {
     });
     setIsEditModalOpen(true);
   }, []);
-
-  const resetForm = useCallback(() => {
-    setFormData({
-      title: '',
-      description: '',
-    });
-    setEditingSurvey(null);
-  }, []);
-
-  const handleFormDataChange = useCallback((newFormData: any) => {
-    setFormData(newFormData);
-  }, []);
-
-  const handleCancelAdd = useCallback(() => {
-    setIsAddModalOpen(false);
-    resetForm();
-  }, [resetForm]);
-
-  const handleCancelEdit = useCallback(() => {
-    setIsEditModalOpen(false);
-    resetForm();
-  }, [resetForm]);
 
   const filteredSurveys = surveys.filter(survey =>
     survey.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
