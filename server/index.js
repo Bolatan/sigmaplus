@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { ObjectId } from 'mongodb'; // Import ObjectId
 import { connectToServer, getDb } from './utils/db.js';
 
 // ES module equivalents for __dirname
@@ -42,6 +43,66 @@ app.get('/api/reports', async (req, res) => {
   } catch (err) {
     console.error("Failed to fetch reports:", err);
     res.status(500).json({ error: "Failed to fetch reports from database" });
+  }
+});
+
+// Users API Endpoints
+app.get('/api/users', async (req, res) => {
+  try {
+    const db = getDb();
+    const users = await db.collection('users').find({}).toArray();
+    res.json({ data: users });
+  } catch (err) {
+    console.error("Failed to fetch users:", err);
+    res.status(500).json({ error: "Failed to fetch users from database" });
+  }
+});
+
+app.get('/api/users/:id', async (req, res) => {
+  try {
+    const db = getDb();
+    const { id } = req.params;
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid user ID format" });
+    }
+    const user = await db.collection('users').findOne({ _id: new ObjectId(id) });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.json({ data: user });
+  } catch (err) {
+    console.error("Failed to fetch user:", err);
+    res.status(500).json({ error: "Failed to fetch user from database" });
+  }
+});
+
+// Companies API Endpoints
+app.get('/api/companies', async (req, res) => {
+  try {
+    const db = getDb();
+    const companies = await db.collection('companies').find({}).toArray();
+    res.json({ data: companies });
+  } catch (err) {
+    console.error("Failed to fetch companies:", err);
+    res.status(500).json({ error: "Failed to fetch companies from database" });
+  }
+});
+
+app.get('/api/companies/:id', async (req, res) => {
+  try {
+    const db = getDb();
+    const { id } = req.params;
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid company ID format" });
+    }
+    const company = await db.collection('companies').findOne({ _id: new ObjectId(id) });
+    if (!company) {
+      return res.status(404).json({ error: "Company not found" });
+    }
+    res.json({ data: company });
+  } catch (err) {
+    console.error("Failed to fetch company:", err);
+    res.status(500).json({ error: "Failed to fetch company from database" });
   }
 });
 
