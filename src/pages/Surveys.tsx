@@ -199,6 +199,16 @@ const Surveys: React.FC = () => {
   const [apiSurveys, setApiSurveys] = useState<any>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
+  // Move resetForm function before it's used in other functions
+  const resetForm = useCallback(() => {
+    setFormData({
+      title: '',
+      description: '',
+      questions: [],
+    });
+    setEditingSurvey(null);
+  }, []);
+
   useEffect(() => {
     const fetchApiSurveys = async () => {
       setIsLoading(true);
@@ -391,19 +401,12 @@ const Surveys: React.FC = () => {
     setFormData({
       title: survey.title,
       description: survey.description,
+      questions: survey.questions || [],
     });
     setIsEditModalOpen(true);
   }, []);
 
-  const resetForm = useCallback(() => {
-    setFormData({
-      title: '',
-      description: '',
-    });
-    setEditingSurvey(null);
-  }, []);
-
-  const handleFormDataChange = useCallback((newFormData: any) => {
+  const handleFormDataChange = useCallback((newFormData: SurveyFormData) => {
     setFormData(newFormData);
   }, []);
 
