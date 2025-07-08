@@ -5,7 +5,7 @@ import { Input } from '../components/ui/Input';
 import { Card, CardContent } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom';
 
 interface Survey {
   id: string;
@@ -16,7 +16,6 @@ interface Survey {
   createdAt: string;
 }
 
-// Separate SurveyForm component to prevent re-renders
 const SurveyForm: React.FC<{
   formData: {
     title: string;
@@ -84,20 +83,20 @@ const Surveys: React.FC = () => {
     description: '',
   });
   const { user } = useAuth();
-  const navigate = useNavigate(); // Initialize useNavigate
-  const [apiSurveys, setApiSurveys] = useState<any>(null); // For data from /api/surveys
+  const navigate = useNavigate();
+  const [apiSurveys, setApiSurveys] = useState<any>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchApiSurveys = async () => {
-      setIsLoading(true); // Start loading
-      setApiError(null); // Reset error
+      setIsLoading(true);
+      setApiError(null);
       const token = localStorage.getItem('authToken');
 
       if (!token) {
         setApiError("No authentication token found. Please login.");
         setIsLoading(false);
-        setSurveys([]); // Set to empty array if no token
+        setSurveys([]);
         return;
       }
 
@@ -109,9 +108,9 @@ const Surveys: React.FC = () => {
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({})); // Try to parse error, default to empty obj
+          const errorData = await response.json().catch(() => ({}));
           setApiError(errorData.msg || errorData.error || `HTTP error! status: ${response.status}`);
-          setSurveys([]); // Set to empty array on error
+          setSurveys([]);
         } else {
           const result = await response.json();
           const fetchedSurveys = (result.data || []).map((s: any) => ({
@@ -425,7 +424,7 @@ const Surveys: React.FC = () => {
                     </Button>
                     {survey.status === 'active' && (
                        <Button
-                        variant="success" // Assuming you have a success variant or use primary/secondary
+                        variant="success"
                         size="sm"
                         onClick={() => navigate(`/surveys/${survey.id}/respond`)}
                       >
@@ -435,7 +434,7 @@ const Surveys: React.FC = () => {
                   </div>
                 </div>
                 
-                {(user?.role === 'admin' || user?.role === 'agent') && ( // Admin/Agent specific actions
+                {(user?.role === 'admin' || user?.role === 'agent') && (
                   <div className="mt-3 flex space-x-2">
                     {survey.status === 'draft' && (
                       <Button
