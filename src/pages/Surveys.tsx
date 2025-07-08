@@ -123,46 +123,72 @@ const Surveys: React.FC = () => {
   const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch data from the backend API
     const fetchApiSurveys = async () => {
+      setIsLoading(true); // Start loading
+      setApiError(null); // Reset error
+      const token = localStorage.getItem('authToken');
+
+      if (!token) {
+        setApiError("No authentication token found. Please login.");
+        setIsLoading(false);
+        setSurveys(INITIAL_SURVEYS); // Fallback to initial mock data or empty
+        return;
+      }
+
       try {
-        const response = await fetch('/api/surveys');
+        const response = await fetch('/api/surveys', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorData = await response.json().catch(() => ({})); // Try to parse error, default to empty obj
+          setApiError(errorData.msg || errorData.error || `HTTP error! status: ${response.status}`);
+          // throw new Error(errorData.msg || `HTTP error! status: ${response.status}`);
+          setSurveys(INITIAL_SURVEYS); // Fallback on error
+        } else {
+          const result = await response.json();
+          // Assuming result.data contains the array of surveys from backend
+          // And backend _id needs to be mapped to id for frontend Survey type
+          const fetchedSurveys = (result.data || []).map((s: any) => ({
+            ...s,
+            id: s._id, // Map _id to id
+            // Ensure other fields match the frontend Survey interface if necessary
+            // For example, if backend sends date strings but frontend expects Date objects (though string is fine for display)
+            createdAt: s.createdAt || new Date().toISOString(), // Provide default if missing
+            responseCount: s.responseCount || 0,
+            status: s.status || 'draft',
+          }));
+          setSurveys(fetchedSurveys); // Set surveys state with data from API
+          setApiSurveys(fetchedSurveys); // Also update apiSurveys if you use it elsewhere
+          console.log('Fetched from /api/surveys:', fetchedSurveys);
         }
-        const data = await response.json();
-        setApiSurveys(data);
-        console.log('Fetched from /api/surveys:', data);
-        // You might want to integrate this data with your existing 'surveys' state
-        // or use it directly, depending on your application logic.
-        // For now, it's stored separately.
       } catch (error: any) {
         console.error('Error fetching from /api/surveys:', error);
-        setApiError(error.message || 'Failed to fetch surveys from API');
+        if (!apiError) setApiError(error.message || 'Failed to fetch surveys from API.');
+        setSurveys(INITIAL_SURVEYS); // Fallback to initial mock data or empty on critical error
+      } finally {
+        setIsLoading(false); // Stop loading
       }
     };
 
     fetchApiSurveys();
-    loadSurveys(); // Keep existing localStorage logic for now
-  }, []);
+    // loadSurveys(); // This was for localStorage, now replaced by fetchApiSurveys
+  }, [user]); // Re-fetch if user context changes (e.g., login/logout)
 
+
+  // The old loadSurveys and saveSurveys were for localStorage.
+  // These will need to be replaced with API calls for add/edit/delete operations later.
   const loadSurveys = () => {
-    try {
-      // Load surveys from localStorage or use initial data
-      const savedSurveys = localStorage.getItem('surveys');
-      if (savedSurveys) {
-        setSurveys(JSON.parse(savedSurveys));
-      } else {
-        // Initialize with default surveys and save to localStorage
-        setSurveys(INITIAL_SURVEYS);
-        localStorage.setItem('surveys', JSON.stringify(INITIAL_SURVEYS));
-      }
-    } catch (error) {
-      console.error('Error loading surveys from localStorage:', error);
-      setSurveys(INITIAL_SURVEYS);
-    } finally {
-      setIsLoading(false);
-    }
+    // This function is effectively replaced by fetchApiSurveys.
+    // Kept here to avoid breaking calls if any, but should be removed.
+    console.warn("loadSurveys (localStorage) called but should be deprecated by API fetch.");
+    // To prevent breaking the UI completely if something still calls it,
+    // we can ensure isLoading is false if it was the only thing setting it.
+    // However, fetchApiSurveys now handles setIsLoading.
+    // For now, if INITIAL_SURVEYS is desired as a fallback when API fails,
+    // fetchApiSurveys already sets it.
   };
 
   const saveSurveys = useCallback((updatedSurveys: Survey[]) => {
