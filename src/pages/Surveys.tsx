@@ -15,41 +15,7 @@ interface Survey {
   createdAt: string;
 }
 
-// Initial surveys data that will be stored in localStorage
-const INITIAL_SURVEYS: Survey[] = [
-  {
-    id: '1',
-    title: 'Customer Satisfaction Survey',
-    description: 'Quarterly customer satisfaction assessment for Q1 2024',
-    status: 'completed',
-    responseCount: 25,
-    createdAt: '2024-01-15T08:00:00.000Z'
-  },
-  {
-    id: '2',
-    title: 'Brand Awareness Study',
-    description: 'Market research study to measure brand recognition and recall',
-    status: 'completed',
-    responseCount: 30,
-    createdAt: '2024-01-20T08:00:00.000Z'
-  },
-  {
-    id: '3',
-    title: 'Product Feedback Survey',
-    description: 'Collecting feedback on new product features and usability',
-    status: 'active',
-    responseCount: 15,
-    createdAt: '2024-02-01T08:00:00.000Z'
-  },
-  {
-    id: '4',
-    title: 'Employee Engagement Survey',
-    description: 'Internal survey to measure employee satisfaction and engagement',
-    status: 'draft',
-    responseCount: 0,
-    createdAt: '2024-02-05T08:00:00.000Z'
-  }
-];
+// INITIAL_SURVEYS array removed as data is now fetched from API
 
 // Separate SurveyForm component to prevent re-renders
 const SurveyForm: React.FC<{
@@ -131,7 +97,7 @@ const Surveys: React.FC = () => {
       if (!token) {
         setApiError("No authentication token found. Please login.");
         setIsLoading(false);
-        setSurveys(INITIAL_SURVEYS); // Fallback to initial mock data or empty
+        setSurveys([]); // Set to empty array if no token
         return;
       }
 
@@ -145,8 +111,7 @@ const Surveys: React.FC = () => {
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({})); // Try to parse error, default to empty obj
           setApiError(errorData.msg || errorData.error || `HTTP error! status: ${response.status}`);
-          // throw new Error(errorData.msg || `HTTP error! status: ${response.status}`);
-          setSurveys(INITIAL_SURVEYS); // Fallback on error
+          setSurveys([]); // Set to empty array on error
         } else {
           const result = await response.json();
           // Assuming result.data contains the array of surveys from backend
@@ -167,38 +132,17 @@ const Surveys: React.FC = () => {
       } catch (error: any) {
         console.error('Error fetching from /api/surveys:', error);
         if (!apiError) setApiError(error.message || 'Failed to fetch surveys from API.');
-        setSurveys(INITIAL_SURVEYS); // Fallback to initial mock data or empty on critical error
+        setSurveys([]); // Set to empty array on critical error
       } finally {
         setIsLoading(false); // Stop loading
       }
     };
 
     fetchApiSurveys();
-    // loadSurveys(); // This was for localStorage, now replaced by fetchApiSurveys
   }, [user]); // Re-fetch if user context changes (e.g., login/logout)
 
-
-  // The old loadSurveys and saveSurveys were for localStorage.
-  // These will need to be replaced with API calls for add/edit/delete operations later.
-  const loadSurveys = () => {
-    // This function is effectively replaced by fetchApiSurveys.
-    // Kept here to avoid breaking calls if any, but should be removed.
-    console.warn("loadSurveys (localStorage) called but should be deprecated by API fetch.");
-    // To prevent breaking the UI completely if something still calls it,
-    // we can ensure isLoading is false if it was the only thing setting it.
-    // However, fetchApiSurveys now handles setIsLoading.
-    // For now, if INITIAL_SURVEYS is desired as a fallback when API fails,
-    // fetchApiSurveys already sets it.
-  };
-
-  const saveSurveys = useCallback((updatedSurveys: Survey[]) => {
-    try {
-      localStorage.setItem('surveys', JSON.stringify(updatedSurveys));
-      setSurveys(updatedSurveys);
-    } catch (error) {
-      console.error('Error saving surveys:', error);
-    }
-  }, []);
+  // loadSurveys and saveSurveys functions are no longer needed as all data operations use API.
+  // Removed them.
 
   const handleAddSurvey = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -218,7 +162,57 @@ const Surveys: React.FC = () => {
     } catch (error) {
       console.error('Error adding survey:', error);
     }
-  }, [formData, surveys, saveSurveys]);
+  }, [formData, surveys, saveSurveys]); // saveSurveys will be removed later
+
+  const handleAddSurvey = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    setApiError(null); // Clear previous errors
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setApiError("Authentication required. Please login.");
+      return;
+    }
+
+    // Basic frontend validation (though backend also validates)
+    if (!formData.title.trim()) {
+        setApiError("Survey title is required.");
+        return;
+    }
+
+    try {
+      const response = await fetch('/api/surveys', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          description: formData.description,
+          // status: 'draft', // Backend defaults to draft, or can be sent
+          // questions: [], // Can be sent if form supports it
+          // companyId: can be sent if admin and form supports it
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to create survey: ${response.statusText}`);
+      }
+
+      const newSurveyFromApi = await response.json();
+      // The backend now returns the full survey object, map _id to id if needed by frontend type
+      const newSurvey = { ...newSurveyFromApi, id: newSurveyFromApi._id };
+
+
+      setSurveys(prevSurveys => [newSurvey, ...prevSurveys]); // Add to top for immediate visibility
+      setIsAddModalOpen(false);
+      resetForm();
+    } catch (error: any) {
+      console.error('Error adding survey via API:', error);
+      setApiError(error.message || 'An unexpected error occurred while adding the survey.');
+    }
+  }, [formData, resetForm]); // Removed surveys and saveSurveys from deps
 
   const handleEditSurvey = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,16 +233,112 @@ const Surveys: React.FC = () => {
     } catch (error) {
       console.error('Error updating survey:', error);
     }
-  }, [formData, editingSurvey, surveys, saveSurveys]);
+  }, [formData, editingSurvey, surveys, saveSurveys]); // saveSurveys will be removed
 
-  const handleStatusChange = useCallback((surveyId: string, newStatus: 'draft' | 'active' | 'completed') => {
-    const updatedSurveys = surveys.map(survey =>
-      survey.id === surveyId 
-        ? { ...survey, status: newStatus }
-        : survey
+  const handleEditSurvey = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSurvey || !editingSurvey.id) {
+      setApiError("No survey selected for editing or survey ID is missing.");
+      return;
+    }
+    setApiError(null);
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setApiError("Authentication required. Please login.");
+      return;
+    }
+
+    // Basic frontend validation
+    if (!formData.title.trim()) {
+        setApiError("Survey title is required.");
+        return;
+    }
+
+    try {
+      const response = await fetch(`/api/surveys/${editingSurvey.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          description: formData.description,
+          // status: can be sent if form supports it
+          // questions: can be sent if form supports it
+          // companyId: can be sent if admin and form supports it
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+         throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update survey: ${response.statusText}`);
+      }
+
+      const updatedSurveyFromApi = await response.json();
+      // Backend controller for update now returns the full updated document.
+      // Map _id to id if necessary for frontend type.
+      const updatedSurvey = { ...updatedSurveyFromApi, id: updatedSurveyFromApi._id };
+
+
+      setSurveys(prevSurveys =>
+        prevSurveys.map(s => (s.id === updatedSurvey.id ? updatedSurvey : s))
+      );
+      setIsEditModalOpen(false);
+      resetForm();
+    } catch (error: any) {
+      console.error('Error updating survey via API:', error);
+      setApiError(error.message || 'An unexpected error occurred while updating the survey.');
+    }
+  }, [formData, editingSurvey, resetForm]); // Removed surveys and saveSurveys
+
+  const handleStatusChange = useCallback(async (surveyId: string, newStatus: Survey['status']) => {
+    setApiError(null);
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setApiError("Authentication required. Please login.");
+      return;
+    }
+
+    // Optimistically update UI first
+    const originalSurveys = [...surveys];
+    setSurveys(prevSurveys =>
+      prevSurveys.map(s =>
+        s.id === surveyId ? { ...s, status: newStatus, updatedAt: new Date().toISOString() } : s
+      )
     );
-    saveSurveys(updatedSurveys);
-  }, [surveys, saveSurveys]);
+
+    try {
+      const response = await fetch(`/api/surveys/${surveyId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus }), // Only send the status to update
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        // Revert optimistic update on error
+        setSurveys(originalSurveys);
+        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update survey status: ${response.statusText}`);
+      }
+
+      const updatedSurveyFromApi = await response.json();
+      // Update with the confirmed data from API to ensure consistency (e.g. updatedAt timestamp from server)
+      const finalUpdatedSurvey = { ...updatedSurveyFromApi, id: updatedSurveyFromApi._id };
+      setSurveys(prevSurveys =>
+        prevSurveys.map(s => (s.id === finalUpdatedSurvey.id ? finalUpdatedSurvey : s))
+      );
+
+    } catch (error: any) {
+      console.error('Error updating survey status via API:', error);
+      setApiError(error.message || 'An unexpected error occurred while updating status.');
+      // Revert optimistic update if not already done (e.g. network error before response.ok check)
+      setSurveys(originalSurveys);
+    }
+  }, [surveys]); // Removed saveSurveys from deps
 
   const startEdit = useCallback((survey: Survey) => {
     setEditingSurvey(survey);
