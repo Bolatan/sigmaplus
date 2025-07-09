@@ -1,20 +1,20 @@
 import { ApiError } from '../utils/ApiError.js';
-import { getDb } from '../utils/db.js'; // Corrected path
+import { getDb } from '../utils/db.js';
 import { ObjectId } from 'mongodb';
-
-// Mock database - replace with actual database in production
-// let surveys = []; // To be removed
-// let responses = []; // To be removed or handled later
+import csv from 'csv-parser';
+import { Readable } from 'stream';
 
 export const createSurvey = async (req, res, next) => {
   try {
     const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId } = req.body;
-    const { id: userId, role: userRole, companyId: userCompanyId } = req.user; // User details from verifyToken
+    const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
     const db = getDb();
 
-    // Basic validation for questions structure
     const validatedQuestions = (inputQuestions || []).map((q, index) => {
+      if (!q || typeof q !== 'object') {
+        throw new ApiError(400, `Question at index ${index} is not a valid object.`);
+      }
       if (!q.id || typeof q.id !== 'string') {
         throw new ApiError(400, `Question at index ${index} is missing a valid 'id'.`);
       }
@@ -25,18 +25,18 @@ export const createSurvey = async (req, res, next) => {
         throw new ApiError(400, `Question '${q.id}' (index ${index}) has an invalid 'type'.`);
       }
       return {
-        id: q.id, // Assuming frontend sends a unique ID like UUID
+        id: q.id,
         text: q.text.trim(),
         type: q.type,
-        options: q.options && Array.isArray(q.options) ? q.options.map(String) : [], // Ensure options are strings
-        isRequired: !!q.isRequired, // Coerce to boolean
+        options: q.options && Array.isArray(q.options) ? q.options.map(opt => String(opt)) : [],
+        isRequired: typeof q.isRequired === 'boolean' ? q.isRequired : !!q.isRequired,
       };
     });
 
     const newSurveyData = {
       title,
       description: description || '',
-      questions: validatedQuestions, // Use validated questions
+      questions: validatedQuestions,
       status: status || 'draft',
       createdBy: new ObjectId(userId),
       createdAt: new Date(),
@@ -44,29 +44,22 @@ export const createSurvey = async (req, res, next) => {
       responseCount: 0,
     };
 
-    // Handle companyId assignment
     if (userRole === 'admin' && bodyCompanyId && ObjectId.isValid(bodyCompanyId)) {
       newSurveyData.companyId = new ObjectId(bodyCompanyId);
     } else if ((userRole === 'agent' || userRole === 'client') && userCompanyId && ObjectId.isValid(userCompanyId)) {
-      // Agents/Clients automatically assigned to their own company if they have one
-      // Or if admin is creating for a specific company they can provide bodyCompanyId
-      // If agent provides bodyCompanyId, it should ideally match their own or be ignored/validated.
-      // For now, admin can override, agent/client uses their own if exists.
       newSurveyData.companyId = new ObjectId(userCompanyId);
       if (bodyCompanyId && bodyCompanyId !== userCompanyId.toString() && userRole !== 'admin') {
         console.warn(`User ${userId} (role: ${userRole}) attempted to set companyId to ${bodyCompanyId} but is associated with ${userCompanyId}. Using user's companyId.`);
       }
     }
 
-
     const result = await db.collection('surveys').insertOne(newSurveyData);
-    // Fetch the inserted document to return it, as insertOne returns an object with insertedId
     const createdSurvey = await db.collection('surveys').findOne({ _id: result.insertedId });
 
     res.status(201).json({ status: 'success', data: createdSurvey });
   } catch (error) {
     console.error("Error in createSurvey controller:", error);
-    next(error); // Pass to error handling middleware
+    next(error);
   }
 };
 
@@ -78,17 +71,12 @@ export const getSurveys = async (req, res, next) => {
 
     if (userRole === 'client') {
       if (!userCompanyId) {
-        // Client not associated with a company, should not see any surveys unless specifically shared.
-        // For now, returning empty or could be an error.
         return res.json({ status: 'success', data: [] });
       }
       query.companyId = new ObjectId(userCompanyId);
     } else if (userRole === 'agent') {
-      // Agents see surveys they created. Optionally, also surveys for their company.
-      // For now, only surveys they created.
       query.createdBy = new ObjectId(userId);
     }
-    // Admins see all surveys (no additional query filters based on role)
 
     const surveysData = await db.collection('surveys').find(query).toArray();
     res.json({ status: 'success', data: surveysData });
@@ -114,22 +102,15 @@ export const getSurveyById = async (req, res, next) => {
       throw new ApiError(404, 'Survey not found');
     }
 
-    // Authorization checks
     if (userRole === 'client') {
       if (!userCompanyId || !survey.companyId || survey.companyId.toString() !== userCompanyId.toString()) {
         throw new ApiError(403, 'Not authorized to access this survey');
       }
     } else if (userRole === 'agent') {
-      // Agent can access their own surveys. Optionally, also surveys for their company.
-      // For now, only their own.
       if (survey.createdBy.toString() !== userId.toString()) {
-         // Could add a check here: || (survey.companyId && survey.companyId.toString() !== userCompanyId.toString())
-         // if agents should also see all surveys from their company.
         throw new ApiError(403, 'Not authorized to access this survey');
       }
     }
-    // Admins can access any survey by ID
-
     res.json({ status: 'success', data: survey });
   } catch (error) {
     console.error("Error in getSurveyById controller:", error);
@@ -153,19 +134,20 @@ export const updateSurvey = async (req, res, next) => {
       throw new ApiError(404, 'Survey not found');
     }
 
-    // Authorization: Admins can edit any survey. Agents can only edit their own.
     if (userRole === 'agent' && existingSurvey.createdBy.toString() !== userId) {
       throw new ApiError(403, 'Forbidden: You can only update surveys you created.');
     }
 
-    const updateFields = {}; // Removed TypeScript annotation
+    const updateFields = {};
     if (title !== undefined) updateFields.title = title.trim();
     if (description !== undefined) updateFields.description = description.trim();
     if (status !== undefined) updateFields.status = status;
 
     if (inputQuestions !== undefined) {
-      // Validate incoming questions array if provided
       updateFields.questions = (inputQuestions || []).map((q, index) => {
+        if (!q || typeof q !== 'object') {
+          throw new ApiError(400, `Update: Question at index ${index} is not a valid object.`);
+        }
         if (!q.id || typeof q.id !== 'string') {
           throw new ApiError(400, `Update: Question at index ${index} is missing a valid 'id'.`);
         }
@@ -179,24 +161,21 @@ export const updateSurvey = async (req, res, next) => {
           id: q.id,
           text: q.text.trim(),
           type: q.type,
-          options: q.options && Array.isArray(q.options) ? q.options.map(String) : [],
-          isRequired: !!q.isRequired,
+          options: q.options && Array.isArray(q.options) ? q.options.map(opt => String(opt)) : [],
+          isRequired: typeof q.isRequired === 'boolean' ? q.isRequired : !!q.isRequired,
         };
       });
     }
 
-    // Handle companyId update - only admins should freely change it.
-    // Agents might not be allowed to change it, or only to their own company.
     if (userRole === 'admin' && bodyCompanyId !== undefined) {
         if (bodyCompanyId === null || bodyCompanyId === '') {
-            updateFields.companyId = null; // Allow admin to remove companyId
+            updateFields.companyId = null;
         } else if (ObjectId.isValid(bodyCompanyId)) {
             updateFields.companyId = new ObjectId(bodyCompanyId);
         } else {
             throw new ApiError(400, 'Invalid Company ID format provided for update by admin.');
         }
-    } // Agents cannot change companyId directly via this field for now. It's tied to their user profile or initial creation.
-
+    }
 
     if (Object.keys(updateFields).length === 0) {
       return res.status(400).json({ status: 'fail', message: "No valid fields provided for update." });
@@ -234,17 +213,12 @@ export const deleteSurvey = async (req, res, next) => {
       throw new ApiError(404, 'Survey not found');
     }
 
-    // Authorization: Admins can delete any. Agents only their own.
-    // The route itself in surveys.js restricts delete to 'admin' currently.
-    // If we want agents to delete their own, this logic is correct, but route needs adjustment.
-    // Assuming route is adjusted or this controller logic takes precedence for now.
     if (userRole === 'agent' && existingSurvey.createdBy.toString() !== userId) {
       throw new ApiError(403, 'Forbidden: You can only delete surveys you created.');
     }
-     if (userRole !== 'admin' && userRole !== 'agent') { // Double check if non-admin/agent somehow gets here
+     if (userRole !== 'admin' && userRole !== 'agent') {
         throw new ApiError(403, 'Forbidden: You are not authorized to delete surveys.');
     }
-
 
     const result = await db.collection('surveys').deleteOne({ _id: new ObjectId(surveyId) });
 
@@ -261,16 +235,15 @@ export const deleteSurvey = async (req, res, next) => {
 export const submitSurveyResponse = async (req, res, next) => {
   try {
     const db = getDb();
-    const { id: surveyIdParam } = req.params; // surveyId from URL param
-    const { id: userId } = req.user; // userId from authenticated user
-    const { data: responseData, location, demographics } = req.body; // 'data' is the key for responseData from route validation
+    const { id: surveyIdParam } = req.params;
+    const { id: userId } = req.user;
+    const { data: responseData, location, demographics } = req.body;
 
     if (!ObjectId.isValid(surveyIdParam)) {
       throw new ApiError(400, 'Invalid Survey ID format.');
     }
     const surveyObjectId = new ObjectId(surveyIdParam);
 
-    // 1. Validate Survey
     const survey = await db.collection('surveys').findOne({ _id: surveyObjectId });
     if (!survey) {
       throw new ApiError(404, 'Survey not found.');
@@ -279,38 +252,137 @@ export const submitSurveyResponse = async (req, res, next) => {
       throw new ApiError(400, `Survey is not active. Current status: ${survey.status}.`);
     }
 
-    // `responseData` is already validated as notEmpty by the route.
-    // Further structural validation of responseData can be added here if needed based on survey.questions
-
     const newResponse = {
       surveyId: surveyObjectId,
       userId: new ObjectId(userId),
-      responseData: responseData, // This comes from req.body.data
+      responseData: responseData,
       submittedAt: new Date(),
     };
     if (location) newResponse.location = location;
     if (demographics) newResponse.demographics = demographics;
 
-    // 2. Insert into 'responses' collection
     const insertResult = await db.collection('responses').insertOne(newResponse);
 
-    // 3. Increment responseCount on the survey (atomically)
     await db.collection('surveys').updateOne(
       { _id: surveyObjectId },
-      { $inc: { responseCount: 1 }, $set: { updatedAt: new Date() } } // Also update survey's updatedAt
+      { $inc: { responseCount: 1 }, $set: { updatedAt: new Date() } }
     );
 
-    // Fetch the newly created response to return it
     const createdResponse = await db.collection('responses').findOne({ _id: insertResult.insertedId });
 
     res.status(201).json({ status: 'success', data: createdResponse });
 
   } catch (error) {
     console.error("Error in submitSurveyResponse controller:", error);
-    if (error instanceof ApiError) { // Pass ApiError directly
+    if (error instanceof ApiError) {
         next(error);
-    } else { // Wrap other errors
+    } else {
         next(new ApiError(500, error.message || 'Failed to submit survey response.'));
     }
+  }
+};
+
+export const bulkUploadSurveyResponses = async (req, res, next) => {
+  const { surveyId: surveyIdParam } = req.params;
+  const { id: uploaderUserId } = req.user;
+
+  if (!req.file) {
+    return next(new ApiError(400, 'No CSV file uploaded.'));
+  }
+
+  if (!ObjectId.isValid(surveyIdParam)) {
+    return next(new ApiError(400, 'Invalid Survey ID format.'));
+  }
+  const surveyObjectId = new ObjectId(surveyIdParam);
+
+  const db = getDb();
+
+  try {
+    const survey = await db.collection('surveys').findOne({ _id: surveyObjectId });
+    if (!survey) {
+      return next(new ApiError(404, 'Survey not found.'));
+    }
+    if (survey.status !== 'active') {
+      return next(new ApiError(400, `Survey is not active. Current status: ${survey.status}. Cannot upload responses.`));
+    }
+
+    const responsesToInsert = [];
+    let processedRows = 0;
+    let skippedRows = 0;
+    const errorsInRows = [];
+
+    const stream = Readable.from(req.file.buffer);
+    stream
+      .pipe(csv())
+      .on('data', (row) => {
+        processedRows++;
+        try {
+          const responseData = { ...row };
+          let location, demographics;
+          if (responseData.location_city || responseData.location_state) {
+            location = { city: responseData.location_city, state: responseData.location_state };
+            delete responseData.location_city;
+            delete responseData.location_state;
+          }
+          if (responseData.demographics_age || responseData.demographics_gender) {
+            demographics = { age: responseData.demographics_age, gender: responseData.demographics_gender };
+            delete responseData.demographics_age;
+            delete responseData.demographics_gender;
+          }
+
+          if (Object.keys(responseData).length === 0) {
+            throw new Error('Row has no response data.');
+          }
+
+          const newResponse = {
+            surveyId: surveyObjectId,
+            userId: new ObjectId(uploaderUserId),
+            responseData: responseData,
+            submittedAt: new Date(),
+            uploadBatchId: new ObjectId(),
+          };
+          if (location) newResponse.location = location;
+          if (demographics) newResponse.demographics = demographics;
+
+          responsesToInsert.push(newResponse);
+
+        } catch (e) {
+          skippedRows++;
+          errorsInRows.push(`Row ${processedRows}: ${e.message}`);
+        }
+      })
+      .on('end', async () => {
+        try {
+          if (responsesToInsert.length > 0) {
+            await db.collection('responses').insertMany(responsesToInsert, { ordered: false });
+            await db.collection('surveys').updateOne(
+              { _id: surveyObjectId },
+              {
+                $inc: { responseCount: responsesToInsert.length },
+                $set: { updatedAt: new Date() }
+              }
+            );
+          }
+          res.status(200).json({
+            status: 'success',
+            message: `Bulk upload processed. ${responsesToInsert.length} responses imported. ${skippedRows} rows skipped.`,
+            importedCount: responsesToInsert.length,
+            skippedCount: skippedRows,
+            errors: errorsInRows.length > 0 ? errorsInRows : undefined,
+          });
+        } catch (dbError) {
+          console.error("Error during bulk insert or survey update:", dbError);
+          next(new ApiError(500, `Database error during bulk processing: ${dbError.message}`));
+        }
+      })
+      .on('error', (parseError) => {
+        console.error("CSV parsing error:", parseError);
+        next(new ApiError(400, `Error parsing CSV file: ${parseError.message}`));
+      });
+
+  } catch (error) {
+    console.error("Error in bulkUploadSurveyResponses controller:", error);
+    if (error instanceof ApiError) return next(error);
+    return next(new ApiError(500, error.message || 'Failed to process bulk upload.'));
   }
 };

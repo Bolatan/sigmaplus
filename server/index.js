@@ -9,12 +9,13 @@ import { ObjectId } from 'mongodb'; // Import ObjectId
 import { connectToServer, getDb } from './utils/db.js';
 import authRoutes from './routes/auth.js';
 import { verifyToken, authorizeRole } from './middleware/auth.js';
-import { body, validationResult } from 'express-validator'; // Import for validation
+import { body, validationResult } from 'express-validator';
 
-import surveyRoutes from './routes/surveys.js';
+import surveyRoutesFunction from './routes/surveys.js'; // Renamed import
 import userRoutes from './routes/users.js';
-import companyRoutes from './routes/companies.js'; // Import company routes
+import companyRoutes from './routes/companies.js';
 // import reportRoutes from './routes/reports.js';
+import multer from 'multer';
 
 
 // ES module equivalents for __dirname
@@ -29,6 +30,25 @@ app.use(cors());
 
 app.use(express.json());
 
+// Multer configuration for file uploads (using memory storage)
+const storage = multer.memoryStorage(); // Stores file in memory as Buffer
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
+  fileFilter: (req, file, cb) => { // Basic CSV filter
+    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only .csv files are allowed!'), false);
+    }
+  }
+});
+// Make 'upload' instance available to routes if needed, or pass it directly in route definitions.
+// For now, it's defined here and will be used in server/routes/surveys.js by importing it or passing.
+// Let's plan to import it in the route file. We'll make it exportable if needed, or redefine locally in route.
+// For simplicity in this step, we'll assume routes can access this 'upload' if it were exported,
+// but the plan is to use it directly when defining the route in survey.js, so this definition is a prerequisite.
+
 // Serve static files from the React app build directory
 // This should come after API routes if you have specific backend routes for static assets,
 // or if your API routes might conflict with static file paths.
@@ -39,9 +59,9 @@ app.use(express.static(path.join(__dirname, '..', 'dist')));
 app.use('/api/auth', authRoutes); // Mount authentication routes
 
 // --- Application API Routes ---
-app.use('/api/surveys', surveyRoutes);
+app.use('/api/surveys', surveyRoutesFunction(upload)); // Pass multer instance to survey routes
 app.use('/api/users', userRoutes);
-app.use('/api/companies', companyRoutes); // Mount company routes
+app.use('/api/companies', companyRoutes);
 // app.use('/api/reports', reportRoutes);
 
 // --- Stats Routes ---

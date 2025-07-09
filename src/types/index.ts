@@ -92,6 +92,7 @@ export interface Report {
   title: string;
   description: string;
   surveyId: string;
+  surveyName?: string; // Added for better display
   companyId: string;
   createdAt: string;
   updatedAt: string;

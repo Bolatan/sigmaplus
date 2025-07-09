@@ -9,8 +9,13 @@ import {
   getSurveyById,
   updateSurvey,
   deleteSurvey,
-  submitSurveyResponse
+  submitSurveyResponse,
+  bulkUploadSurveyResponses // Import the new controller
 } from '../controllers/surveys.js';
+import multer from 'multer'; // Import multer to check for MulterError instance
+
+// We'll need multer's upload instance here.
+// For now, let's assume it's passed when mounting, or we import a configured instance.
 
 const router = express.Router();
 
@@ -57,4 +62,39 @@ router.post('/:id/responses', [
   validateRequest
 ], submitSurveyResponse);
 
-export default router;
+
+// This function will be the new default export.
+// It allows passing the multer 'upload' instance from server/index.js
+export default function(upload) {
+  // @route   POST /api/surveys/:surveyId/responses/bulk-upload
+  // @desc    Bulk upload survey responses from a CSV file
+  // @access  Admin, Agent
+  router.post(
+    '/:surveyId/responses/bulk-upload',
+    [
+      verifyToken,
+      authorizeRole(['admin', 'agent']),
+      // Multer middleware for single file upload, expecting field name 'responsesCsv'
+      // The 'upload' instance is configured in server/index.js and passed here.
+      (req, res, next) => { // Wrapper to handle potential multer errors specifically
+        const multerUpload = upload.single('responsesCsv');
+        multerUpload(req, res, function (err) {
+          if (err instanceof multer.MulterError) {
+            // A Multer error occurred when uploading.
+            return res.status(400).json({ errors: [{ msg: `File upload error: ${err.message}` }] });
+          } else if (err) {
+            // An unknown error occurred when uploading (e.g., file type filter).
+            return res.status(400).json({ errors: [{ msg: err.message || 'File upload failed.' }] });
+          }
+          // Everything went fine with multer, proceed.
+          next();
+        });
+      }
+      // No express-validator here for the file itself, multer handles file presence/type.
+      // Controller will handle CSV content validation.
+    ],
+    bulkUploadSurveyResponses
+  );
+
+  return router;
+}

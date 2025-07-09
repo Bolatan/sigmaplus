@@ -199,6 +199,13 @@ const Surveys: React.FC = () => {
   const [apiSurveys, setApiSurveys] = useState<any>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
+  // State for CSV Upload Modal
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [uploadTargetSurveyId, setUploadTargetSurveyId] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadStatusMessage, setUploadStatusMessage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   useEffect(() => {
     const fetchApiSurveys = async () => {
       setIsLoading(true);
@@ -419,6 +426,72 @@ const Surveys: React.FC = () => {
     resetForm();
   }, [resetForm]);
 
+  const openUploadModal = (surveyId: string) => {
+    setUploadTargetSurveyId(surveyId);
+    setSelectedFile(null);
+    setUploadStatusMessage(null);
+    setIsUploadModalOpen(true);
+  };
+
+  const handleCloseUploadModal = () => {
+    setIsUploadModalOpen(false);
+    setUploadTargetSurveyId(null);
+    setSelectedFile(null);
+    // Keep uploadStatusMessage so user can see result after modal closes if they reopen quickly
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFile || !uploadTargetSurveyId) {
+      setUploadStatusMessage("Error: Please select a file.");
+      return;
+    }
+
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setUploadStatusMessage("Error: Authentication required. Please log in again.");
+      setIsUploading(false); // Ensure uploading state is reset
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadStatusMessage('Uploading...');
+
+    const formData = new FormData();
+    formData.append('responsesCsv', selectedFile); // 'responsesCsv' must match multer field name
+
+    try {
+      const response = await fetch(`/api/surveys/${uploadTargetSurveyId}/responses/bulk-upload`, {
+        method: 'POST',
+        headers: {
+          // 'Content-Type': 'multipart/form-data' is automatically set by browser when using FormData
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const result = await response.json(); // Try to parse JSON regardless of response.ok
+
+      if (!response.ok) {
+        throw new Error(result.errors?.[0]?.msg || result.error || result.message || `Failed to upload file: ${response.statusText}`);
+      }
+
+      setUploadStatusMessage(result.message || 'Upload successful! Responses are being processed.');
+      // Optionally, close modal after a delay or refresh survey list if responseCount is critical to display immediately
+      // For now, user can see the message and close manually.
+      // Consider calling fetchApiSurveys() again if you want to update the responseCount on the card.
+      // await fetchApiSurveys(); // If you want to refresh the main survey list
+
+    } catch (error: any) {
+      console.error('Error uploading CSV file:', error);
+      setUploadStatusMessage(`Error: ${error.message || 'An unexpected error occurred during upload.'}`);
+    } finally {
+      setIsUploading(false);
+      // setSelectedFile(null); // Optionally clear the file input after upload attempt
+      // document.getElementById('csvFile').value = ''; // This is tricky with controlled file inputs
+    }
+  };
+
+
   const filteredSurveys = surveys.filter(survey =>
     survey.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     survey.description.toLowerCase().includes(searchTerm.toLowerCase())
@@ -545,6 +618,16 @@ const Surveys: React.FC = () => {
                         Take Survey
                       </Button>
                     )}
+                     {(user?.role === 'admin' || user?.role === 'agent') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openUploadModal(survey.id)}
+                        className="ml-2" // Add some margin if needed
+                      >
+                        Upload Responses
+                      </Button>
+                    )}
                   </div>
                 </div>
                 
@@ -612,6 +695,55 @@ const Surveys: React.FC = () => {
           buttonText="Save Changes"
         />
       </Modal>
+
+      {/* CSV Upload Modal */}
+      <Modal
+        isOpen={isUploadModalOpen}
+        onClose={handleCloseUploadModal}
+        title={`Bulk Upload Responses for Survey`} // Survey ID can be added if needed from uploadTargetSurveyId
+      >
+        <div className="space-y-4">
+          {uploadTargetSurveyId && <p className="text-sm text-gray-600">Target Survey ID: <strong>{uploadTargetSurveyId}</strong></p>}
+          <div>
+            <label htmlFor="csvFile" className="block text-sm font-medium text-gray-700 mb-1">
+              Select CSV File
+            </label>
+            <Input
+              id="csvFile"
+              type="file"
+              accept=".csv"
+              onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)}
+              className="mt-1 block w-full text-sm text-gray-500
+                         file:mr-4 file:py-2 file:px-4
+                         file:rounded-full file:border-0
+                         file:text-sm file:font-semibold
+                         file:bg-primary-50 file:text-primary-700
+                         hover:file:bg-primary-100"
+            />
+          </div>
+
+          {uploadStatusMessage && (
+            <div className={`p-3 rounded-md text-sm ${uploadStatusMessage.startsWith('Error') || uploadStatusMessage.startsWith('Failed') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+              {uploadStatusMessage}
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-2 pt-2">
+            <Button type="button" variant="outline" onClick={handleCloseUploadModal}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleFileUpload}
+              variant="primary"
+              disabled={!selectedFile || isUploading}
+            >
+              {isUploading ? 'Uploading...' : 'Upload File'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
 
       {filteredSurveys.length === 0 && (
         <div className="text-center py-12">

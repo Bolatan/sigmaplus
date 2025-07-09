@@ -5,33 +5,70 @@ import { Input } from '../components/ui/Input';
 import { Card, CardContent } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
+import { Report as ReportType } from '../types'; // Import the global Report type
 
-interface Report {
-  id: string;
-  title: string;
-  description: string;
-  surveyId: string;
-  status: 'draft' | 'published';
-  createdAt: string;
-  updatedAt: string;
-}
+// Remove local Report interface if it's now fully covered by global ReportType
+// interface Report {
+//   id: string;
+//   title: string;
+//   description: string;
+//   surveyId: string;
+//   surveyName?: string; // Added to local to match, but global type is better
+//   status: 'draft' | 'published';
+//   createdAt: string;
+//   updatedAt: string;
+// }
 
 const Reports: React.FC = () => {
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<ReportType[]>([]); // Use imported ReportType
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newReport, setNewReport] = useState({
+  const [newReport, setNewReport] = useState({ // This state is for the "Add Report" form
     title: '',
     description: '',
-    surveyId: '',
+    surveyId: '', // This will hold the ID of the selected survey
   });
+  const [availableSurveys, setAvailableSurveys] = useState<Array<{ id: string; title: string }>>([]);
+  const [isLoadingSurveys, setIsLoadingSurveys] = useState(false);
+
   const { user } = useAuth();
-  const [apiError, setApiError] = useState<string | null>(null); // For API error messages
+  const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Fetch reports when component mounts
     fetchReports();
   }, []);
+
+  // Fetch available surveys when the "Add Report" modal is opened
+  useEffect(() => {
+    if (isAddModalOpen) {
+      fetchAvailableSurveys();
+    }
+  }, [isAddModalOpen]);
+
+  const fetchAvailableSurveys = async () => {
+    setIsLoadingSurveys(true);
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      // Handle not authenticated - perhaps set an error specific to survey loading
+      setIsLoadingSurveys(false);
+      return;
+    }
+    try {
+      const response = await fetch('/api/surveys', { // Assuming /api/surveys returns all surveys user can see
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error('Failed to fetch surveys for dropdown.');
+      const data = await response.json();
+      setAvailableSurveys((data.data || data || []).map((s: any) => ({ id: s._id || s.id, title: s.title })));
+    } catch (error) {
+      console.error("Error fetching available surveys:", error);
+      // Set an error state for survey loading if needed
+    } finally {
+      setIsLoadingSurveys(false);
+    }
+  };
 
   const fetchReports = async () => {
     setIsLoading(true);
@@ -82,13 +119,18 @@ const Reports: React.FC = () => {
   const handleGenerateReport = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Simulate API call
-      const mockReport: Report = {
+      // Simulate API call & add surveyName to mock data
+      // In a real scenario, the backend would fetch surveyName based on surveyId
+      const mockReport: ReportType = {
         id: Date.now().toString(),
         ...newReport,
+        surveyName: `Survey: ${newReport.surveyId.substring(0,5)}... (Mock Name)`, // Mock survey name
         status: 'draft',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        // companyId and sections would also be needed for real ReportType
+        companyId: user?.companyId || 'mockCompanyId',
+        sections: [],
       };
 
       setReports([...reports, mockReport]);
@@ -183,8 +225,11 @@ const Reports: React.FC = () => {
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     {report.title}
                   </h3>
-                  <p className="text-sm text-gray-500 mb-4">
+                  <p className="text-sm text-gray-500">
                     {report.description}
+                  </p>
+                   <p className="text-xs text-gray-400 mt-1">
+                    Survey: {report.surveyName || report.surveyId}
                   </p>
                 </div>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(report.status)}`}>
@@ -195,6 +240,8 @@ const Reports: React.FC = () => {
               <div className="flex items-center text-sm text-gray-500 mt-4">
                 <FileText className="h-4 w-4 mr-1" />
                 <span>Created {formatDate(report.createdAt)}</span>
+                {/* Optionally display companyId if relevant for current user */}
+                {/* {report.companyId && <span className="ml-2 text-xs">Company: {report.companyId}</span>} */}
               </div>
 
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
@@ -241,12 +288,31 @@ const Reports: React.FC = () => {
               required
             />
           </div>
-          <Input
-            label="Survey ID"
+        <div>
+          <label htmlFor="surveySelect" className="block text-sm font-medium text-gray-700 mb-1">
+            Select Survey
+          </label>
+          <select
+            id="surveySelect"
             value={newReport.surveyId}
             onChange={(e) => setNewReport({ ...newReport, surveyId: e.target.value })}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
             required
-          />
+            disabled={isLoadingSurveys}
+          >
+            <option value="" disabled>
+              {isLoadingSurveys ? 'Loading surveys...' : 'Select a survey'}
+            </option>
+            {availableSurveys.map(survey => (
+              <option key={survey.id} value={survey.id}>
+                {survey.title}
+              </option>
+            ))}
+          </select>
+          {availableSurveys.length === 0 && !isLoadingSurveys && (
+            <p className="text-xs text-gray-500 mt-1">No surveys available or failed to load.</p>
+          )}
+        </div>
           <div className="flex justify-end space-x-2 mt-6">
             <Button
               variant="outline"
