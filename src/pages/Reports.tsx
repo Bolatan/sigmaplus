@@ -120,30 +120,71 @@ const Reports: React.FC = () => {
 
   const handleGenerateReport = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      // Simulate API call & add surveyName to mock data
-      // In a real scenario, the backend would fetch surveyName based on surveyId
-      const mockReport: ReportType = {
-        id: Date.now().toString(),
-        ...newReport,
-        surveyName: `Survey: ${newReport.surveyId.substring(0,5)}... (Mock Name)`, // Mock survey name
-        status: 'draft',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        // companyId and sections would also be needed for real ReportType
-        companyId: user?.companyId || 'mockCompanyId',
-        sections: [],
-      };
+    setApiError(null); // Clear previous errors
 
-      setReports([...reports, mockReport]);
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setApiError("Authentication token not found. Please log in again.");
+      return;
+    }
+
+    // Basic validation
+    if (!newReport.title || !newReport.description || !newReport.surveyId) {
+      setApiError("Title, description, and survey selection are required.");
+      return;
+    }
+
+    // Prepare the payload for the backend
+    // Assuming the backend will generate id, createdAt, updatedAt, status, surveyName
+    const reportPayload = {
+      title: newReport.title,
+      description: newReport.description,
+      surveyId: newReport.surveyId,
+      companyId: user?.companyId, // Get companyId from the logged-in user context
+      // sections: [], // Initialize sections if needed, or let backend handle it
+      // status: 'draft', // Backend might set a default status
+    };
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/reports` : '/api/reports';
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(reportPayload),
+      });
+
+      if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (parseError) {
+          // If response is not JSON, use the status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Optionally, you can use the response from POST if it returns the created report
+      // const createdReport = await response.json();
+
+      // Close modal and reset form
       setIsAddModalOpen(false);
       setNewReport({
         title: '',
         description: '',
         surveyId: '',
       });
-    } catch (error) {
+
+      // Refetch reports to update the list with the new one
+      await fetchReports();
+
+    } catch (error: any) {
       console.error('Error generating report:', error);
+      setApiError(error.message || 'Failed to generate report. Please try again.');
     }
   };
 
