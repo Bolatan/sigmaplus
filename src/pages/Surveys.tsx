@@ -199,30 +199,6 @@ const Surveys: React.FC = () => {
   const [apiSurveys, setApiSurveys] = useState<any>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  // MOVED resetForm to the top to avoid temporal dead zone
-  const resetForm = useCallback(() => {
-    setFormData({
-      title: '',
-      description: '',
-      questions: [], // Include questions in reset
-    });
-    setEditingSurvey(null);
-  }, []);
-
-  const handleFormDataChange = useCallback((newFormData: SurveyFormData) => {
-    setFormData(newFormData);
-  }, []);
-
-  const handleCancelAdd = useCallback(() => {
-    setIsAddModalOpen(false);
-    resetForm();
-  }, [resetForm]);
-
-  const handleCancelEdit = useCallback(() => {
-    setIsEditModalOpen(false);
-    resetForm();
-  }, [resetForm]);
-
   useEffect(() => {
     const fetchApiSurveys = async () => {
       setIsLoading(true);
@@ -270,7 +246,7 @@ const Surveys: React.FC = () => {
     };
 
     fetchApiSurveys();
-  }, [user, apiError]); // Added apiError dependency
+  }, [user]);
 
   const handleAddSurvey = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -296,7 +272,7 @@ const Surveys: React.FC = () => {
         body: JSON.stringify({
           title: formData.title,
           description: formData.description,
-          questions: formData.questions, // Include questions in API call
+          questions: formData.questions, // Add questions to the payload
         }),
       });
 
@@ -345,7 +321,7 @@ const Surveys: React.FC = () => {
         body: JSON.stringify({
           title: formData.title,
           description: formData.description,
-          questions: formData.questions, // Include questions in API call
+          questions: formData.questions, // Add questions to the payload
         }),
       });
 
@@ -417,10 +393,31 @@ const Surveys: React.FC = () => {
     setFormData({
       title: survey.title,
       description: survey.description,
-      questions: survey.questions || [], // Include questions from survey
     });
     setIsEditModalOpen(true);
   }, []);
+
+  const resetForm = useCallback(() => {
+    setFormData({
+      title: '',
+      description: '',
+    });
+    setEditingSurvey(null);
+  }, []);
+
+  const handleFormDataChange = useCallback((newFormData: any) => {
+    setFormData(newFormData);
+  }, []);
+
+  const handleCancelAdd = useCallback(() => {
+    setIsAddModalOpen(false);
+    resetForm();
+  }, [resetForm]);
+
+  const handleCancelEdit = useCallback(() => {
+    setIsEditModalOpen(false);
+    resetForm();
+  }, [resetForm]);
 
   const filteredSurveys = surveys.filter(survey =>
     survey.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

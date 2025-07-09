@@ -19,33 +19,7 @@ interface Company {
   createdAt: string;
 }
 
-// Initial companies data that will be stored in localStorage
-const INITIAL_COMPANIES: Company[] = [
-  {
-    id: '1',
-    name: 'Acme Corporation',
-    website: 'https://acme.example.com',
-    email: 'contact@acme.example.com',
-    phone: '+1 (555) 123-4567',
-    address: '123 Business Ave, Suite 100, New York, NY 10001',
-    employeeCount: 250,
-    status: 'active',
-    createdAt: '2024-01-15T08:00:00.000Z',
-    logo: 'https://ui-avatars.com/api/?name=Acme+Corporation&background=random'
-  },
-  {
-    id: '2',
-    name: 'Global Industries',
-    website: 'https://global.example.com',
-    email: 'info@global.example.com',
-    phone: '+1 (555) 987-6543',
-    address: '456 Enterprise Blvd, Chicago, IL 60601',
-    employeeCount: 500,
-    status: 'active',
-    createdAt: '2024-01-10T08:00:00.000Z',
-    logo: 'https://ui-avatars.com/api/?name=Global+Industries&background=random'
-  }
-];
+// INITIAL_COMPANIES array removed. Data is fetched from API.
 
 // Separate CompanyForm component to prevent re-renders
 const CompanyForm: React.FC<{
@@ -223,56 +197,219 @@ const Companies: React.FC = () => {
     }
   }, []);
 
+  const fetchCompanies = useCallback(async () => {
+    setIsLoading(true);
+    setApiError(null);
+    const token = localStorage.getItem('authToken');
+
+    if (!token) {
+      setApiError("No authentication token found. Please login.");
+      setIsLoading(false);
+      setCompanies([]);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/companies', { // Ensure this is correct
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        let errorMsg = `Error fetching companies: ${response.statusText}`;
+        if (response.status === 401 || response.status === 403) {
+          try {
+            const errorData = await response.json();
+            errorMsg = errorData.msg || errorData.error || errorMsg;
+          } catch (e) { /* ignore if error response not json */ }
+        }
+        setApiError(errorMsg);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const fetchedCompanies = (result.data || []).map((c: any) => ({
+        ...c,
+        id: c._id,
+        logo: c.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=random`,
+      }));
+      setCompanies(fetchedCompanies);
+    } catch (error) {
+      console.error('Error fetching companies from API:', error);
+       if (!apiError) {
+        setApiError('Failed to fetch companies. Please try again.');
+      }
+      setCompanies([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loggedInUser, apiError]); // Added apiError as dep; consider if this is right or if fetch should be manually triggered after error clear
+
+  useEffect(() => {
+    if (loggedInUser) {
+        fetchCompanies();
+    } else if (!localStorage.getItem('authToken')) {
+        setApiError("Please login to view companies.");
+        setIsLoading(false);
+        setCompanies([]);
+    }
+  }, [loggedInUser, fetchCompanies]);
+
+  // saveCompanies function removed as it's no longer needed.
+
   const handleAddCompany = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const newCompany: Company = {
-        id: Date.now().toString(),
-        ...formData,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}&background=random`
-      };
+    setApiError(null);
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setApiError("Authentication required.");
+      return;
+    }
 
-      const updatedCompanies = [...companies, newCompany];
-      saveCompanies(updatedCompanies);
+    // Basic frontend validation (backend will also validate)
+    if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.address.trim()) {
+        setApiError("Name, Email, Phone, and Address are required.");
+        return;
+    }
+    if (formData.employeeCount < 0) {
+        setApiError("Employee count cannot be negative.");
+        return;
+    }
+
+
+    try {
+      const response = await fetch('/api/companies', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData), // Send all formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to add company: ${response.statusText}`);
+      }
+
+      // const newCompanyFromApi = await response.json(); // Contains { status: 'success', data: createdCompany }
+      await fetchCompanies(); // Re-fetch the companies list to include the new one
       setIsAddModalOpen(false);
       resetForm();
-    } catch (error) {
-      console.error('Error adding company:', error);
+    } catch (error: any) {
+      console.error('Error adding company via API:', error);
+      setApiError(error.message || 'An unexpected error occurred while adding the company.');
     }
-  }, [formData, companies, saveCompanies]);
+  }, [formData, resetForm, fetchCompanies]);
 
   const handleEditCompany = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingCompany) return;
+    if (!editingCompany || !editingCompany.id) {
+      setApiError("No company selected for editing or company ID is missing.");
+      return;
+    }
+    setApiError(null);
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setApiError("Authentication required.");
+      return;
+    }
+
+    // Basic frontend validation (backend will also validate)
+    if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.address.trim()) {
+        setApiError("Name, Email, Phone, and Address are required for editing.");
+        return;
+    }
+     if (formData.employeeCount < 0) {
+        setApiError("Employee count cannot be negative.");
+        return;
+    }
 
     try {
-      const updatedCompany: Company = {
-        ...editingCompany,
-        ...formData,
-        logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}&background=random`
+      const response = await fetch(`/api/companies/${editingCompany.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData), // Send all formData for update
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update company: ${response.statusText}`);
+      }
+
+      const updatedCompanyFromApi = await response.json(); // Expecting { status: 'success', data: company }
+      const updatedCompany = {
+        ...(updatedCompanyFromApi.data || updatedCompanyFromApi),
+        id: (updatedCompanyFromApi.data || updatedCompanyFromApi)._id,
+        logo: (updatedCompanyFromApi.data || updatedCompanyFromApi).logo || `https://ui-avatars.com/api/?name=${encodeURIComponent((updatedCompanyFromApi.data || updatedCompanyFromApi).name)}&background=random`
       };
 
-      const updatedCompanies = companies.map(company => 
-        company.id === editingCompany.id ? updatedCompany : company
+      setCompanies(prevCompanies =>
+        prevCompanies.map(c => (c.id === updatedCompany.id ? { ...c, ...updatedCompany } : c)) // Merge to preserve any frontend-only aspects if needed
       );
-      saveCompanies(updatedCompanies);
       setIsEditModalOpen(false);
       resetForm();
-    } catch (error) {
-      console.error('Error updating company:', error);
+    } catch (error: any) {
+      console.error('Error updating company via API:', error);
+      setApiError(error.message || 'An unexpected error occurred while updating the company.');
     }
-  }, [formData, editingCompany, companies, saveCompanies]);
+  }, [formData, editingCompany, resetForm, companies]); // Added companies to dep array
 
-  const handleDeactivateCompany = useCallback((companyId: string) => {
-    const updatedCompanies = companies.map(company =>
-      company.id === companyId 
-        ? { ...company, status: company.status === 'active' ? 'inactive' : 'active' as 'active' | 'inactive' }
-        : company
+
+  const handleToggleCompanyStatus = useCallback(async (companyId: string, currentStatus: 'active' | 'inactive') => {
+    setApiError(null);
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setApiError("Authentication required.");
+      return;
+    }
+
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    const originalCompanies = [...companies];
+
+    // Optimistic UI update
+    setCompanies(prevCompanies =>
+      prevCompanies.map(c =>
+        c.id === companyId ? { ...c, status: newStatus } : c
+      )
     );
-    saveCompanies(updatedCompanies);
-  }, [companies, saveCompanies]);
+
+    try {
+      const response = await fetch(`/api/companies/${companyId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus }), // Only send the status to update
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        setCompanies(originalCompanies); // Revert optimistic update
+        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update company status: ${response.statusText}`);
+      }
+
+      const updatedCompanyFromApi = await response.json();
+       const finalUpdatedCompany = {
+        ...(updatedCompanyFromApi.data || updatedCompanyFromApi),
+        id: (updatedCompanyFromApi.data || updatedCompanyFromApi)._id,
+        logo: (updatedCompanyFromApi.data || updatedCompanyFromApi).logo || `https://ui-avatars.com/api/?name=${encodeURIComponent((updatedCompanyFromApi.data || updatedCompanyFromApi).name)}&background=random`
+      };
+      setCompanies(prevCompanies =>
+        prevCompanies.map(c => (c.id === finalUpdatedCompany.id ? { ...c, ...finalUpdatedCompany } : c))
+      );
+
+    } catch (error: any) {
+      console.error('Error updating company status via API:', error);
+      setApiError(error.message || 'An unexpected error occurred while updating company status.');
+      setCompanies(originalCompanies); // Ensure reversion on any catch
+    }
+  }, [companies]); // `companies` is a dependency for optimistic update and revert
 
   const startEdit = useCallback((company: Company) => {
     setEditingCompany(company);
@@ -442,7 +579,7 @@ const Companies: React.FC = () => {
                     <Button
                       variant={company.status === 'active' ? 'danger' : 'secondary'}
                       size="sm"
-                      onClick={() => handleDeactivateCompany(company.id)}
+                      onClick={() => handleToggleCompanyStatus(company.id, company.status)}
                     >
                       {company.status === 'active' ? 'Deactivate' : 'Activate'}
                     </Button>

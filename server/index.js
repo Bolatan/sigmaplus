@@ -12,9 +12,9 @@ import { verifyToken, authorizeRole } from './middleware/auth.js';
 import { body, validationResult } from 'express-validator'; // Import for validation
 
 import surveyRoutes from './routes/surveys.js';
-import userRoutes from './routes/users.js'; // Import user routes
+import userRoutes from './routes/users.js';
+import companyRoutes from './routes/companies.js'; // Import company routes
 // import reportRoutes from './routes/reports.js';
-// import companyRoutes from './routes/companies.js';
 
 
 // ES module equivalents for __dirname
@@ -40,9 +40,9 @@ app.use('/api/auth', authRoutes); // Mount authentication routes
 
 // --- Application API Routes ---
 app.use('/api/surveys', surveyRoutes);
-app.use('/api/users', userRoutes); // Mount user routes
+app.use('/api/users', userRoutes);
+app.use('/api/companies', companyRoutes); // Mount company routes
 // app.use('/api/reports', reportRoutes);
-// app.use('/api/companies', companyRoutes);
 
 // --- Stats Routes ---
 // GET /api/stats/survey-statuses - Get counts of surveys by status
@@ -92,35 +92,8 @@ app.get('/api/reports', verifyToken, async (req, res) => {
 // Users API routes are now handled by server/routes/users.js
 // The GET /api/users and GET /api/users/:id that were here have been moved.
 
-// Companies API: Accessible to any authenticated user
-app.get('/api/companies', verifyToken, async (req, res) => {
-  try {
-    const db = getDb();
-    const companies = await db.collection('companies').find({}).toArray();
-    res.json({ data: companies });
-  } catch (err) {
-    console.error("Failed to fetch companies:", err);
-    res.status(500).json({ error: "Failed to fetch companies from database" });
-  }
-});
-
-app.get('/api/companies/:id', verifyToken, async (req, res) => {
-  try {
-    const db = getDb();
-    const { id } = req.params;
-    if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ error: "Invalid company ID format" });
-    }
-    const company = await db.collection('companies').findOne({ _id: new ObjectId(id) });
-    if (!company) {
-      return res.status(404).json({ error: "Company not found" });
-    }
-    res.json({ data: company });
-  } catch (err) {
-    console.error("Failed to fetch company:", err);
-    res.status(500).json({ error: "Failed to fetch company from database" });
-  }
-});
+// Companies API routes are now handled by server/routes/companies.js
+// The GET /api/companies and GET /api/companies/:id that were here have been moved.
 
 
 // --- Frontend Catchall ---
