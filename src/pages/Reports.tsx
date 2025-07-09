@@ -24,6 +24,8 @@ const Reports: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false); // State for detail modal
+  const [selectedReportForDetail, setSelectedReportForDetail] = useState<ReportType | null>(null); // State for selected report
   const [newReport, setNewReport] = useState({ // This state is for the "Add Report" form
     title: '',
     description: '',
@@ -150,6 +152,26 @@ const Reports: React.FC = () => {
     report.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleViewDetails = (report: ReportType) => {
+    setSelectedReportForDetail(report);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleDownloadReport = (report: ReportType) => {
+    const jsonString = JSON.stringify(report, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const href = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = href;
+    // Sanitize title for filename: replace spaces and special characters
+    const fileName = `${report.title.replace(/[^a-zA-Z0-9_.-]/g, '_').substring(0, 50) || 'report'}.json`;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(href);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft':
@@ -249,12 +271,14 @@ const Reports: React.FC = () => {
                   variant="outline"
                   size="sm"
                   leftIcon={<Download className="h-4 w-4" />}
+                  onClick={() => handleDownloadReport(report)}
                 >
                   Download
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => handleViewDetails(report)}
                 >
                   View Details
                 </Button>
@@ -264,6 +288,7 @@ const Reports: React.FC = () => {
         ))}
       </div>
 
+      {/* Add New Report Modal */}
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
@@ -329,6 +354,80 @@ const Reports: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* View Report Details Modal */}
+      {selectedReportForDetail && (
+        <Modal
+          isOpen={isDetailModalOpen}
+          onClose={() => {
+            setIsDetailModalOpen(false);
+            setSelectedReportForDetail(null);
+          }}
+          title="Report Details"
+        >
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">{selectedReportForDetail.title}</h3>
+              <p className="text-sm text-gray-600 mt-1">{selectedReportForDetail.description}</p>
+            </div>
+            <div className="border-t border-gray-200 pt-4">
+              <dl className="space-y-2">
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Survey</dt>
+                  <dd className="text-sm text-gray-900 mt-1">{selectedReportForDetail.surveyName || selectedReportForDetail.surveyId}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Status</dt>
+                  <dd className="text-sm text-gray-900 mt-1">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedReportForDetail.status)}`}>
+                      {selectedReportForDetail.status}
+                    </span>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Created At</dt>
+                  <dd className="text-sm text-gray-900 mt-1">{formatDate(selectedReportForDetail.createdAt)}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Last Updated</dt>
+                  <dd className="text-sm text-gray-900 mt-1">{formatDate(selectedReportForDetail.updatedAt)}</dd>
+                </div>
+                {/* Add more details as needed, e.g., sections, companyId if relevant */}
+                 {selectedReportForDetail.companyId && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Company ID</dt>
+                    <dd className="text-sm text-gray-900 mt-1">{selectedReportForDetail.companyId}</dd>
+                  </div>
+                )}
+                {/* Example for sections if they were simple strings - adjust if sections is complex */}
+                {/* {selectedReportForDetail.sections && selectedReportForDetail.sections.length > 0 && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Sections</dt>
+                    <dd className="text-sm text-gray-900 mt-1">
+                      <ul>
+                        {selectedReportForDetail.sections.map((section, index) => (
+                          <li key={index}>{typeof section === 'string' ? section : JSON.stringify(section)}</li>
+                        ))}
+                      </ul>
+                    </dd>
+                  </div>
+                )} */}
+              </dl>
+            </div>
+            <div className="flex justify-end mt-6">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsDetailModalOpen(false);
+                  setSelectedReportForDetail(null);
+                }}
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {filteredReports.length === 0 && (
         <div className="text-center py-12">
