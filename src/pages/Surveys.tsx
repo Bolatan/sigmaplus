@@ -206,6 +206,16 @@ const Surveys: React.FC = () => {
   const [uploadStatusMessage, setUploadStatusMessage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Define resetForm before using it in useCallback dependencies
+  const resetForm = useCallback(() => {
+    setFormData({
+      title: '',
+      description: '',
+      questions: [], // Ensure questions is always initialized
+    });
+    setEditingSurvey(null);
+  }, []);
+
   useEffect(() => {
     const fetchApiSurveys = async () => {
       setIsLoading(true);
@@ -253,7 +263,7 @@ const Surveys: React.FC = () => {
     };
 
     fetchApiSurveys();
-  }, [user]);
+  }, [user, apiError]); // Add apiError to dependencies
 
   const handleAddSurvey = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -400,19 +410,12 @@ const Surveys: React.FC = () => {
     setFormData({
       title: survey.title,
       description: survey.description,
+      questions: survey.questions || [], // Ensure questions is always an array
     });
     setIsEditModalOpen(true);
   }, []);
 
-  const resetForm = useCallback(() => {
-    setFormData({
-      title: '',
-      description: '',
-    });
-    setEditingSurvey(null);
-  }, []);
-
-  const handleFormDataChange = useCallback((newFormData: any) => {
+  const handleFormDataChange = useCallback((newFormData: SurveyFormData) => {
     setFormData(newFormData);
   }, []);
 
@@ -426,21 +429,21 @@ const Surveys: React.FC = () => {
     resetForm();
   }, [resetForm]);
 
-  const openUploadModal = (surveyId: string) => {
+  const openUploadModal = useCallback((surveyId: string) => {
     setUploadTargetSurveyId(surveyId);
     setSelectedFile(null);
     setUploadStatusMessage(null);
     setIsUploadModalOpen(true);
-  };
+  }, []);
 
-  const handleCloseUploadModal = () => {
+  const handleCloseUploadModal = useCallback(() => {
     setIsUploadModalOpen(false);
     setUploadTargetSurveyId(null);
     setSelectedFile(null);
     // Keep uploadStatusMessage so user can see result after modal closes if they reopen quickly
-  };
+  }, []);
 
-  const handleFileUpload = async () => {
+  const handleFileUpload = useCallback(async () => {
     if (!selectedFile || !uploadTargetSurveyId) {
       setUploadStatusMessage("Error: Please select a file.");
       return;
@@ -489,8 +492,7 @@ const Surveys: React.FC = () => {
       // setSelectedFile(null); // Optionally clear the file input after upload attempt
       // document.getElementById('csvFile').value = ''; // This is tricky with controlled file inputs
     }
-  };
-
+  }, [selectedFile, uploadTargetSurveyId]);
 
   const filteredSurveys = surveys.filter(survey =>
     survey.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -743,7 +745,6 @@ const Surveys: React.FC = () => {
           </div>
         </div>
       </Modal>
-
 
       {filteredSurveys.length === 0 && (
         <div className="text-center py-12">
