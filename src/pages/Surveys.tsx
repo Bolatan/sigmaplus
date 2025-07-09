@@ -24,13 +24,18 @@ const SurveyForm: React.FC<{
   buttonText: string;
 }> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText }) => {
 
+  // 6. Add conditional rendering - early return if formData is not ready
+  if (!formData || !Array.isArray(formData.questions)) {
+    return <div>Loading survey form...</div>; // More specific loading message
+  }
+
   const handleInputChange = useCallback((field: keyof Omit<SurveyFormData, 'questions'>, value: string) => {
     onFormDataChange({ ...formData, [field]: value });
   }, [formData, onFormDataChange]);
 
   const handleQuestionChange = useCallback((index: number, field: keyof SurveyQuestion, value: any) => {
     const newQuestions = [...formData.questions];
-    // @ts-ignore // Allow dynamic assignment
+    // @ts-ignore // Allow dynamic assignment - consider refining SurveyQuestion type to avoid this
     newQuestions[index] = { ...newQuestions[index], [field]: value };
     onFormDataChange({ ...formData, questions: newQuestions });
   }, [formData, onFormDataChange]);
@@ -41,7 +46,7 @@ const SurveyForm: React.FC<{
       text: '',
       type: 'text', // Default type
       isRequired: false,
-      options: []
+      options: [],
     };
     onFormDataChange({ ...formData, questions: [...formData.questions, newQuestion] });
   }, [formData, onFormDataChange]);
@@ -76,8 +81,9 @@ const SurveyForm: React.FC<{
       {/* Questions Section */}
       <div className="space-y-4 border-t pt-4">
         <h3 className="text-md font-semibold">Questions</h3>
-        {formData.questions.map((q, index) => (
-          <div key={q.id} className="p-3 border rounded-md space-y-2 bg-gray-50">
+        {/* 2. Add safety check in the map function */}
+        {(formData.questions || []).map((q, index) => (
+          <div key={q.id || index} className="p-3 border rounded-md space-y-2 bg-gray-50"> {/* Added index as fallback for key */}
             <Input
               label={`Question ${index + 1} Text`}
               value={q.text}
@@ -104,7 +110,7 @@ const SurveyForm: React.FC<{
             {/* Options for choice-based questions */}
             {(q.type === 'single-choice' || q.type === 'multiple-choice') && (
               <div className="mt-2 space-y-2 pl-4 border-l-2">
-                {q.options?.map((opt, optIndex) => (
+                {(q.options || []).map((opt, optIndex) => ( {/* Safety check for options array */}
                   <div key={optIndex} className="flex items-center space-x-2">
                     <Input
                       type="text"
@@ -147,7 +153,7 @@ const SurveyForm: React.FC<{
             {/* End Options UI */}
 
             <div className="mt-2">
-               <label className="flex items-center space-x-2">
+                <label className="flex items-center space-x-2">
                 <input
                     type="checkbox"
                     checked={!!q.isRequired}
@@ -189,10 +195,11 @@ const Surveys: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSurvey, setEditingSurvey] = useState<Survey | null>(null);
+  // 1. Add default value in useState
   const [formData, setFormData] = useState<SurveyFormData>({ // Use new SurveyFormData type
     title: '',
     description: '',
-    questions: [], // Initialize with empty questions array
+    questions: [], // This should always be an array
   });
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -206,15 +213,26 @@ const Surveys: React.FC = () => {
   const [uploadStatusMessage, setUploadStatusMessage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Define resetForm before using it in useCallback dependencies
+  // 4. Add safety check in resetForm
   const resetForm = useCallback(() => {
     setFormData({
       title: '',
       description: '',
-      questions: [], // Ensure questions is always initialized
+      questions: [], // Always initialize as empty array
     });
     setEditingSurvey(null);
   }, []);
+
+  // 3. Add initialization check in useEffect
+  useEffect(() => {
+    // Ensure formData is properly initialized
+    if (!formData.questions) {
+      setFormData(prev => ({
+        ...prev,
+        questions: []
+      }));
+    }
+  }, []); // Run only once on component mount
 
   useEffect(() => {
     const fetchApiSurveys = async () => {
@@ -248,6 +266,7 @@ const Surveys: React.FC = () => {
             createdAt: s.createdAt || new Date().toISOString(),
             responseCount: s.responseCount || 0,
             status: s.status || 'draft',
+            questions: s.questions || [], // Ensure questions are an array when fetched
           }));
           setSurveys(fetchedSurveys);
           setApiSurveys(fetchedSurveys);
@@ -299,7 +318,8 @@ const Surveys: React.FC = () => {
       }
 
       const newSurveyFromApi = await response.json();
-      const newSurvey = { ...newSurveyFromApi, id: newSurveyFromApi._id };
+      // Ensure questions is an array when mapping newSurveyFromApi
+      const newSurvey = { ...newSurveyFromApi, id: newSurveyFromApi._id, questions: newSurveyFromApi.questions || [] };
 
       setSurveys(prevSurveys => [newSurvey, ...prevSurveys]);
       setIsAddModalOpen(false);
@@ -344,11 +364,12 @@ const Surveys: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-         throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update survey: ${response.statusText}`);
+          throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update survey: ${response.statusText}`);
       }
 
       const updatedSurveyFromApi = await response.json();
-      const updatedSurvey = { ...updatedSurveyFromApi, id: updatedSurveyFromApi._id };
+      // Ensure questions is an array when mapping updatedSurveyFromApi
+      const updatedSurvey = { ...updatedSurveyFromApi, id: updatedSurveyFromApi._id, questions: updatedSurveyFromApi.questions || [] };
 
       setSurveys(prevSurveys =>
         prevSurveys.map(s => (s.id === updatedSurvey.id ? updatedSurvey : s))
@@ -393,7 +414,8 @@ const Surveys: React.FC = () => {
       }
 
       const updatedSurveyFromApi = await response.json();
-      const finalUpdatedSurvey = { ...updatedSurveyFromApi, id: updatedSurveyFromApi._id };
+      // Ensure questions is an array for the final updated survey
+      const finalUpdatedSurvey = { ...updatedSurveyFromApi, id: updatedSurveyFromApi._id, questions: updatedSurveyFromApi.questions || [] };
       setSurveys(prevSurveys =>
         prevSurveys.map(s => (s.id === finalUpdatedSurvey.id ? finalUpdatedSurvey : s))
       );
@@ -405,12 +427,13 @@ const Surveys: React.FC = () => {
     }
   }, [surveys]);
 
+  // 5. Add safety check in startEdit
   const startEdit = useCallback((survey: Survey) => {
     setEditingSurvey(survey);
     setFormData({
-      title: survey.title,
-      description: survey.description,
-      questions: survey.questions || [], // Ensure questions is always an array
+      title: survey.title || '', // Fallback for title
+      description: survey.description || '', // Fallback for description
+      questions: survey.questions || [], // Ensure it's always an array
     });
     setIsEditModalOpen(true);
   }, []);
@@ -612,15 +635,15 @@ const Surveys: React.FC = () => {
                       View Details
                     </Button>
                     {survey.status === 'active' && (
-                       <Button
-                        variant="success"
-                        size="sm"
-                        onClick={() => navigate(`/surveys/${survey.id}/respond`)}
-                      >
-                        Take Survey
-                      </Button>
+                        <Button
+                          variant="success"
+                          size="sm"
+                          onClick={() => navigate(`/surveys/${survey.id}/respond`)}
+                        >
+                          Take Survey
+                        </Button>
                     )}
-                     {(user?.role === 'admin' || user?.role === 'agent') && (
+                      {(user?.role === 'admin' || user?.role === 'agent') && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -716,11 +739,11 @@ const Surveys: React.FC = () => {
               accept=".csv"
               onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)}
               className="mt-1 block w-full text-sm text-gray-500
-                         file:mr-4 file:py-2 file:px-4
-                         file:rounded-full file:border-0
-                         file:text-sm file:font-semibold
-                         file:bg-primary-50 file:text-primary-700
-                         hover:file:bg-primary-100"
+                          file:mr-4 file:py-2 file:px-4
+                          file:rounded-full file:border-0
+                          file:text-sm file:font-semibold
+                          file:bg-primary-50 file:text-primary-700
+                          hover:file:bg-primary-100"
             />
           </div>
 
