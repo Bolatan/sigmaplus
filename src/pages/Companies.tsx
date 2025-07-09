@@ -19,8 +19,6 @@ interface Company {
   createdAt: string;
 }
 
-// INITIAL_COMPANIES array removed. Data is fetched from API.
-
 // Separate CompanyForm component to prevent re-renders
 const CompanyForm: React.FC<{
   formData: {
@@ -36,9 +34,10 @@ const CompanyForm: React.FC<{
   onCancel: () => void;
   buttonText: string;
 }> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText }) => {
+
   const handleInputChange = useCallback((field: string, value: string | number) => {
     onFormDataChange({ ...formData, [field]: value });
-  }, [formData, onFormDataChange]);
+  }, [formData, onFormDataChange]); // Dependencies are correct
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
@@ -119,87 +118,31 @@ const Companies: React.FC = () => {
     address: '',
     employeeCount: 0
   });
-  const { user: loggedInUser } = useAuth(); // Using loggedInUser from context
+  const { user: loggedInUser } = useAuth();
   const [apiError, setApiError] = useState<string | null>(null);
 
+  // Moved resetForm to the top, before other functions that might use it
+  const resetForm = useCallback(() => {
+    setFormData({
+      name: '',
+      website: '',
+      email: '',
+      phone: '',
+      address: '',
+      employeeCount: 0
+    });
+    setEditingCompany(null);
+  }, []); // Empty dependency array as it doesn't rely on external scope values
 
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      setIsLoading(true);
-      setApiError(null);
-      const token = localStorage.getItem('authToken');
-
-      if (!token) {
-        setApiError("No authentication token found. Please login.");
-        setIsLoading(false);
-        setCompanies([]);
-        return;
-      }
-
-      try {
-        const response = await fetch('/api/companies', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          let errorMsg = `Error fetching companies: ${response.statusText}`;
-          if (response.status === 401 || response.status === 403) {
-            try {
-              const errorData = await response.json();
-              errorMsg = errorData.msg || errorData.error || errorMsg;
-            } catch (e) { /* ignore if error response not json */ }
-          }
-          setApiError(errorMsg);
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        const fetchedCompanies = (result.data || []).map((c: any) => ({
-          ...c,
-          id: c._id,
-          logo: c.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=random`,
-        }));
-        setCompanies(fetchedCompanies);
-      } catch (error) {
-        console.error('Error fetching companies from API:', error);
-         if (!apiError) {
-          setApiError('Failed to fetch companies. Please try again.');
-        }
-        setCompanies([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (loggedInUser) { // Only attempt fetch if loggedInUser context is available
-        fetchCompanies();
-    } else if (!localStorage.getItem('authToken')) { // If no token at all, user is not logged in
-        setApiError("Please login to view companies.");
-        setIsLoading(false);
-        setCompanies([]);
-    }
-    // If authToken exists but loggedInUser is null, AuthContext is still loading.
-    // The page will show its own loading spinner or wait for AuthContext.
-    // No explicit fetchCompanies() call here to avoid race conditions with AuthContext initialization.
-    // The dependency on loggedInUser will trigger fetchCompanies when AuthContext resolves.
-
-  }, [loggedInUser]);
-
-  // saveCompanies was for localStorage, will need backend integration for add/edit/delete
-  const saveCompanies = useCallback((updatedCompanies: Company[]) => {
-    try {
-      localStorage.setItem('companies', JSON.stringify(updatedCompanies));
-      setCompanies(updatedCompanies);
-    } catch (error) {
-      console.error('Error saving companies:', error);
-    }
+  // handleFormDataChange also depends on setFormData which is stable
+  const handleFormDataChange = useCallback((newFormData: any) => {
+    setFormData(newFormData);
   }, []);
 
+  // Optimized fetchCompanies useCallback
   const fetchCompanies = useCallback(async () => {
     setIsLoading(true);
-    setApiError(null);
+    setApiError(null); // Clear any previous API errors at the start of a new fetch attempt
     const token = localStorage.getItem('authToken');
 
     if (!token) {
@@ -210,7 +153,7 @@ const Companies: React.FC = () => {
     }
 
     try {
-      const response = await fetch('/api/companies', { // Ensure this is correct
+      const response = await fetch('/api/companies', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -237,30 +180,30 @@ const Companies: React.FC = () => {
       setCompanies(fetchedCompanies);
     } catch (error) {
       console.error('Error fetching companies from API:', error);
-       if (!apiError) {
+      // Only set the error if it hasn't been set by the response.ok check above
+      if (!apiError) { // Check if apiError is null before setting a generic message
         setApiError('Failed to fetch companies. Please try again.');
       }
       setCompanies([]);
     } finally {
       setIsLoading(false);
     }
-  }, [loggedInUser, apiError]); // Added apiError as dep; consider if this is right or if fetch should be manually triggered after error clear
+  }, [loggedInUser]); // Correct dependencies: only depends on loggedInUser
 
+  // Simplified useEffect for initial data fetch
   useEffect(() => {
     if (loggedInUser) {
-        fetchCompanies();
+      fetchCompanies();
     } else if (!localStorage.getItem('authToken')) {
-        setApiError("Please login to view companies.");
-        setIsLoading(false);
-        setCompanies([]);
+      setApiError("Please login to view companies.");
+      setIsLoading(false);
+      setCompanies([]);
     }
-  }, [loggedInUser, fetchCompanies]);
-
-  // saveCompanies function removed as it's no longer needed.
+  }, [loggedInUser, fetchCompanies]); // Dependencies are correct
 
   const handleAddCompany = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    setApiError(null);
+    setApiError(null); // Clear previous errors
     const token = localStorage.getItem('authToken');
     if (!token) {
       setApiError("Authentication required.");
@@ -269,14 +212,13 @@ const Companies: React.FC = () => {
 
     // Basic frontend validation (backend will also validate)
     if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.address.trim()) {
-        setApiError("Name, Email, Phone, and Address are required.");
-        return;
+      setApiError("Name, Email, Phone, and Address are required.");
+      return;
     }
     if (formData.employeeCount < 0) {
-        setApiError("Employee count cannot be negative.");
-        return;
+      setApiError("Employee count cannot be negative.");
+      return;
     }
-
 
     try {
       const response = await fetch('/api/companies', {
@@ -293,15 +235,16 @@ const Companies: React.FC = () => {
         throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to add company: ${response.statusText}`);
       }
 
-      // const newCompanyFromApi = await response.json(); // Contains { status: 'success', data: createdCompany }
-      await fetchCompanies(); // Re-fetch the companies list to include the new one
+      // Instead of relying on the API response for the new company data,
+      // re-fetch the entire list to ensure consistency and proper IDs from the backend.
+      await fetchCompanies();
       setIsAddModalOpen(false);
       resetForm();
     } catch (error: any) {
       console.error('Error adding company via API:', error);
       setApiError(error.message || 'An unexpected error occurred while adding the company.');
     }
-  }, [formData, resetForm, fetchCompanies]);
+  }, [formData, resetForm, fetchCompanies]); // Dependencies are correct
 
   const handleEditCompany = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -309,7 +252,7 @@ const Companies: React.FC = () => {
       setApiError("No company selected for editing or company ID is missing.");
       return;
     }
-    setApiError(null);
+    setApiError(null); // Clear previous errors
     const token = localStorage.getItem('authToken');
     if (!token) {
       setApiError("Authentication required.");
@@ -318,12 +261,12 @@ const Companies: React.FC = () => {
 
     // Basic frontend validation (backend will also validate)
     if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.address.trim()) {
-        setApiError("Name, Email, Phone, and Address are required for editing.");
-        return;
+      setApiError("Name, Email, Phone, and Address are required for editing.");
+      return;
     }
-     if (formData.employeeCount < 0) {
-        setApiError("Employee count cannot be negative.");
-        return;
+    if (formData.employeeCount < 0) {
+      setApiError("Employee count cannot be negative.");
+      return;
     }
 
     try {
@@ -341,27 +284,18 @@ const Companies: React.FC = () => {
         throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update company: ${response.statusText}`);
       }
 
-      const updatedCompanyFromApi = await response.json(); // Expecting { status: 'success', data: company }
-      const updatedCompany = {
-        ...(updatedCompanyFromApi.data || updatedCompanyFromApi),
-        id: (updatedCompanyFromApi.data || updatedCompanyFromApi)._id,
-        logo: (updatedCompanyFromApi.data || updatedCompanyFromApi).logo || `https://ui-avatars.com/api/?name=${encodeURIComponent((updatedCompanyFromApi.data || updatedCompanyFromApi).name)}&background=random`
-      };
-
-      setCompanies(prevCompanies =>
-        prevCompanies.map(c => (c.id === updatedCompany.id ? { ...c, ...updatedCompany } : c)) // Merge to preserve any frontend-only aspects if needed
-      );
+      // Re-fetch the companies list to ensure consistency after an update.
+      await fetchCompanies();
       setIsEditModalOpen(false);
       resetForm();
     } catch (error: any) {
       console.error('Error updating company via API:', error);
       setApiError(error.message || 'An unexpected error occurred while updating the company.');
     }
-  }, [formData, editingCompany, resetForm, companies]); // Added companies to dep array
-
+  }, [formData, editingCompany, resetForm, fetchCompanies]); // Dependencies are correct
 
   const handleToggleCompanyStatus = useCallback(async (companyId: string, currentStatus: 'active' | 'inactive') => {
-    setApiError(null);
+    setApiError(null); // Clear previous errors
     const token = localStorage.getItem('authToken');
     if (!token) {
       setApiError("Authentication required.");
@@ -394,22 +328,28 @@ const Companies: React.FC = () => {
         throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update company status: ${response.statusText}`);
       }
 
-      const updatedCompanyFromApi = await response.json();
-       const finalUpdatedCompany = {
-        ...(updatedCompanyFromApi.data || updatedCompanyFromApi),
-        id: (updatedCompanyFromApi.data || updatedCompanyFromApi)._id,
-        logo: (updatedCompanyFromApi.data || updatedCompanyFromApi).logo || `https://ui-avatars.com/api/?name=${encodeURIComponent((updatedCompanyFromApi.data || updatedCompanyFromApi).name)}&background=random`
-      };
-      setCompanies(prevCompanies =>
-        prevCompanies.map(c => (c.id === finalUpdatedCompany.id ? { ...c, ...finalUpdatedCompany } : c))
-      );
+      // If the API confirms the update, no need to re-fetch the entire list
+      // if the backend response gives the updated company.
+      // However, re-fetching is safer to guarantee full consistency if backend logic is complex.
+      // For simplicity and robustness, staying with a re-fetch for now.
+      await fetchCompanies(); // Re-fetch to ensure full consistency, especially if backend has other side effects
+      // OR: update state with the response for slight optimization if you trust backend response fully:
+      // const updatedCompanyFromApi = await response.json();
+      // const finalUpdatedCompany = {
+      //   ...(updatedCompanyFromApi.data || updatedCompanyFromApi),
+      //   id: (updatedCompanyFromApi.data || updatedCompanyFromApi)._id,
+      //   logo: (updatedCompanyFromApi.data || updatedCompanyFromApi).logo || `https://ui-avatars.com/api/?name=${encodeURIComponent((updatedCompanyFromApi.data || updatedCompanyFromApi).name)}&background=random`
+      // };
+      // setCompanies(prevCompanies =>
+      //   prevCompanies.map(c => (c.id === finalUpdatedCompany.id ? { ...c, ...finalUpdatedCompany } : c))
+      // );
 
     } catch (error: any) {
       console.error('Error updating company status via API:', error);
       setApiError(error.message || 'An unexpected error occurred while updating company status.');
       setCompanies(originalCompanies); // Ensure reversion on any catch
     }
-  }, [companies]); // `companies` is a dependency for optimistic update and revert
+  }, [companies, fetchCompanies]); // `companies` for optimistic update, `fetchCompanies` for refetch
 
   const startEdit = useCallback((company: Company) => {
     setEditingCompany(company);
@@ -422,22 +362,6 @@ const Companies: React.FC = () => {
       employeeCount: company.employeeCount
     });
     setIsEditModalOpen(true);
-  }, []);
-
-  const resetForm = useCallback(() => {
-    setFormData({
-      name: '',
-      website: '',
-      email: '',
-      phone: '',
-      address: '',
-      employeeCount: 0
-    });
-    setEditingCompany(null);
-  }, []);
-
-  const handleFormDataChange = useCallback((newFormData: any) => {
-    setFormData(newFormData);
   }, []);
 
   const handleCancelAdd = useCallback(() => {
@@ -490,11 +414,11 @@ const Companies: React.FC = () => {
         {/* Add Company button might be role-restricted, e.g., admin only */}
         {loggedInUser?.role === 'admin' && (
             <Button
-                variant="primary"
-                leftIcon={<Plus className="h-5 w-5" />}
-                onClick={() => setIsAddModalOpen(true)}
+              variant="primary"
+              leftIcon={<Plus className="h-5 w-5" />}
+              onClick={() => setIsAddModalOpen(true)}
             >
-                Add Company
+              Add Company
             </Button>
         )}
       </div>
@@ -535,7 +459,7 @@ const Companies: React.FC = () => {
                       {company.status}
                     </span>
                   </div>
-                  
+
                   <div className="mt-2 space-y-2 text-sm text-gray-500">
                     {company.website && (
                       <div className="flex items-center">
