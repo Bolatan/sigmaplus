@@ -1,6 +1,7 @@
 import { getDb } from '../utils/db.js';
 import { ObjectId } from 'mongodb';
-import { ApiError } from '../utils/ApiError.js'; // Assuming you have this
+import { ApiError } from '../utils/ApiError.js';
+import bcrypt from 'bcrypt'; // Add this import
 
 export const updateUser = async (req, res, next) => {
   const { userId } = req.params;
@@ -27,7 +28,7 @@ export const updateUser = async (req, res, next) => {
     // For 'agent' or 'admin', companyId is optional. If provided invalidly, route validation catches it.
     // If an agent is having their companyId removed, that's allowed by this controller logic.
 
-    const updateFields: any = {};
+    const updateFields = {}; // Removed `: any` type annotation
     if (name !== undefined) updateFields.name = String(name).trim();
     if (newRole !== undefined) updateFields.role = newRole;
     if (status !== undefined) updateFields.status = status;
@@ -53,7 +54,6 @@ export const updateUser = async (req, res, next) => {
       // (Route validation should catch if newCompanyId is missing when role is client).
       return next(new ApiError(400, `Company ID is required when setting role to 'client'.`));
     }
-
 
     if (Object.keys(updateFields).length === 0) {
       return res.status(400).json({ errors: [{ msg: 'No valid fields provided for update.' }] });
