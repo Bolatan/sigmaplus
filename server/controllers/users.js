@@ -1,7 +1,7 @@
 import { getDb } from '../utils/db.js';
 import { ObjectId } from 'mongodb';
 import { ApiError } from '../utils/ApiError.js';
-import bcrypt from 'bcrypt'; // Add this import
+import bcrypt from 'bcryptjs';
 
 export const updateUser = async (req, res, next) => {
   const { userId } = req.params;
