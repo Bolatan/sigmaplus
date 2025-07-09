@@ -6,10 +6,9 @@ import { Card, CardContent } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Survey, SurveyQuestion, QuestionType } from '../types'; // Import Survey types
-import { v4 as uuidv4 } from 'uuid'; // For generating unique question IDs
+import { Survey, SurveyQuestion, QuestionType } from '../types';
+import { v4 as uuidv4 } from 'uuid';
 
-// Update SurveyForm props to include questions
 interface SurveyFormData {
   title: string;
   description: string;
@@ -24,9 +23,8 @@ const SurveyForm: React.FC<{
   buttonText: string;
 }> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText }) => {
 
-  // 6. Add conditional rendering - early return if formData is not ready
   if (!formData || !Array.isArray(formData.questions)) {
-    return <div>Loading survey form...</div>; // More specific loading message
+    return <div>Loading survey form...</div>;
   }
 
   const handleInputChange = useCallback((field: keyof Omit<SurveyFormData, 'questions'>, value: string) => {
@@ -35,7 +33,7 @@ const SurveyForm: React.FC<{
 
   const handleQuestionChange = useCallback((index: number, field: keyof SurveyQuestion, value: any) => {
     const newQuestions = [...formData.questions];
-    // @ts-ignore // Allow dynamic assignment - consider refining SurveyQuestion type to avoid this
+    // @ts-ignore
     newQuestions[index] = { ...newQuestions[index], [field]: value };
     onFormDataChange({ ...formData, questions: newQuestions });
   }, [formData, onFormDataChange]);
@@ -44,9 +42,9 @@ const SurveyForm: React.FC<{
     const newQuestion: SurveyQuestion = {
       id: uuidv4(),
       text: '',
-      type: 'text', // Default type
+      type: 'text',
       isRequired: false,
-      options: [],
+      options: []
     };
     onFormDataChange({ ...formData, questions: [...formData.questions, newQuestion] });
   }, [formData, onFormDataChange]);
@@ -81,9 +79,8 @@ const SurveyForm: React.FC<{
       {/* Questions Section */}
       <div className="space-y-4 border-t pt-4">
         <h3 className="text-md font-semibold">Questions</h3>
-        {/* 2. Add safety check in the map function */}
-        {(formData.questions || []).map((q, index) => (
-          <div key={q.id || index} className="p-3 border rounded-md space-y-2 bg-gray-50"> {/* Added index as fallback for key */}
+        {(formData.questions || []).map((q, index) => ( // <-- Outer parenthesis starts here
+          <div key={q.id || index} className="p-3 border rounded-md space-y-2 bg-gray-50">
             <Input
               label={`Question ${index + 1} Text`}
               value={q.text}
@@ -103,14 +100,13 @@ const SurveyForm: React.FC<{
                 <option value="textarea">Textarea</option>
                 <option value="single-choice">Single Choice (Radio)</option>
                 <option value="multiple-choice">Multiple Choice (Checkbox)</option>
-                {/* <option value="rating">Rating</option> */}
               </select>
             </div>
 
             {/* Options for choice-based questions */}
             {(q.type === 'single-choice' || q.type === 'multiple-choice') && (
               <div className="mt-2 space-y-2 pl-4 border-l-2">
-                {(q.options || []).map((opt, optIndex) => ( {/* Safety check for options array */}
+                {(q.options || []).map((opt, optIndex) => (
                   <div key={optIndex} className="flex items-center space-x-2">
                     <Input
                       type="text"
@@ -141,7 +137,7 @@ const SurveyForm: React.FC<{
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const newOptions = [...(q.options || []), 'New Option']; // Add a default new option
+                    const newOptions = [...(q.options || []), 'New Option'];
                     handleQuestionChange(index, 'options', newOptions);
                   }}
                   leftIcon={<Plus className="h-3 w-3" />}
@@ -150,25 +146,30 @@ const SurveyForm: React.FC<{
                 </Button>
               </div>
             )}
-            {/* End Options UI */}
 
             <div className="mt-2">
-                <label className="flex items-center space-x-2">
+              <label className="flex items-center space-x-2">
                 <input
-                    type="checkbox"
-                    checked={!!q.isRequired}
-                    onChange={(e) => handleQuestionChange(index, 'isRequired', e.target.checked)}
-                    className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50"
+                  type="checkbox"
+                  checked={!!q.isRequired}
+                  onChange={(e) => handleQuestionChange(index, 'isRequired', e.target.checked)}
+                  className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50"
                 />
                 <span className="text-sm text-gray-700">Required</span>
               </label>
             </div>
 
-            <Button type="button" variant="danger" size="sm" onClick={() => removeQuestion(index)} className="mt-2">
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={() => removeQuestion(index)}
+              className="mt-2"
+            >
               Remove Question
             </Button>
           </div>
-        ))}
+        ))} {/* <-- The crucial closing parenthesis and curly brace are correctly positioned here */}
         <Button type="button" variant="outline" onClick={addQuestion} leftIcon={<Plus className="h-4 w-4" />} className="mt-2">
           Add Question
         </Button>
@@ -189,50 +190,45 @@ const SurveyForm: React.FC<{
 SurveyForm.displayName = 'SurveyForm';
 
 const Surveys: React.FC = () => {
-  const [surveys, setSurveys] = useState<Survey[]>([]); // Uses Survey from types
+  const [surveys, setSurveys] = useState<Survey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSurvey, setEditingSurvey] = useState<Survey | null>(null);
-  // 1. Add default value in useState
-  const [formData, setFormData] = useState<SurveyFormData>({ // Use new SurveyFormData type
+  const [formData, setFormData] = useState<SurveyFormData>({
     title: '',
     description: '',
-    questions: [], // This should always be an array
+    questions: [],
   });
   const { user } = useAuth();
   const navigate = useNavigate();
   const [apiSurveys, setApiSurveys] = useState<any>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  // State for CSV Upload Modal
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadTargetSurveyId, setUploadTargetSurveyId] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatusMessage, setUploadStatusMessage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // 4. Add safety check in resetForm
   const resetForm = useCallback(() => {
     setFormData({
       title: '',
       description: '',
-      questions: [], // Always initialize as empty array
+      questions: [],
     });
     setEditingSurvey(null);
   }, []);
 
-  // 3. Add initialization check in useEffect
   useEffect(() => {
-    // Ensure formData is properly initialized
     if (!formData.questions) {
       setFormData(prev => ({
         ...prev,
         questions: []
       }));
     }
-  }, []); // Run only once on component mount
+  }, []);
 
   useEffect(() => {
     const fetchApiSurveys = async () => {
@@ -266,7 +262,7 @@ const Surveys: React.FC = () => {
             createdAt: s.createdAt || new Date().toISOString(),
             responseCount: s.responseCount || 0,
             status: s.status || 'draft',
-            questions: s.questions || [], // Ensure questions are an array when fetched
+            questions: s.questions || [],
           }));
           setSurveys(fetchedSurveys);
           setApiSurveys(fetchedSurveys);
@@ -282,7 +278,7 @@ const Surveys: React.FC = () => {
     };
 
     fetchApiSurveys();
-  }, [user, apiError]); // Add apiError to dependencies
+  }, [user, apiError]);
 
   const handleAddSurvey = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -308,7 +304,7 @@ const Surveys: React.FC = () => {
         body: JSON.stringify({
           title: formData.title,
           description: formData.description,
-          questions: formData.questions, // Add questions to the payload
+          questions: formData.questions,
         }),
       });
 
@@ -318,7 +314,6 @@ const Surveys: React.FC = () => {
       }
 
       const newSurveyFromApi = await response.json();
-      // Ensure questions is an array when mapping newSurveyFromApi
       const newSurvey = { ...newSurveyFromApi, id: newSurveyFromApi._id, questions: newSurveyFromApi.questions || [] };
 
       setSurveys(prevSurveys => [newSurvey, ...prevSurveys]);
@@ -358,7 +353,7 @@ const Surveys: React.FC = () => {
         body: JSON.stringify({
           title: formData.title,
           description: formData.description,
-          questions: formData.questions, // Add questions to the payload
+          questions: formData.questions,
         }),
       });
 
@@ -368,7 +363,6 @@ const Surveys: React.FC = () => {
       }
 
       const updatedSurveyFromApi = await response.json();
-      // Ensure questions is an array when mapping updatedSurveyFromApi
       const updatedSurvey = { ...updatedSurveyFromApi, id: updatedSurveyFromApi._id, questions: updatedSurveyFromApi.questions || [] };
 
       setSurveys(prevSurveys =>
@@ -414,7 +408,6 @@ const Surveys: React.FC = () => {
       }
 
       const updatedSurveyFromApi = await response.json();
-      // Ensure questions is an array for the final updated survey
       const finalUpdatedSurvey = { ...updatedSurveyFromApi, id: updatedSurveyFromApi._id, questions: updatedSurveyFromApi.questions || [] };
       setSurveys(prevSurveys =>
         prevSurveys.map(s => (s.id === finalUpdatedSurvey.id ? finalUpdatedSurvey : s))
@@ -427,13 +420,12 @@ const Surveys: React.FC = () => {
     }
   }, [surveys]);
 
-  // 5. Add safety check in startEdit
   const startEdit = useCallback((survey: Survey) => {
     setEditingSurvey(survey);
     setFormData({
-      title: survey.title || '', // Fallback for title
-      description: survey.description || '', // Fallback for description
-      questions: survey.questions || [], // Ensure it's always an array
+      title: survey.title || '',
+      description: survey.description || '',
+      questions: survey.questions || [],
     });
     setIsEditModalOpen(true);
   }, []);
@@ -463,7 +455,6 @@ const Surveys: React.FC = () => {
     setIsUploadModalOpen(false);
     setUploadTargetSurveyId(null);
     setSelectedFile(null);
-    // Keep uploadStatusMessage so user can see result after modal closes if they reopen quickly
   }, []);
 
   const handleFileUpload = useCallback(async () => {
@@ -475,7 +466,7 @@ const Surveys: React.FC = () => {
     const token = localStorage.getItem('authToken');
     if (!token) {
       setUploadStatusMessage("Error: Authentication required. Please log in again.");
-      setIsUploading(false); // Ensure uploading state is reset
+      setIsUploading(false);
       return;
     }
 
@@ -483,37 +474,30 @@ const Surveys: React.FC = () => {
     setUploadStatusMessage('Uploading...');
 
     const formData = new FormData();
-    formData.append('responsesCsv', selectedFile); // 'responsesCsv' must match multer field name
+    formData.append('responsesCsv', selectedFile);
 
     try {
       const response = await fetch(`/api/surveys/${uploadTargetSurveyId}/responses/bulk-upload`, {
         method: 'POST',
         headers: {
-          // 'Content-Type': 'multipart/form-data' is automatically set by browser when using FormData
           'Authorization': `Bearer ${token}`,
         },
         body: formData,
       });
 
-      const result = await response.json(); // Try to parse JSON regardless of response.ok
+      const result = await response.json();
 
       if (!response.ok) {
         throw new Error(result.errors?.[0]?.msg || result.error || result.message || `Failed to upload file: ${response.statusText}`);
       }
 
       setUploadStatusMessage(result.message || 'Upload successful! Responses are being processed.');
-      // Optionally, close modal after a delay or refresh survey list if responseCount is critical to display immediately
-      // For now, user can see the message and close manually.
-      // Consider calling fetchApiSurveys() again if you want to update the responseCount on the card.
-      // await fetchApiSurveys(); // If you want to refresh the main survey list
 
     } catch (error: any) {
       console.error('Error uploading CSV file:', error);
       setUploadStatusMessage(`Error: ${error.message || 'An unexpected error occurred during upload.'}`);
     } finally {
       setIsUploading(false);
-      // setSelectedFile(null); // Optionally clear the file input after upload attempt
-      // document.getElementById('csvFile').value = ''; // This is tricky with controlled file inputs
     }
   }, [selectedFile, uploadTargetSurveyId]);
 
@@ -648,7 +632,7 @@ const Surveys: React.FC = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => openUploadModal(survey.id)}
-                        className="ml-2" // Add some margin if needed
+                        className="ml-2"
                       >
                         Upload Responses
                       </Button>
@@ -725,7 +709,7 @@ const Surveys: React.FC = () => {
       <Modal
         isOpen={isUploadModalOpen}
         onClose={handleCloseUploadModal}
-        title={`Bulk Upload Responses for Survey`} // Survey ID can be added if needed from uploadTargetSurveyId
+        title={`Bulk Upload Responses for Survey`}
       >
         <div className="space-y-4">
           {uploadTargetSurveyId && <p className="text-sm text-gray-600">Target Survey ID: <strong>{uploadTargetSurveyId}</strong></p>}
