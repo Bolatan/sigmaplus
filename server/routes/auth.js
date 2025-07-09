@@ -20,7 +20,11 @@ router.post(
     body('email', 'Please include a valid email').isEmail().normalizeEmail(),
     body('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 }),
     body('role', 'Role is required and must be one of: admin, agent, client').isIn(['admin', 'agent', 'client']),
-    body('companyId').optional().isMongoId().withMessage('Invalid Company ID format'), // Optional, but if provided, must be valid MongoId
+    body('companyId')
+      .if(body('role').equals('client')) // Apply this validation only if role is client
+      .notEmpty().withMessage('Company ID is required for client roles.')
+      .isMongoId().withMessage('Invalid Company ID format for client roles.')
+      .else(body('companyId').optional().isMongoId().withMessage('Invalid Company ID format.')), // For admin/agent, it's optional but must be valid if provided
   ],
   async (req, res) => {
     const errors = validationResult(req);

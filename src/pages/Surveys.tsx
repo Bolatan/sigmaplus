@@ -6,9 +6,10 @@ import { Card, CardContent } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Survey, SurveyQuestion, QuestionType } from '../types';
-import { v4 as uuidv4 } from 'uuid';
+import { Survey, SurveyQuestion, QuestionType } from '../types'; // Import Survey types
+import { v4 as uuidv4 } from 'uuid'; // For generating unique question IDs
 
+// Update SurveyForm props to include questions
 interface SurveyFormData {
   title: string;
   description: string;
@@ -29,7 +30,7 @@ const SurveyForm: React.FC<{
 
   const handleQuestionChange = useCallback((index: number, field: keyof SurveyQuestion, value: any) => {
     const newQuestions = [...formData.questions];
-    // @ts-ignore
+    // @ts-ignore // Allow dynamic assignment
     newQuestions[index] = { ...newQuestions[index], [field]: value };
     onFormDataChange({ ...formData, questions: newQuestions });
   }, [formData, onFormDataChange]);
@@ -38,7 +39,7 @@ const SurveyForm: React.FC<{
     const newQuestion: SurveyQuestion = {
       id: uuidv4(),
       text: '',
-      type: 'text',
+      type: 'text', // Default type
       isRequired: false,
       options: []
     };
@@ -72,6 +73,7 @@ const SurveyForm: React.FC<{
         />
       </div>
 
+      {/* Questions Section */}
       <div className="space-y-4 border-t pt-4">
         <h3 className="text-md font-semibold">Questions</h3>
         {formData.questions.map((q, index) => (
@@ -95,9 +97,11 @@ const SurveyForm: React.FC<{
                 <option value="textarea">Textarea</option>
                 <option value="single-choice">Single Choice (Radio)</option>
                 <option value="multiple-choice">Multiple Choice (Checkbox)</option>
+                {/* <option value="rating">Rating</option> */}
               </select>
             </div>
 
+            {/* Options for choice-based questions */}
             {(q.type === 'single-choice' || q.type === 'multiple-choice') && (
               <div className="mt-2 space-y-2 pl-4 border-l-2">
                 {q.options?.map((opt, optIndex) => (
@@ -131,7 +135,7 @@ const SurveyForm: React.FC<{
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const newOptions = [...(q.options || []), 'New Option'];
+                    const newOptions = [...(q.options || []), 'New Option']; // Add a default new option
                     handleQuestionChange(index, 'options', newOptions);
                   }}
                   leftIcon={<Plus className="h-3 w-3" />}
@@ -140,6 +144,7 @@ const SurveyForm: React.FC<{
                 </Button>
               </div>
             )}
+            {/* End Options UI */}
 
             <div className="mt-2">
                <label className="flex items-center space-x-2">
@@ -178,45 +183,21 @@ const SurveyForm: React.FC<{
 SurveyForm.displayName = 'SurveyForm';
 
 const Surveys: React.FC = () => {
-  const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [surveys, setSurveys] = useState<Survey[]>([]); // Uses Survey from types
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSurvey, setEditingSurvey] = useState<Survey | null>(null);
-  const [formData, setFormData] = useState<SurveyFormData>({
+  const [formData, setFormData] = useState<SurveyFormData>({ // Use new SurveyFormData type
     title: '',
     description: '',
-    questions: [],
+    questions: [], // Initialize with empty questions array
   });
   const { user } = useAuth();
   const navigate = useNavigate();
   const [apiSurveys, setApiSurveys] = useState<any>(null);
   const [apiError, setApiError] = useState<string | null>(null);
-
-  // Move resetForm to the top to avoid TDZ issues
-  const resetForm = useCallback(() => {
-    setFormData({
-      title: '',
-      description: '',
-      questions: [],
-    });
-    setEditingSurvey(null);
-  }, []);
-
-  const handleFormDataChange = useCallback((newFormData: SurveyFormData) => {
-    setFormData(newFormData);
-  }, []);
-
-  const handleCancelAdd = useCallback(() => {
-    setIsAddModalOpen(false);
-    resetForm();
-  }, [resetForm]);
-
-  const handleCancelEdit = useCallback(() => {
-    setIsEditModalOpen(false);
-    resetForm();
-  }, [resetForm]);
 
   useEffect(() => {
     const fetchApiSurveys = async () => {
@@ -265,7 +246,7 @@ const Surveys: React.FC = () => {
     };
 
     fetchApiSurveys();
-  }, [user, apiError]);
+  }, [user]);
 
   const handleAddSurvey = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -291,7 +272,7 @@ const Surveys: React.FC = () => {
         body: JSON.stringify({
           title: formData.title,
           description: formData.description,
-          questions: formData.questions,
+          questions: formData.questions, // Add questions to the payload
         }),
       });
 
@@ -340,7 +321,7 @@ const Surveys: React.FC = () => {
         body: JSON.stringify({
           title: formData.title,
           description: formData.description,
-          questions: formData.questions,
+          questions: formData.questions, // Add questions to the payload
         }),
       });
 
@@ -412,10 +393,31 @@ const Surveys: React.FC = () => {
     setFormData({
       title: survey.title,
       description: survey.description,
-      questions: survey.questions || [],
     });
     setIsEditModalOpen(true);
   }, []);
+
+  const resetForm = useCallback(() => {
+    setFormData({
+      title: '',
+      description: '',
+    });
+    setEditingSurvey(null);
+  }, []);
+
+  const handleFormDataChange = useCallback((newFormData: any) => {
+    setFormData(newFormData);
+  }, []);
+
+  const handleCancelAdd = useCallback(() => {
+    setIsAddModalOpen(false);
+    resetForm();
+  }, [resetForm]);
+
+  const handleCancelEdit = useCallback(() => {
+    setIsEditModalOpen(false);
+    resetForm();
+  }, [resetForm]);
 
   const filteredSurveys = surveys.filter(survey =>
     survey.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
