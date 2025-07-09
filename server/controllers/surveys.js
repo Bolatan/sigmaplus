@@ -14,7 +14,7 @@ export const createSurvey = async (req, res, next) => {
     const db = getDb();
 
     // Basic validation for questions structure
-    const validatedQuestions = (inputQuestions || []).map((q: any, index: number) => {
+    const validatedQuestions = (inputQuestions || []).map((q, index) => {
       if (!q.id || typeof q.id !== 'string') {
         throw new ApiError(400, `Question at index ${index} is missing a valid 'id'.`);
       }
@@ -57,7 +57,6 @@ export const createSurvey = async (req, res, next) => {
         console.warn(`User ${userId} (role: ${userRole}) attempted to set companyId to ${bodyCompanyId} but is associated with ${userCompanyId}. Using user's companyId.`);
       }
     }
-
 
     const result = await db.collection('surveys').insertOne(newSurveyData);
     // Fetch the inserted document to return it, as insertOne returns an object with insertedId
@@ -158,14 +157,14 @@ export const updateSurvey = async (req, res, next) => {
       throw new ApiError(403, 'Forbidden: You can only update surveys you created.');
     }
 
-    const updateFields: any = {}; // Use 'any' for updateFields or define a more specific Partial<Survey> type
+    const updateFields = {}; // Removed TypeScript type annotation
     if (title !== undefined) updateFields.title = title.trim();
     if (description !== undefined) updateFields.description = description.trim();
     if (status !== undefined) updateFields.status = status;
 
     if (inputQuestions !== undefined) {
       // Validate incoming questions array if provided
-      updateFields.questions = (inputQuestions || []).map((q: any, index: number) => {
+      updateFields.questions = (inputQuestions || []).map((q, index) => {
         if (!q.id || typeof q.id !== 'string') {
           throw new ApiError(400, `Update: Question at index ${index} is missing a valid 'id'.`);
         }
@@ -196,7 +195,6 @@ export const updateSurvey = async (req, res, next) => {
             throw new ApiError(400, 'Invalid Company ID format provided for update by admin.');
         }
     } // Agents cannot change companyId directly via this field for now. It's tied to their user profile or initial creation.
-
 
     if (Object.keys(updateFields).length === 0) {
       return res.status(400).json({ status: 'fail', message: "No valid fields provided for update." });
@@ -244,7 +242,6 @@ export const deleteSurvey = async (req, res, next) => {
      if (userRole !== 'admin' && userRole !== 'agent') { // Double check if non-admin/agent somehow gets here
         throw new ApiError(403, 'Forbidden: You are not authorized to delete surveys.');
     }
-
 
     const result = await db.collection('surveys').deleteOne({ _id: new ObjectId(surveyId) });
 
