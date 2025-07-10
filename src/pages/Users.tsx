@@ -38,7 +38,9 @@ const UserForm: React.FC<{
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onCancel: () => void;
   buttonText: string;
-}> = React.memo(({ formData, isEditMode, onFormDataChange, onSubmit, onCancel, buttonText }) => {
+  companies: Array<{ id: string; name: string }>;
+  isLoadingCompanies: boolean;
+}> = React.memo(({ formData, isEditMode, onFormDataChange, onSubmit, onCancel, buttonText, companies, isLoadingCompanies }) => {
   const handleInputChange = useCallback((field: string, value: string) => {
     onFormDataChange({ ...formData, [field]: value });
   }, [formData, onFormDataChange]);
@@ -75,25 +77,48 @@ const UserForm: React.FC<{
         </select>
       </div>
       {/* Company ID might be relevant for agent/client roles */}
-      {/* Company ID: Required only for 'client' role */}
-      {(formData.role === UserRole.CLIENT) && (
-        <Input
-          label="Company ID (Required for Clients)"
-          value={formData.companyId}
-          onChange={(e) => handleInputChange('companyId', e.target.value)}
-          placeholder="Enter valid Company ObjectId"
-          required={true}
-        />
+      {/* Company ID: Conditionally a dropdown */}
+      {(formData.role === UserRole.CLIENT || formData.role === UserRole.AGENT || formData.role === UserRole.ADMIN) && (
+        <div>
+          <label htmlFor="companyIdSelect" className="block text-sm font-medium text-gray-700 mb-1">
+            {formData.role === UserRole.CLIENT ? "Company (Required)" : "Company (Optional)"}
+          </label>
+          <select
+            id="companyIdSelect"
+            name="companyId"
+            value={formData.companyId || ''} // Ensure value is not null/undefined for select
+            onChange={(e) => handleInputChange('companyId', e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+            required={formData.role === UserRole.CLIENT}
+            disabled={isLoadingCompanies}
+          >
+            <option value="">
+              {isLoadingCompanies ? 'Loading companies...' : (formData.role === UserRole.CLIENT ? 'Select a company' : 'Select a company (Optional)')}
+            </option>
+            {companies.map(company => (
+              <option key={company.id} value={company.id}>
+                {company.name}
+              </option>
+            ))}
+          </select>
+          {companies.length === 0 && !isLoadingCompanies && formData.role === UserRole.CLIENT && (
+            <p className="text-xs text-red-500 mt-1">No companies available. A company is required for client users.</p>
+          )}
+           {companies.length === 0 && !isLoadingCompanies && (formData.role === UserRole.AGENT || formData.role === UserRole.ADMIN) && (
+            <p className="text-xs text-gray-500 mt-1">No companies available to select.</p>
+          )}
+        </div>
       )}
-      {(formData.role === UserRole.AGENT || formData.role === UserRole.ADMIN) && (
+      {/* This section is removed as it's replaced by the conditional select above */}
+      {/* {(formData.role === UserRole.AGENT || formData.role === UserRole.ADMIN) && (
          <Input
           label="Company ID (Optional)"
           value={formData.companyId}
           onChange={(e) => handleInputChange('companyId', e.target.value)}
           placeholder="Enter valid Company ObjectId (Optional)"
-          required={false}
+          required={false} // And here
         />
-      )}
+      )} */}
       {!isEditMode && ( // Password fields only for Add User mode
         <>
           <Input
@@ -145,6 +170,8 @@ const Users: React.FC = () => {
   const [changePasswordUserId, setChangePasswordUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [companies, setCompanies] = useState<Array<{ id: string; name: string }>>([]);
+  const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
 
   // Add password and confirmPassword to formData state for the add user form
   const [formData, setFormData] = useState({
@@ -295,6 +322,40 @@ const Users: React.FC = () => {
     // If !loggedInUser but authToken exists, AuthContext is still loading, so we wait.
     // The fetchUsers dependency on loggedInUser will trigger when it resolves.
   }, [loggedInUser, fetchUsers]);
+
+  const fetchCompanies = useCallback(async () => {
+    setIsLoadingCompanies(true);
+    const token = localStorage.getItem('authToken');
+    // Assuming all authenticated users can fetch companies for the dropdown
+    if (!token) {
+      // Not setting apiError here as it's for the main user list,
+      // but logging for debug. The dropdown will just be empty or show loading.
+      console.error("No auth token for fetching companies.");
+      setIsLoadingCompanies(false);
+      return;
+    }
+    try {
+      const response = await fetch('/api/companies', { // Assuming this is the endpoint
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch companies');
+      }
+      const result = await response.json();
+      // Assuming result.data is an array of { _id: string, name: string, ... }
+      setCompanies((result.data || []).map((c: any) => ({ id: c._id || c.id, name: c.name })));
+    } catch (error) {
+      console.error("Error fetching companies:", error);
+      setCompanies([]); // Clear on error
+    } finally {
+      setIsLoadingCompanies(false);
+    }
+  }, []); // No dependencies, fetches once or on demand
+
+  // Fetch companies when component mounts (or when modals are about to open - later optimization)
+  useEffect(() => {
+    fetchCompanies();
+  }, [fetchCompanies]);
 
 
   const handleAddUser = useCallback(async (e: React.FormEvent) => {
@@ -724,6 +785,8 @@ const Users: React.FC = () => {
           onSubmit={handleAddUser}
           onCancel={handleCancelAdd}
           buttonText="Add User"
+          companies={companies}
+          isLoadingCompanies={isLoadingCompanies}
         />
       </Modal>
 
@@ -739,6 +802,8 @@ const Users: React.FC = () => {
           onSubmit={handleEditUser}
           onCancel={handleCancelEdit}
           buttonText="Save Changes"
+          companies={companies}
+          isLoadingCompanies={isLoadingCompanies}
         />
       </Modal>
 

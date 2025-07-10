@@ -14,7 +14,7 @@ import { body, validationResult } from 'express-validator';
 import surveyRoutesFunction from './routes/surveys.js'; // Renamed import
 import userRoutes from './routes/users.js';
 import companyRoutes from './routes/companies.js';
-// import reportRoutes from './routes/reports.js';
+import reportRoutes from './routes/reports.js'; // Uncommented
 import multer from 'multer';
 
 
@@ -62,7 +62,7 @@ app.use('/api/auth', authRoutes); // Mount authentication routes
 app.use('/api/surveys', surveyRoutesFunction(upload)); // Pass multer instance to survey routes
 app.use('/api/users', userRoutes);
 app.use('/api/companies', companyRoutes);
-// app.use('/api/reports', reportRoutes);
+app.use('/api/reports', reportRoutes); // Uncommented
 
 // --- Stats Routes ---
 // GET /api/stats/survey-statuses - Get counts of surveys by status
@@ -96,18 +96,19 @@ app.get('/api/stats/survey-statuses', verifyToken, async (req, res) => {
 // --- Protected API Routes (that are still in server/index.js) ---
 // Consider moving these to their respective route files as well for better organization.
 
-// Reports API: Accessible to any authenticated user
-// TODO: Move to server/routes/reports.js
-app.get('/api/reports', verifyToken, async (req, res) => {
-  try {
-    const db = getDb();
-    const reports = await db.collection('reports').find({}).toArray();
-    res.json({ data: reports });
-  } catch (err) {
-    console.error("Failed to fetch reports:", err);
-    res.status(500).json({ error: "Failed to fetch reports from database" });
-  }
-});
+// The GET /api/reports route is now handled by server/routes/reports.js
+// // Reports API: Accessible to any authenticated user
+// // TODO: Move to server/routes/reports.js
+// app.get('/api/reports', verifyToken, async (req, res) => {
+//   try {
+//     const db = getDb();
+//     const reports = await db.collection('reports').find({}).toArray();
+//     res.json({ data: reports });
+//   } catch (err) {
+//     console.error("Failed to fetch reports:", err);
+//     res.status(500).json({ error: "Failed to fetch reports from database" });
+//   }
+// });
 
 // Users API routes are now handled by server/routes/users.js
 // The GET /api/users and GET /api/users/:id that were here have been moved.
