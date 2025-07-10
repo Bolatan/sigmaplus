@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Filter, UserPlus, Mail, Building2, Shield } from 'lucide-react';
+import { Plus, Search, Filter, UserPlus, Mail, Building2, Shield, AlertTriangle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
-import { UserRole } from '../types';
+import { UserRole } from '../types'; // Assuming UserRole is defined here
 
 interface User {
   id: string;
@@ -19,13 +19,9 @@ interface User {
   status: 'active' | 'inactive';
 }
 
-// INITIAL_USERS array removed. Data is now fetched from API.
-
 // Separate UserForm component to prevent re-renders
 const UserForm: React.FC<{
   formData: {
-    name: string;
-    email: string;
     name: string;
     email: string;
     role: UserRole;
@@ -76,8 +72,7 @@ const UserForm: React.FC<{
           <option value={UserRole.ADMIN}>Admin</option>
         </select>
       </div>
-      {/* Company ID might be relevant for agent/client roles */}
-      {/* Company ID: Conditionally a dropdown */}
+{/* Company ID: Conditionally required based on role with dropdown selection */}
       {(formData.role === UserRole.CLIENT || formData.role === UserRole.AGENT || formData.role === UserRole.ADMIN) && (
         <div>
           <label htmlFor="companyIdSelect" className="block text-sm font-medium text-gray-700 mb-1">
@@ -104,21 +99,11 @@ const UserForm: React.FC<{
           {companies.length === 0 && !isLoadingCompanies && formData.role === UserRole.CLIENT && (
             <p className="text-xs text-red-500 mt-1">No companies available. A company is required for client users.</p>
           )}
-           {companies.length === 0 && !isLoadingCompanies && (formData.role === UserRole.AGENT || formData.role === UserRole.ADMIN) && (
+          {companies.length === 0 && !isLoadingCompanies && (formData.role === UserRole.AGENT || formData.role === UserRole.ADMIN) && (
             <p className="text-xs text-gray-500 mt-1">No companies available to select.</p>
           )}
         </div>
       )}
-      {/* This section is removed as it's replaced by the conditional select above */}
-      {/* {(formData.role === UserRole.AGENT || formData.role === UserRole.ADMIN) && (
-         <Input
-          label="Company ID (Optional)"
-          value={formData.companyId}
-          onChange={(e) => handleInputChange('companyId', e.target.value)}
-          placeholder="Enter valid Company ObjectId (Optional)"
-          required={false} // And here
-        />
-      )} */}
       {!isEditMode && ( // Password fields only for Add User mode
         <>
           <Input
@@ -165,7 +150,7 @@ const Users: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null); // Also used for change password target
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [changePasswordUserId, setChangePasswordUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
@@ -173,7 +158,6 @@ const Users: React.FC = () => {
   const [companies, setCompanies] = useState<Array<{ id: string; name: string }>>([]);
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
 
-  // Add password and confirmPassword to formData state for the add user form
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -184,78 +168,82 @@ const Users: React.FC = () => {
   });
   const { user: loggedInUser } = useAuth();
   const [apiError, setApiError] = useState<string | null>(null);
+  const [passwordChangeError, setPasswordChangeError] = useState<string | null>(null); // Specific error for password modal
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setIsLoading(true);
-      setApiError(null);
-      const token = localStorage.getItem('authToken');
+  // --- Utility Functions ---
+  const resetForm = useCallback(() => {
+    setFormData({
+      name: '',
+      email: '',
+      role: UserRole.CLIENT,
+      companyId: '',
+      password: '',
+      confirmPassword: '',
+    });
+    setEditingUser(null);
+  }, []);
 
-      if (!token) {
-        setApiError("No authentication token found. Please login.");
-        setIsLoading(false);
-        setUsers([]); // Clear any existing mock users
-        return;
-      }
+  const handleFormDataChange = useCallback((newFormData: any) => {
+    setFormData(newFormData);
+  }, []);
 
-      if (loggedInUser?.role !== UserRole.ADMIN) {
-        setApiError("Access Denied: You do not have permission to view users.");
-        setIsLoading(false);
-        setUsers([]);
-        return;
-      }
+  const handleCancelAdd = useCallback(() => {
+    setIsAddModalOpen(false);
+    resetForm();
+    setApiError(null); // Clear main error on modal close
+  }, [resetForm]);
 
-      try {
-        const response = await fetch('/api/users', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+  const handleCancelEdit = useCallback(() => {
+    setIsEditModalOpen(false);
+    resetForm();
+    setApiError(null); // Clear main error on modal close
+  }, [resetForm]);
 
-        if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            const errorData = await response.json();
-            setApiError(errorData.msg || errorData.error || `Error: ${response.statusText}`);
-          } else {
-            setApiError(`Error fetching users: ${response.statusText}`);
-          }
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+  const handleCancelChangePassword = useCallback(() => {
+    setIsChangePasswordModalOpen(false);
+    setChangePasswordUserId(null);
+    setNewPassword('');
+    setConfirmNewPassword('');
+    setPasswordChangeError(null); // Clear password error on modal close
+  }, []);
 
-        const result = await response.json();
-        // Assuming the API returns { data: User[] }
-        // And backend User type matches frontend User type (or needs mapping)
-        // For now, let's map _id to id for consistency with existing mock data structure
-        const fetchedUsers = result.data.map((u: any) => ({
-          ...u,
-          id: u._id,
-        }));
-        setUsers(fetchedUsers);
-      } catch (error) {
-        console.error('Error fetching users from API:', error);
-        if (!apiError) { // Don't overwrite specific 401/403 messages
-          setApiError('Failed to fetch users. Please try again.');
-        }
-        setUsers([]); // Clear users on error
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const getRoleBadgeColor = (role: UserRole) => {
+    switch (role) {
+      case UserRole.ADMIN:
+        return 'bg-primary-100 text-primary-800';
+      case UserRole.AGENT:
+        return 'bg-secondary-100 text-secondary-800';
+      case UserRole.CLIENT:
+        return 'bg-accent-100 text-accent-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
-    // loadUsers(); // This was for localStorage, removing it.
-    fetchUsers();
-  }, [loggedInUser]); // Depend on loggedInUser to re-check role if it changes
+  const getStatusColor = (status: string) => {
+    return status === 'active'
+      ? 'bg-success-100 text-success-800'
+      : 'bg-error-100 text-error-800';
+  };
 
-  // saveUsers function is removed as it's no longer needed.
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
+  // --- API Callbacks ---
 
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
-    setApiError(null);
+    setApiError(null); // Clear previous API errors
+
     const token = localStorage.getItem('authToken');
 
     if (!token) {
-      setApiError("No authentication token found. Please login.");
+      setApiError("Authentication token not found. Please log in.");
       setIsLoading(false);
       setUsers([]);
       return;
@@ -276,15 +264,10 @@ const Users: React.FC = () => {
       });
 
       if (!response.ok) {
-        let errorMsg = `Error fetching users: ${response.statusText}`;
-        if (response.status === 401 || response.status === 403) {
-          try {
-            const errorData = await response.json();
-            errorMsg = errorData.msg || errorData.error || errorMsg;
-          } catch (e) { /* ignore */ }
-        }
-        setApiError(errorMsg);
-        throw new Error(errorMsg); // Throw to be caught by catch block
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.msg || errorData.error || `Error fetching users: ${response.statusText}`;
+        setApiError(errorMessage);
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -297,66 +280,66 @@ const Users: React.FC = () => {
       setUsers(fetchedUsers);
     } catch (error: any) {
       console.error('Error fetching users from API:', error);
-      if (!apiError) { // Avoid overwriting more specific error from response.ok check
-        setApiError(error.message || 'Failed to fetch users. Please try again.');
-      }
+      // apiError is already set by the response.ok check, only set if no specific error
+      if (!apiError) setApiError(error.message || 'Failed to fetch users. Please try again.');
       setUsers([]);
     } finally {
       setIsLoading(false);
     }
-  }, [loggedInUser, apiError]); // apiError dependency might be problematic, review if it causes loops. Better to pass fetchUsers to child if needed.
+}, [loggedInUser]); // Removed apiError dependency to prevent loops
 
-  // This useEffect handles initial data fetch and re-fetch on user change.
-   useEffect(() => {
-    if (loggedInUser && loggedInUser.role === UserRole.ADMIN) {
-        fetchUsers();
-    } else if (loggedInUser && loggedInUser.role !== UserRole.ADMIN) { // If logged in but not admin
-        setApiError("Access Denied: You do not have permission to view users.");
-        setIsLoading(false);
-        setUsers([]);
-    } else if (!loggedInUser && !localStorage.getItem('authToken')) { // Explicitly not logged in (no token)
-        setApiError("No authentication token found. Please login.");
-        setIsLoading(false);
-        setUsers([]);
+// This useEffect handles initial data fetch and re-fetch on user change
+useEffect(() => {
+  if (loggedInUser && loggedInUser.role === UserRole.ADMIN) {
+    fetchUsers();
+  } else if (loggedInUser && loggedInUser.role !== UserRole.ADMIN) { 
+    // If logged in but not admin
+    setApiError("Access Denied: You do not have permission to view users.");
+    setIsLoading(false);
+    setUsers([]);
+  } else if (!loggedInUser && !localStorage.getItem('authToken')) { 
+    // Explicitly not logged in (no token)
+    setApiError("No authentication token found. Please login.");
+    setIsLoading(false);
+    setUsers([]);
+  }
+  // If !loggedInUser but authToken exists, AuthContext is still loading, so we wait.
+  // The fetchUsers dependency on loggedInUser will trigger when it resolves.
+}, [loggedInUser, fetchUsers]);
+
+const fetchCompanies = useCallback(async () => {
+  setIsLoadingCompanies(true);
+  const token = localStorage.getItem('authToken');
+  // Assuming all authenticated users can fetch companies for the dropdown
+  if (!token) {
+    // Not setting apiError here as it's for the main user list,
+    // but logging for debug. The dropdown will just be empty or show loading.
+    console.error("No auth token for fetching companies.");
+    setIsLoadingCompanies(false);
+    return;
+  }
+  try {
+    const response = await fetch('/api/companies', { // Assuming this is the endpoint
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch companies');
     }
-    // If !loggedInUser but authToken exists, AuthContext is still loading, so we wait.
-    // The fetchUsers dependency on loggedInUser will trigger when it resolves.
-  }, [loggedInUser, fetchUsers]);
+    const result = await response.json();
+    // Assuming result.data is an array of { _id: string, name: string, ... }
+    setCompanies((result.data || []).map((c: any) => ({ id: c._id || c.id, name: c.name })));
+  } catch (error) {
+    console.error("Error fetching companies:", error);
+    setCompanies([]); // Clear on error
+  } finally {
+    setIsLoadingCompanies(false);
+  }
+}, []); // No dependencies, fetches once or on demand
 
-  const fetchCompanies = useCallback(async () => {
-    setIsLoadingCompanies(true);
-    const token = localStorage.getItem('authToken');
-    // Assuming all authenticated users can fetch companies for the dropdown
-    if (!token) {
-      // Not setting apiError here as it's for the main user list,
-      // but logging for debug. The dropdown will just be empty or show loading.
-      console.error("No auth token for fetching companies.");
-      setIsLoadingCompanies(false);
-      return;
-    }
-    try {
-      const response = await fetch('/api/companies', { // Assuming this is the endpoint
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch companies');
-      }
-      const result = await response.json();
-      // Assuming result.data is an array of { _id: string, name: string, ... }
-      setCompanies((result.data || []).map((c: any) => ({ id: c._id || c.id, name: c.name })));
-    } catch (error) {
-      console.error("Error fetching companies:", error);
-      setCompanies([]); // Clear on error
-    } finally {
-      setIsLoadingCompanies(false);
-    }
-  }, []); // No dependencies, fetches once or on demand
-
-  // Fetch companies when component mounts (or when modals are about to open - later optimization)
-  useEffect(() => {
-    fetchCompanies();
-  }, [fetchCompanies]);
-
+// Fetch companies when component mounts (or when modals are about to open - later optimization)
+useEffect(() => {
+  fetchCompanies();
+}, [fetchCompanies]);
 
   const handleAddUser = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -372,12 +355,16 @@ const Users: React.FC = () => {
       return;
     }
     if (!formData.password || formData.password.length < 6) {
-        setApiError("Password must be at least 6 characters.");
+      setApiError("Password must be at least 6 characters.");
+      return;
+    }
+    if (formData.role === UserRole.CLIENT && !formData.companyId) {
+        setApiError("Company ID is required for Client role.");
         return;
     }
 
     try {
-      const response = await fetch('/api/auth/register', { // Using register endpoint for admin creation
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -388,7 +375,7 @@ const Users: React.FC = () => {
           email: formData.email,
           password: formData.password,
           role: formData.role,
-          companyId: formData.companyId || undefined, // Send undefined if empty
+          companyId: formData.companyId || undefined,
         }),
       });
 
@@ -397,8 +384,6 @@ const Users: React.FC = () => {
         throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to add user: ${response.statusText}`);
       }
 
-      // const newUserFromApi = await response.json(); // Contains { token, user }
-      // We don't need the token here, just refetch users list to include the new one with all fields.
       await fetchUsers(); // Re-fetch the user list to include the new user
       setIsAddModalOpen(false);
       resetForm();
@@ -421,16 +406,17 @@ const Users: React.FC = () => {
       return;
     }
 
+    if (formData.role === UserRole.CLIENT && !formData.companyId) {
+        setApiError("Company ID is required for Client role.");
+        return;
+    }
+
     const payload: any = {
       name: formData.name,
       role: formData.role,
     };
-    // Only include companyId if it's explicitly provided (even if empty string to unset)
-    // The backend controller handles empty string as potentially unsetting.
-    if (formData.companyId !== undefined) {
-        payload.companyId = formData.companyId === '' ? null : formData.companyId;
-    }
-
+    // Send companyId as null if empty string to explicitly unset it on backend
+    payload.companyId = formData.companyId === '' ? null : formData.companyId;
 
     try {
       const response = await fetch(`/api/users/${editingUser.id}`, {
@@ -449,12 +435,12 @@ const Users: React.FC = () => {
 
       const updatedUserFromApi = await response.json();
       const updatedUser = {
-        ...(updatedUserFromApi.data || updatedUserFromApi), // Backend might wrap in 'data'
+        ...(updatedUserFromApi.data || updatedUserFromApi),
         id: (updatedUserFromApi.data || updatedUserFromApi)._id,
       };
 
       setUsers(prevUsers =>
-        prevUsers.map(u => (u.id === updatedUser.id ? { ...u, ...updatedUser } : u)) // Merge, preserving fields like avatar if not in API response
+        prevUsers.map(u => (u.id === updatedUser.id ? { ...u, ...updatedUser } : u))
       );
       setIsEditModalOpen(false);
       resetForm();
@@ -462,8 +448,7 @@ const Users: React.FC = () => {
       console.error('Error updating user via API:', error);
       setApiError(error.message || 'An unexpected error occurred while updating the user.');
     }
-  }, [formData, editingUser, resetForm, users]); // Added users to dep array for optimistic update reference if needed, though not strictly for this version
-
+  }, [formData, editingUser, resetForm]);
 
   const handleToggleUserStatus = useCallback(async (userId: string, currentStatus: 'active' | 'inactive') => {
     setApiError(null);
@@ -476,7 +461,6 @@ const Users: React.FC = () => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     const originalUsers = [...users];
 
-    // Optimistic UI update
     setUsers(prevUsers =>
       prevUsers.map(u =>
         u.id === userId ? { ...u, status: newStatus, avatar: u.avatar || `https://ui-avatars.com/api/?name=${u.name}&background=random` } : u
@@ -499,11 +483,10 @@ const Users: React.FC = () => {
         throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update user status: ${response.statusText}`);
       }
 
-      // Optionally, update with the exact data from API if it differs from optimistic update (e.g. updatedAt)
       const updatedUserFromApi = await response.json();
       const finalUpdatedUser = {
-         ...(updatedUserFromApi.data || updatedUserFromApi),
-         id: (updatedUserFromApi.data || updatedUserFromApi)._id,
+        ...(updatedUserFromApi.data || updatedUserFromApi),
+        id: (updatedUserFromApi.data || updatedUserFromApi)._id,
       };
       setUsers(prevUsers =>
         prevUsers.map(u => (u.id === finalUpdatedUser.id ? { ...u, ...finalUpdatedUser, avatar: u.avatar } : u))
@@ -514,7 +497,7 @@ const Users: React.FC = () => {
       setApiError(error.message || 'An unexpected error occurred while updating user status.');
       setUsers(originalUsers); // Ensure reversion on any catch
     }
-  }, [users]); // `users` is a dependency for optimistic update and revert
+  }, [users]);
 
   const startEdit = useCallback((user: User) => {
     setEditingUser(user);
@@ -523,74 +506,40 @@ const Users: React.FC = () => {
       email: user.email,
       role: user.role,
       companyId: user.companyId || '',
+      password: '', // Password fields are not pre-filled in edit mode
+      confirmPassword: '',
     });
     setIsEditModalOpen(true);
   }, []);
 
-  const resetForm = useCallback(() => {
-    setFormData({
-      name: '',
-      email: '',
-      role: UserRole.CLIENT,
-      companyId: '',
-      password: '', // Reset password fields too
-      confirmPassword: '',
-    });
-    setEditingUser(null);
-  }, []);
-
-  const handleFormDataChange = useCallback((newFormData: any) => {
-    setFormData(newFormData);
-  }, []);
-
-  const handleCancelAdd = useCallback(() => {
-    setIsAddModalOpen(false);
-    resetForm();
-  }, [resetForm]);
-
-  const handleCancelEdit = useCallback(() => {
-    setIsEditModalOpen(false);
-    resetForm();
-  }, [resetForm]);
-
-  const openChangePasswordModal = (userId: string) => {
+  const openChangePasswordModal = useCallback((userId: string) => {
     setChangePasswordUserId(userId);
     setNewPassword('');
     setConfirmNewPassword('');
-    setApiError(null); // Clear previous main form errors
+    setPasswordChangeError(null); // Clear previous errors for this modal
     setIsChangePasswordModalOpen(true);
-  };
+  }, []);
 
-  const handleCancelChangePassword = () => {
-    setIsChangePasswordModalOpen(false);
-    setChangePasswordUserId(null);
-    setNewPassword('');
-    setConfirmNewPassword('');
-    // Do not clear apiError here as it might be relevant from a failed password change attempt
-  };
-
-  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
+  const handleChangePasswordSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    setApiError(null); // Clear previous page-level errors
+    setPasswordChangeError(null);
 
     if (newPassword !== confirmNewPassword) {
-      // Consider a specific error state for this modal rather than the page-level apiError
-      alert("New passwords do not match.");
+      setPasswordChangeError("New passwords do not match.");
       return;
     }
     if (newPassword.length < 6) {
-      alert("New password must be at least 6 characters long.");
+      setPasswordChangeError("New password must be at least 6 characters long.");
       return;
     }
     if (!changePasswordUserId) {
-      alert("No user selected for password change.");
+      setPasswordChangeError("No user selected for password change.");
       return;
     }
 
     const token = localStorage.getItem('authToken');
     if (!token) {
-      // This error should ideally be handled more globally or prevent modal opening
-      alert("Authentication error. Please log in again.");
+      setPasswordChangeError("Authentication error. Please log in again.");
       return;
     }
 
@@ -609,51 +558,37 @@ const Users: React.FC = () => {
         throw new Error(errorData.errors?.[0]?.msg || errorData.msg || errorData.error || `Failed to change password: ${response.statusText}`);
       }
 
-      // const result = await response.json(); // Contains success message
-      alert('Password updated successfully!'); // Simple success feedback
-      handleCancelChangePassword(); // Close modal and clear fields
+      alert('Password updated successfully!');
+      handleCancelChangePassword();
 
     } catch (error: any) {
       console.error('Error changing password:', error);
-      // Display error within the modal or use page-level apiError
-      // For now, using alert for modal-specific feedback
-      alert(`Error: ${error.message || 'Could not update password.'}`);
-      // setApiError(error.message || 'Could not update password.'); // Or use page-level error
+      setPasswordChangeError(error.message || 'Could not update password.');
     }
-  };
+  }, [newPassword, confirmNewPassword, changePasswordUserId, handleCancelChangePassword]);
 
+  // --- Effects ---
+  useEffect(() => {
+    if (loggedInUser && loggedInUser.role === UserRole.ADMIN) {
+      fetchUsers();
+    } else if (loggedInUser && loggedInUser.role !== UserRole.ADMIN) {
+      setApiError("Access Denied: You do not have permission to view users.");
+      setIsLoading(false);
+      setUsers([]);
+    } else if (!loggedInUser && !localStorage.getItem('authToken')) {
+      setApiError("No authentication token found. Please log in.");
+      setIsLoading(false);
+      setUsers([]);
+    }
+    // The `fetchUsers` useCallback handles its own dependencies,
+    // so `fetchUsers` itself is the correct dependency here.
+  }, [loggedInUser, fetchUsers]);
 
+  // --- Render Logic ---
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const getRoleBadgeColor = (role: UserRole) => {
-    switch (role) {
-      case UserRole.ADMIN:
-        return 'bg-primary-100 text-primary-800';
-      case UserRole.AGENT:
-        return 'bg-secondary-100 text-secondary-800';
-      case UserRole.CLIENT:
-        return 'bg-accent-100 text-accent-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    return status === 'active' 
-      ? 'bg-success-100 text-success-800' 
-      : 'bg-error-100 text-error-800';
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
 
   if (isLoading) {
     return (
@@ -673,14 +608,14 @@ const Users: React.FC = () => {
       )}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-        {loggedInUser?.role === UserRole.ADMIN && ( // Only admins can add users via this UI for now
-            <Button
-                variant="primary"
-                leftIcon={<UserPlus className="h-5 w-5" />}
-                onClick={() => setIsAddModalOpen(true)}
-            >
-                Add User
-            </Button>
+        {loggedInUser?.role === UserRole.ADMIN && (
+          <Button
+            variant="primary"
+            leftIcon={<UserPlus className="h-5 w-5" />}
+            onClick={() => setIsAddModalOpen(true)}
+          >
+            Add User
+          </Button>
         )}
       </div>
 
@@ -760,13 +695,15 @@ const Users: React.FC = () => {
                 >
                   {user.status === 'active' ? 'Deactivate' : 'Activate'}
                 </Button>
-                 <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => openChangePasswordModal(user.id)}
-                >
-                  Change Password
-                </Button>
+                {loggedInUser?.role === UserRole.ADMIN && ( // Only admins can change passwords for others
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openChangePasswordModal(user.id)}
+                  >
+                    Change Password
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -780,7 +717,7 @@ const Users: React.FC = () => {
       >
         <UserForm
           formData={formData}
-          isEditMode={false} // For Add User modal
+          isEditMode={false}
           onFormDataChange={handleFormDataChange}
           onSubmit={handleAddUser}
           onCancel={handleCancelAdd}
@@ -797,7 +734,7 @@ const Users: React.FC = () => {
       >
         <UserForm
           formData={formData}
-          isEditMode={true} // For Edit User modal
+          isEditMode={true}
           onFormDataChange={handleFormDataChange}
           onSubmit={handleEditUser}
           onCancel={handleCancelEdit}
@@ -830,7 +767,11 @@ const Users: React.FC = () => {
               onChange={(e) => setConfirmNewPassword(e.target.value)}
               required
             />
-            {/* Display password change specific errors here if needed, separate from main apiError */}
+            {passwordChangeError && (
+              <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3" role="alert">
+                <p>{passwordChangeError}</p>
+              </div>
+            )}
             <div className="flex justify-end space-x-2 mt-6">
               <Button type="button" variant="outline" onClick={handleCancelChangePassword}>
                 Cancel
@@ -843,7 +784,7 @@ const Users: React.FC = () => {
         </Modal>
       )}
 
-      {filteredUsers.length === 0 && !isLoading && !apiError && ( // Show "No users" only if not loading and no error
+      {filteredUsers.length === 0 && !isLoading && !apiError && (
         <div className="text-center py-12">
           <div className="text-gray-400 mb-4">
             <UserPlus className="h-12 w-12 mx-auto" />
