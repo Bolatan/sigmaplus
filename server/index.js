@@ -4,8 +4,6 @@ dotenv.config(); // Load environment variables from .env file
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import https from 'https';
-import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { ObjectId } from 'mongodb'; // Import ObjectId
 import { connectToServer, getDb } from './utils/db.js';
@@ -132,12 +130,7 @@ app.get('*', (req, res) => {
 // Start the server only after successful DB connection
 connectToServer()
   .then(() => {
-    const options = {
-      key: fs.readFileSync('key.pem'),
-      cert: fs.readFileSync('cert.pem')
-    };
-
-    https.createServer(options, app).listen(port, () => {
+    app.listen(port, () => {
       console.log(`Server running on port ${port} and connected to MongoDB.`);
     });
   })
