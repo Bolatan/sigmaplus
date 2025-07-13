@@ -135,3 +135,41 @@ export const deleteCompany = async (req, res, next) => {
     return next(new ApiError(500, err.message || 'Server error while deleting company.'));
   }
 };
+
+// Controller to update a company's branding
+export const updateCompanyBranding = async (req, res, next) => {
+  const { id: companyId } = req.params;
+  const { logo, color } = req.body;
+
+  if (!ObjectId.isValid(companyId)) {
+    return next(new ApiError(400, "Invalid company ID format."));
+  }
+
+  try {
+    const db = getDb();
+    const updateFields = {};
+
+    if (logo) updateFields['branding.logo'] = logo;
+    if (color) updateFields['branding.color'] = color;
+
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(400).json({ errors: [{ msg: 'No valid fields provided for update.' }] });
+    }
+    updateFields.updatedAt = new Date();
+
+    const result = await db.collection('companies').findOneAndUpdate(
+      { _id: new ObjectId(companyId) },
+      { $set: updateFields },
+      { returnDocument: 'after' }
+    );
+
+    if (!result) {
+      return next(new ApiError(404, 'Company not found.'));
+    }
+    res.json({ status: 'success', data: result });
+  } catch (err) {
+    console.error(`Error in updateCompanyBranding controller for companyId ${companyId}:`, err);
+    if (err instanceof ApiError) return next(err);
+    return next(new ApiError(500, err.message || 'Server error while updating company branding.'));
+  }
+};

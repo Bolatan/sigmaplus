@@ -198,19 +198,37 @@ const Reports: React.FC = () => {
     setIsDetailModalOpen(true);
   };
 
-  const handleDownloadReport = (report: ReportType) => {
-    const jsonString = JSON.stringify(report, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const href = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = href;
-    // Sanitize title for filename: replace spaces and special characters
-    const fileName = `${report.title.replace(/[^a-zA-Z0-9_.-]/g, '_').substring(0, 50) || 'report'}.json`;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(href);
+  const handleDownloadReport = async (report: ReportType, format: 'pdf' | 'pptx' = 'pdf') => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setApiError('Authentication required to download reports.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/reports/${report.id}?format=${format}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download report.');
+      }
+
+      const blob = await response.blob();
+      const href = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = href;
+      const fileName = `${report.title.replace(/[^a-zA-Z0-9_.-]/g, '_').substring(0, 50) || 'report'}.${format}`;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(href);
+    } catch (error: any) {
+      setApiError(error.message || 'An unexpected error occurred while downloading the report.');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -308,14 +326,32 @@ const Reports: React.FC = () => {
               </div>
 
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  leftIcon={<Download className="h-4 w-4" />}
-                  onClick={() => handleDownloadReport(report)}
-                >
-                  Download
-                </Button>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<Download className="h-4 w-4" />}
+                    onClick={() => handleDownloadReport(report, 'pdf')}
+                  >
+                    Download PDF
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<Download className="h-4 w-4" />}
+                    onClick={() => handleDownloadReport(report, 'pptx')}
+                  >
+                    Download PPTX
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<Download className="h-4 w-4" />}
+                    onClick={() => handleDownloadReport(report, 'xlsx')}
+                  >
+                    Download XLSX
+                  </Button>
+                </div>
                 <Button
                   variant="outline"
                   size="sm"
