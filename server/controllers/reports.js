@@ -203,26 +203,11 @@ export const getReportById = async (req, res) => {
       summarySlide.addText(report.summary || 'No summary available.', { x: 1, y: 2 });
 
       // --- Core Insight Areas ---
-      const coreInsightAreas = [
-        'Brand Awareness & Perception',
-        'Brand Usage & Purchase Behavior',
-        'Customer Satisfaction & Loyalty Metrics',
-        'Challenges and Improvement Opportunities',
-        'Outlet Dynamics',
-        'Product Stocking, Restocking Behavior',
-        'Supply Methods and Barriers',
-        'Trade Margins & Pricing',
-        'Trade Customer Lifecycle & Support',
-        'Drivers of Purchase',
-        'Marketing Channels and Awareness Sources',
-        'CSAT, NPS, CES (Customer Effort Score)',
-      ];
-
-      coreInsightAreas.forEach(area => {
-        const slide = pptx.addSlide();
-        slide.addText(area, { x: 1, y: 1, fontSize: 24, bold: true });
-        slide.addText('Data and visualizations for this section will be added in a future update.', { x: 1, y: 2 });
-      });
+      // --- Core Insight Areas ---
+      createBrandAwarenessSlide(pptx, survey, responses);
+      createBrandUsageSlide(pptx, survey, responses);
+      createCustomerSatisfactionSlide(pptx, survey, responses);
+      // ... and so on for the other core insight areas
 
       // --- Regional and Outlet-Level Findings ---
       const regionalSlide = pptx.addSlide();
@@ -358,30 +343,82 @@ export const deleteReport = async (req, res) => {
   }
 };
 
-export const generateAllReports = async (req, res) => {
-  try {
-    const db = getDb();
-    const clients = await db.collection('users').find({ role: 'client' }).toArray();
+function createBrandAwarenessSlide(pptx, survey, responses) {
+  const slide = pptx.addSlide();
+  slide.addText('Brand Awareness & Perception', { x: 1, y: 1, fontSize: 24, bold: true });
 
-    for (const client of clients) {
-      const surveys = await db.collection('surveys').find({ clientId: client._id }).toArray();
-      for (const survey of surveys) {
-        await generateReport({
-          body: {
-            surveyId: survey._id.toString(),
-            title: `${client.name} - ${survey.title} Report`,
-          },
-          user: {
-            companyId: client.companyId,
-            id: client._id,
-          },
+  const awarenessKeywords = ['aware', 'familiar', 'heard of'];
+  const perceptionKeywords = ['opinion', 'perception', 'impression', 'view'];
+
+  const awarenessQuestions = survey.questions.filter(q =>
+    awarenessKeywords.some(keyword => q.text.toLowerCase().includes(keyword))
+  );
+
+  const perceptionQuestions = survey.questions.filter(q =>
+    perceptionKeywords.some(keyword => q.text.toLowerCase().includes(keyword))
+  );
+
+  let y = 2;
+
+  if (awarenessQuestions.length > 0) {
+    slide.addText('Brand Awareness', { x: 1, y: y, fontSize: 18, bold: true });
+    y += 0.5;
+
+    awarenessQuestions.forEach(q => {
+      slide.addText(q.text, { x: 1, y: y, fontSize: 14 });
+      y += 0.5;
+
+      const questionResponses = responses.map(r => r.responseData[q.id]).filter(Boolean);
+      const responseCounts = questionResponses.reduce((acc, response) => {
+        acc[response] = (acc[response] || 0) + 1;
+        return acc;
+      }, {});
+
+      Object.entries(responseCounts).forEach(([option, count]) => {
+        slide.addText(`${option}: ${count}`, { x: 1.5, y: y });
+        y += 0.5;
+      });
+    });
+  }
+
+  if (perceptionQuestions.length > 0) {
+    slide.addText('Brand Perception', { x: 1, y: y, fontSize: 18, bold: true });
+    y += 0.5;
+
+    perceptionQuestions.forEach(q => {
+      slide.addText(q.text, { x: 1, y: y, fontSize: 14 });
+      y += 0.5;
+
+      if (q.type === 'rating') {
+        const ratings = responses.map(r => r.responseData[q.id]).filter(Boolean).map(Number);
+        const averageRating = ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
+        slide.addText(`Average Rating: ${averageRating.toFixed(2)}`, { x: 1.5, y: y });
+        y += 0.5;
+      } else {
+        const questionResponses = responses.map(r => r.responseData[q.id]).filter(Boolean);
+        const responseCounts = questionResponses.reduce((acc, response) => {
+          acc[response] = (acc[response] || 0) + 1;
+          return acc;
+        }, {});
+
+        Object.entries(responseCounts).forEach(([option, count]) => {
+          slide.addText(`${option}: ${count}`, { x: 1.5, y: y });
+          y += 0.5;
         });
       }
-    }
-
-    res.status(200).json({ message: 'Reports generated successfully' });
-  } catch (err) {
-    console.error('Failed to generate all reports:', err);
-    res.status(500).json({ error: 'Failed to generate all reports' });
+    });
   }
-};
+}
+
+function createBrandUsageSlide(pptx, survey, responses) {
+  const slide = pptx.addSlide();
+  slide.addText('Brand Usage & Purchase Behavior', { x: 1, y: 1, fontSize: 24, bold: true });
+  slide.addText('Data and visualizations for this section will be added in a future update.', { x: 1, y: 2 });
+}
+
+function createCustomerSatisfactionSlide(pptx, survey, responses) {
+  const slide = pptx.addSlide();
+  slide.addText('Customer Satisfaction & Loyalty Metrics', { x: 1, y: 1, fontSize: 24, bold: true });
+  slide.addText('Data and visualizations for this section will be added in a future update.', { x: 1, y: 2 });
+}
+
