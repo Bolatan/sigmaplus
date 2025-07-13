@@ -79,7 +79,7 @@ export const getSurveys = async (req, res, next) => {
       }
       query.companyId = new ObjectId(userCompanyId);
     } else if (userRole === 'agent') {
-      query.createdBy = new ObjectId(userId);
+      query.agentId = new ObjectId(userId);
     }
 
     const surveysData = await db.collection('surveys').find(query).toArray();
