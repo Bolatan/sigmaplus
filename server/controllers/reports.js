@@ -67,6 +67,8 @@ export const getReports = async (req, res) => {
   }
 };
 
+import PDFDocument from 'pdfkit';
+
 // @desc    Get a single report by ID
 // @route   GET /api/reports/:id
 // @access  Private
@@ -93,7 +95,34 @@ export const getReportById = async (req, res) => {
       }
     }
 
-    res.json({ data: report });
+    const doc = new PDFDocument();
+    let buffers = [];
+    doc.on('data', buffers.push.bind(buffers));
+    doc.on('end', () => {
+      let pdfData = Buffer.concat(buffers);
+      res.writeHead(200, {
+        'Content-Length': Buffer.byteLength(pdfData),
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment;filename=${report.title}.pdf`,
+      }).end(pdfData);
+    });
+
+    doc.fontSize(25).text(report.title, {
+      align: 'center'
+    });
+
+    doc.moveDown();
+
+    report.sections.forEach(section => {
+      doc.fontSize(20).text(section.type, {
+        underline: true
+      });
+      doc.fontSize(12).text(section.content);
+      doc.moveDown();
+    });
+
+    doc.end();
+
   } catch (err) {
     console.error(`Failed to fetch report ${req.params.id}:`, err);
     res.status(500).json({ error: 'Failed to fetch report' });
