@@ -139,7 +139,7 @@ const SurveyForm: React.FC<{
                   <option value="textarea">Textarea</option>
                   <option value="single-choice">Single Choice (Radio)</option>
                   <option value="multiple-choice">Multiple Choice (Checkbox)</option>
-                  <option value="rating">Rating (1-5)</option>
+                  <option value="range">Range</option>
                   <option value="nps">Net Promoter Score (NPS)</option>
                   <option value="ces">Customer Effort Score (CES)</option>
                   <option value="image-choice">Image Choice</option>
@@ -158,7 +158,7 @@ const SurveyForm: React.FC<{
                   <span className="text-sm text-gray-700">Required</span>
                 </label>
               </div>
-              {(question.type === 'single-choice' || question.type === 'multiple-choice') && (
+              {(question.type === 'single-choice' || question.type === 'multiple-choice' || question.type === 'image-choice') && (
               <div className="mt-2 space-y-2 pl-4 border-l-2">
                 {(question.options || []).map((opt, optIndex) => (
                   <div key={optIndex} className="flex items-center space-x-2">

@@ -33,7 +33,7 @@ export type QuestionType =
   | 'textarea'
   | 'single-choice'
   | 'multiple-choice'
-  | 'rating'
+  | 'range'
   | 'nps'
   | 'ces'
   | 'image-choice'
