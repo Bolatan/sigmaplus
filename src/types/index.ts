@@ -63,6 +63,7 @@ export interface SurveyResponse {
   respondentId: string;
   data: Record<string, any>;
   createdAt: string;
+  isFlagged?: boolean;
   location?: {
     state?: string;
     city?: string;

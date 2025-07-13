@@ -21,8 +21,20 @@ export const createSurvey = async (req, res, next) => {
       if (!q.text || typeof q.text !== 'string' || q.text.trim() === '') {
         throw new ApiError(400, `Question '${q.id}' (index ${index}) must have non-empty 'text'.`);
       }
-      if (!q.type || typeof q.type !== 'string' || !['text', 'textarea', 'single-choice', 'multiple-choice', 'rating'].includes(q.type)) {
+      if (!q.type || typeof q.type !== 'string' || !['text', 'textarea', 'single-choice', 'multiple-choice', 'rating', 'nps', 'ces', 'image-choice', 'file-upload', 'video'].includes(q.type)) {
         throw new ApiError(400, `Question '${q.id}' (index ${index}) has an invalid 'type'.`);
+      }
+      if ((q.type === 'single-choice' || q.type === 'multiple-choice' || q.type === 'image-choice') && (!q.options || !Array.isArray(q.options) || q.options.length === 0)) {
+        throw new ApiError(400, `Question '${q.id}' (index ${index}) must have at least one option.`);
+      }
+      if (q.type === 'rating' && (!q.maxRating || typeof q.maxRating !== 'number' || q.maxRating < 2 || q.maxRating > 10)) {
+        throw new ApiError(400, `Question '${q.id}' (index ${index}) must have a maxRating between 2 and 10.`);
+      }
+      if (q.type === 'file-upload' && q.allowedFileTypes && typeof q.allowedFileTypes !== 'string') {
+        throw new ApiError(400, `Question '${q.id}' (index ${index}) must have a string for allowedFileTypes.`);
+      }
+      if (q.type === 'video' && (!q.videoUrl || typeof q.videoUrl !== 'string')) {
+        throw new ApiError(400, `Question '${q.id}' (index ${index}) must have a videoUrl.`);
       }
       return {
         id: q.id,
@@ -30,6 +42,9 @@ export const createSurvey = async (req, res, next) => {
         type: q.type,
         options: q.options && Array.isArray(q.options) ? q.options.map(opt => String(opt)) : [],
         isRequired: typeof q.isRequired === 'boolean' ? q.isRequired : !!q.isRequired,
+        maxRating: q.maxRating,
+        allowedFileTypes: q.allowedFileTypes,
+        videoUrl: q.videoUrl,
       };
     });
 
@@ -251,7 +266,7 @@ export const submitSurveyResponse = async (req, res, next) => {
     const db = getDb();
     const { id: surveyIdParam } = req.params;
     const { id: userId } = req.user;
-    const { data: responseData, location, demographics } = req.body;
+    const { data: responseData, location, demographics, submissionTime } = req.body;
 
     if (!ObjectId.isValid(surveyIdParam)) {
       throw new ApiError(400, 'Invalid Survey ID format.');
@@ -266,11 +281,22 @@ export const submitSurveyResponse = async (req, res, next) => {
       throw new ApiError(400, `Survey is not active. Current status: ${survey.status}.`);
     }
 
+    const existingResponse = await db.collection('responses').findOne({
+      surveyId: surveyObjectId,
+      userId: new ObjectId(userId),
+    });
+
+    if (existingResponse) {
+      throw new ApiError(400, 'You have already submitted a response for this survey.');
+    }
+
     const newResponse = {
       surveyId: surveyObjectId,
       userId: new ObjectId(userId),
       responseData: responseData,
       submittedAt: new Date(),
+      submissionTime: submissionTime || null,
+      isFlagged: submissionTime && submissionTime < 5000, // Flag if submission time is less than 5 seconds
     };
     if (location) newResponse.location = location;
     if (demographics) newResponse.demographics = demographics;
