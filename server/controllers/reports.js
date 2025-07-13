@@ -118,7 +118,8 @@ export const getReportById = async (req, res) => {
           pptx.layout = 'MASTER_SLIDE';
         }
         if (company.branding.logo) {
-          pptx.addSlide().addImage({ path: company.branding.logo, x: 1, y: 1, w: 1, h: 1 });
+          // Assuming the logo is a base64 string, prepend the necessary data URI scheme
+          pptx.addSlide().addImage({ data: `data:image/png;base64,${company.branding.logo}`, x: 1, y: 1, w: 1, h: 1 });
         }
       }
 
