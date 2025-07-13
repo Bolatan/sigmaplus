@@ -11,17 +11,26 @@ import Annotations from '../components/dashboard/Annotations';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 const ClientDashboard: React.FC = () => {
+  // ✅ ALL useState hooks moved to the top
   const [annotations, setAnnotations] = useState([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [filteredSurveys, setFilteredSurveys] = useState<Survey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
   const [chartType, setChartType] = useState('bar');
   const [region, setRegion] = useState('all');
   const [timePeriod, setTimePeriod] = useState('all');
   const [demographics, setDemographics] = useState('all');
   const [outletType, setOutletType] = useState('all');
+  const [isEditingHeaders, setIsEditingHeaders] = useState(false);
+  const [headers, setHeaders] = useState({
+    title: 'Title',
+    status: 'Status',
+    responses: 'Responses',
+  });
+  const [dashboardItems, setDashboardItems] = useState(['surveys', 'chart']);
+
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchSurveys = async () => {
@@ -80,21 +89,6 @@ const ClientDashboard: React.FC = () => {
     setFilteredSurveys(newFilteredSurveys);
   }, [surveys, region, timePeriod, demographics, outletType]);
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
-  }
-
-  const [isEditingHeaders, setIsEditingHeaders] = useState(false);
-  const [headers, setHeaders] = useState({
-    title: 'Title',
-    status: 'Status',
-    responses: 'Responses',
-  });
-
   const handleHeaderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setHeaders((prev) => ({ ...prev, [name]: value }));
@@ -106,8 +100,6 @@ const ClientDashboard: React.FC = () => {
     console.log('Saving headers:', headers);
     setIsEditingHeaders(false);
   };
-
-  const [dashboardItems, setDashboardItems] = useState(['surveys', 'chart']);
 
   const onDragEnd = (result: any) => {
     if (!result.destination) {
@@ -125,6 +117,15 @@ const ClientDashboard: React.FC = () => {
     primaryColor: user?.branding?.primaryColor || '#000000',
     secondaryColor: user?.branding?.secondaryColor || '#FFFFFF',
   };
+
+  // ✅ Conditional returns AFTER all hooks
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
+  }
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
