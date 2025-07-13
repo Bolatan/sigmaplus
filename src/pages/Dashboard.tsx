@@ -147,6 +147,68 @@ const Dashboard: React.FC = () => {
     // The isLoading from AuthContext can also be used here for a more global loading state.
   }, [isAdmin, user]); // Depend on user to ensure role is available and re-fetch if user changes.
 
+  useEffect(() => {
+    const fetchSurveyStatusData = async () => {
+      // This fetch is independent of the main dashboard stats, so it runs in its own useEffect.
+      // It depends on the user being available to get the token.
+      if (!user) return;
+
+      setIsSurveyStatusChartLoading(true);
+      setSurveyStatusChartError(null);
+
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setSurveyStatusChartError('Authentication token not found.');
+        setIsSurveyStatusChartLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/stats/survey-statuses', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to fetch chart data: ${response.statusText}`);
+        }
+        const result = await response.json();
+        const chartData = result.data || [];
+
+        if (chartData.length > 0) {
+          setSurveyStatusChartData({
+            labels: chartData.map((d: any) => d.status.charAt(0).toUpperCase() + d.status.slice(1)), // Capitalize status
+            datasets: [{
+              label: 'Survey Count',
+              data: chartData.map((d: any) => d.count),
+              backgroundColor: [
+                'rgba(255, 99, 132, 0.6)', // Draft
+                'rgba(54, 162, 235, 0.6)', // Active
+                'rgba(75, 192, 192, 0.6)', // Completed
+                'rgba(255, 206, 86, 0.6)', // Archived/Other
+              ],
+              borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(255, 206, 86, 1)',
+              ],
+              borderWidth: 1,
+            }]
+          });
+        } else {
+          setSurveyStatusChartData(null); // No data to show
+        }
+
+      } catch (err: any) {
+        console.error("Error fetching survey status data:", err);
+        setSurveyStatusChartError(err.message || 'Failed to load survey status distribution.');
+      } finally {
+        setIsSurveyStatusChartLoading(false);
+      }
+    };
+
+    fetchSurveyStatusData();
+  }, [user]); // Re-run if the user object changes.
+
   // Combined loading state: true if this page is loading OR if auth context is still loading user
   const pageIsLoading = isLoading || (!user && !!localStorage.getItem('authToken'));
 
