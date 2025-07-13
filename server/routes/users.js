@@ -45,49 +45,49 @@ router.put(
     param('userId').isMongoId().withMessage('Invalid user ID format.'),
     body('name').optional().notEmpty().withMessage('Name cannot be empty.').trim().escape(),
     body('role').optional().isIn(['admin', 'agent', 'client']).withMessage('Invalid role specified.'),
-    body('companyId')
-      .optional({ checkFalsy: true }) // Allows null or empty string to be passed for unsetting
-      .custom(async (value, { req }) => {
-        const newRole = req.body.role;
-        const isCompanyIdProvided = value !== null && value !== undefined && value !== ''; // True if companyId is being set or changed
-        const effectiveRole = newRole || req.currentUserRole; // Use new role if provided, else existing (from pre-controller middleware)
+    body('companyId').optional({ checkFalsy: true }).custom(async (value, { req }) => {
+      const newRole = req.body.role;
+      const userId = req.params.userId;
+      let effectiveRole = newRole;
 
-        // If effective role is 'client', companyId must be a valid MongoID string
-        if (effectiveRole === 'client') {
-          if (!value || !ObjectId.isValid(value)) { // value here is newCompanyId
-            throw new Error('Company ID is required and must be a valid ID for client roles.');
+      // If role is not being changed, we need to fetch the user's current role
+      if (!newRole && userId) {
+        try {
+          const db = getDb();
+          const user = await db.collection('users').findOne({ _id: new ObjectId(userId) }, { projection: { role: 1 } });
+          if (user) {
+            effectiveRole = user.role;
+          } else {
+            // Let the controller handle the "user not found" error.
+            // For validation, we proceed assuming it might be a new user or ID is wrong,
+            // but we cannot determine role-based requirements.
+            return true;
           }
+        } catch (error) {
+          // Log the error but don't block, as it might be a malformed ID
+          // which will be caught by other validators.
+          console.error("DB error during companyId validation:", error);
+          throw new Error('Could not verify user role for company ID validation.');
         }
+      }
 
-        // If companyId is provided (not null/empty), it must be a valid MongoID (for any role it's being applied to)
-        if (isCompanyIdProvided && !ObjectId.isValid(value)) {
-            throw new Error('Invalid Company ID format.');
+      // Rule: If the effective role is 'client', a valid companyId is mandatory.
+      if (effectiveRole === 'client') {
+        if (!value || !ObjectId.isValid(value)) {
+          throw new Error('Company ID is required and must be a valid ID for client roles.');
         }
-        return true;
-      }),
+      }
+
+      // Rule: If a companyId is provided (for any role), it must be a valid MongoID format.
+      if (value && !ObjectId.isValid(value)) {
+        throw new Error('Invalid Company ID format.');
+      }
+
+      return true; // Passes validation
+    }),
     body('status').optional().isIn(['active', 'inactive']).withMessage('Invalid status. Must be active or inactive.'),
     validateRequest
   ],
-  async (req, res, next) => { // Pre-controller middleware to load current user's role for validation context
-    // This middleware ensures req.currentUserRole is set if role is not in req.body
-    // This helps the custom validator for companyId make decisions based on the user's role context.
-    if (req.body.role === undefined && !req.currentUserRole) { // Only fetch if role isn't being changed AND not already fetched
-      try {
-        const db = getDb();
-        const user = await db.collection('users').findOne({ _id: new ObjectId(req.params.userId) }, { projection: { role: 1 } });
-        if (user) {
-          req.currentUserRole = user.role; // Make current role available to subsequent validators/controller
-        } else {
-          // If user not found here, controller will handle it with 404, but validator might run first.
-          // It's okay if currentUserRole is not set, validator will use req.body.role if present.
-        }
-      } catch (e) {
-        console.error("Could not fetch current user role for companyId validation:", e);
-        // Proceed, but companyId validation might be incomplete if role isn't in body
-      }
-    }
-    next();
-  },
   updateUser
 );
 
