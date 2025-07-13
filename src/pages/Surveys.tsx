@@ -265,7 +265,7 @@ const SurveyForm: React.FC<{
     </form>
     <ConditionalLogicModal isOpen={isLogicModalOpen} onClose={closeLogicModal} />
     </>
-));
+);
 
 SurveyForm.displayName = 'SurveyForm';
 
