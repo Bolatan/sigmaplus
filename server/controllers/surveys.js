@@ -85,6 +85,7 @@ export const createSurvey = async (req, res, next) => {
 export const getSurveys = async (req, res, next) => {
   try {
     const db = getDb();
+    const { region, demographics, outletType } = req.query;
     const query = {};
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
@@ -95,6 +96,16 @@ export const getSurveys = async (req, res, next) => {
       query.companyId = new ObjectId(userCompanyId);
     } else if (userRole === 'agent') {
       query.agentId = new ObjectId(userId);
+    }
+
+    if (region && region !== 'all') {
+      query['location.region'] = region;
+    }
+    if (demographics && demographics !== 'all') {
+      query[`demographics.${demographics}`] = { $exists: true };
+    }
+    if (outletType && outletType !== 'all') {
+      query.outletType = outletType;
     }
 
     const surveysData = await db.collection('surveys').find(query).toArray();
