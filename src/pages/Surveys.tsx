@@ -200,6 +200,38 @@ const SurveyForm: React.FC<{
                 </Button>
               </div>
               )}
+              {question.type === 'rating' && (
+                <div className="mt-2">
+                  <Input
+                    label="Max Rating"
+                    type="number"
+                    value={question.maxRating || 5}
+                    onChange={(e) => handleQuestionChange(index, 'maxRating', parseInt(e.target.value, 10))}
+                    min={2}
+                    max={10}
+                  />
+                </div>
+              )}
+              {question.type === 'file-upload' && (
+                <div className="mt-2">
+                  <Input
+                    label="Allowed File Types"
+                    value={question.allowedFileTypes || ''}
+                    onChange={(e) => handleQuestionChange(index, 'allowedFileTypes', e.target.value)}
+                    placeholder="e.g., .pdf,.jpg,.png"
+                  />
+                </div>
+              )}
+              {question.type === 'video' && (
+                <div className="mt-2">
+                  <Input
+                    label="Video URL"
+                    value={question.videoUrl || ''}
+                    onChange={(e) => handleQuestionChange(index, 'videoUrl', e.target.value)}
+                    placeholder="https://example.com/video.mp4"
+                  />
+                </div>
+              )}
               <Button
                 type="button"
                 variant="danger"
