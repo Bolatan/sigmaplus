@@ -70,6 +70,7 @@ export const getReports = async (req, res) => {
 import PDFDocument from 'pdfkit';
 import pptxgen from 'pptxgenjs';
 import Excel from 'exceljs';
+import { createStudyOverviewSlide } from '../templates/study-overview.js';
 
 // @desc    Get a single report by ID
 // @route   GET /api/reports/:id

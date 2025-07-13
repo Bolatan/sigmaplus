@@ -8,6 +8,8 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Survey, SurveyQuestion, QuestionType } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+import { ConditionalLogicModal } from '../components/surveys/ConditionalLogicModal';
+import { TemplateSelectionModal } from '../components/surveys/TemplateSelectionModal';
 
 interface SurveyFormData {
   title: string;
@@ -57,10 +59,24 @@ const SurveyForm: React.FC<{
     onFormDataChange({ ...formData, questions: newQuestions });
   }, [formData, onFormDataChange]);
 
+  const [isLogicModalOpen, setIsLogicModalOpen] = useState(false);
+  const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null);
+
+  const openLogicModal = (index: number) => {
+    setSelectedQuestionIndex(index);
+    setIsLogicModalOpen(true);
+  };
+
+  const closeLogicModal = () => {
+    setSelectedQuestionIndex(null);
+    setIsLogicModalOpen(false);
+  };
+
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
-      <Input
-        label="Survey Title"
+    <>
+      <form onSubmit={onSubmit} className="space-y-6">
+        <Input
+          label="Survey Title"
         value={formData.title}
         onChange={(e) => handleInputChange('title', e.target.value)}
         required
@@ -103,6 +119,12 @@ const SurveyForm: React.FC<{
                 <option value="textarea">Textarea</option>
                 <option value="single-choice">Single Choice (Radio)</option>
                 <option value="multiple-choice">Multiple Choice (Checkbox)</option>
+                <option value="rating">Rating (1-5)</option>
+                <option value="nps">Net Promoter Score (NPS)</option>
+                <option value="ces">Customer Effort Score (CES)</option>
+                <option value="image-choice">Image Choice</option>
+                <option value="file-upload">File Upload</option>
+                <option value="video">Video</option>
               </select>
             </div>
 
@@ -150,6 +172,29 @@ const SurveyForm: React.FC<{
               </div>
             )}
 
+            {q.type === 'rating' && (
+              <div className="mt-2">
+                <Input
+                  label="Max Rating"
+                  type="number"
+                  value={q.maxRating || 5}
+                  onChange={(e) => handleQuestionChange(index, 'maxRating', parseInt(e.target.value, 10))}
+                  min={2}
+                  max={10}
+                />
+              </div>
+            )}
+
+            {q.type === 'video' && (
+              <div className="mt-2">
+                <Input
+                  label="Video URL"
+                  value={q.videoUrl || ''}
+                  onChange={(e) => handleQuestionChange(index, 'videoUrl', e.target.value)}
+                />
+              </div>
+            )}
+
             <div className="mt-2">
               <label className="flex items-center space-x-2">
                 <input
@@ -170,6 +215,16 @@ const SurveyForm: React.FC<{
               className="mt-2"
             >
               Remove Question
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-2 ml-2"
+              onClick={() => openLogicModal(index)}
+            >
+              Conditional Logic
             </Button>
           </div>
         ))} {/* <-- The crucial closing parenthesis and curly brace are correctly positioned here */}
@@ -208,7 +263,8 @@ const SurveyForm: React.FC<{
         </Button>
       </div>
     </form>
-  );
+    <ConditionalLogicModal isOpen={isLogicModalOpen} onClose={closeLogicModal} />
+    </>
 });
 
 SurveyForm.displayName = 'SurveyForm';
@@ -236,6 +292,7 @@ const Surveys: React.FC = () => {
   const [uploadStatusMessage, setUploadStatusMessage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
 
   const resetForm = useCallback(() => {
     setFormData({
@@ -596,13 +653,23 @@ const Surveys: React.FC = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Surveys</h1>
         {(user?.role === 'admin' || user?.role === 'agent') && (
-          <Button
-            variant="primary"
-            leftIcon={<Plus className="h-5 w-5" />}
-            onClick={() => setIsAddModalOpen(true)}
-          >
-            Create Survey
-          </Button>
+          <div className="flex space-x-2">
+            <Button
+              variant="primary"
+              leftIcon={<Plus className="h-5 w-5" />}
+              onClick={() => setIsAddModalOpen(true)}
+            >
+              Create Survey
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                // Open template selection modal
+              }}
+            >
+              Use Template
+            </Button>
+          </div>
         )}
       </div>
 
@@ -819,6 +886,16 @@ const Surveys: React.FC = () => {
           </p>
         </div>
       )}
+
+            {q.type === 'file-upload' && (
+              <div className="mt-2">
+                <Input
+                  label="Allowed File Types (e.g., .pdf,.jpg,.png)"
+                  value={q.allowedFileTypes || ''}
+                  onChange={(e) => handleQuestionChange(index, 'allowedFileTypes', e.target.value)}
+                />
+              </div>
+            )}
     </div>
   );
 };
