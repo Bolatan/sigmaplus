@@ -358,7 +358,7 @@ const Surveys: React.FC = () => {
         throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to create survey: ${response.statusText}`);
       }
 
-      const newSurveyFromApi = await response.json();
+      const { data: newSurveyFromApi } = await response.json();
       const newSurvey = { ...newSurveyFromApi, id: newSurveyFromApi._id, questions: newSurveyFromApi.questions || [] };
 
       setSurveys(prevSurveys => [newSurvey, ...prevSurveys]);
@@ -408,7 +408,7 @@ const Surveys: React.FC = () => {
           throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update survey: ${response.statusText}`);
       }
 
-      const updatedSurveyFromApi = await response.json();
+      const { data: updatedSurveyFromApi } = await response.json();
       const updatedSurvey = { ...updatedSurveyFromApi, id: updatedSurveyFromApi._id, questions: updatedSurveyFromApi.questions || [] };
 
       setSurveys(prevSurveys =>
