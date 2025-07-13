@@ -9,15 +9,24 @@ import ShareModal from '../components/dashboard/ShareModal';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 const ClientDashboard: React.FC = () => {
+  // ALL useState hooks must be at the top level, before any conditional returns
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [filteredSurveys, setFilteredSurveys] = useState<Survey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
   const [chartType, setChartType] = useState('bar');
   const [region, setRegion] = useState('all');
   const [timePeriod, setTimePeriod] = useState('all');
   const [isShareModalOpen, setShareModalOpen] = useState(false);
+  const [isEditingHeaders, setIsEditingHeaders] = useState(false);
+  const [headers, setHeaders] = useState({
+    title: 'Title',
+    status: 'Status',
+    responses: 'Responses',
+  });
+  const [dashboardItems, setDashboardItems] = useState(['surveys', 'chart']);
+
+  const { user } = useAuth();
 
   const handleShareByEmail = (email: string) => {
     console.log(`Sharing dashboard with ${email}`);
@@ -28,6 +37,30 @@ const ClientDashboard: React.FC = () => {
     navigator.clipboard.writeText(link).then(() => {
       alert('Link copied to clipboard!');
     });
+  };
+
+  const handleHeaderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setHeaders((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const saveHeaders = async () => {
+    // In a real application, you would save the headers to the database.
+    // For this example, we'll just log them to the console.
+    console.log('Saving headers:', headers);
+    setIsEditingHeaders(false);
+  };
+
+  const onDragEnd = (result: any) => {
+    if (!result.destination) {
+      return;
+    }
+
+    const items = Array.from(dashboardItems);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setDashboardItems(items);
   };
 
   useEffect(() => {
@@ -87,6 +120,7 @@ const ClientDashboard: React.FC = () => {
     setFilteredSurveys(newFilteredSurveys);
   }, [surveys, region, timePeriod]);
 
+  // NOW the conditional returns are safe - all hooks have been called
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -94,39 +128,6 @@ const ClientDashboard: React.FC = () => {
   if (error) {
     return <div className="text-red-500">{error}</div>;
   }
-
-  const [isEditingHeaders, setIsEditingHeaders] = useState(false);
-  const [headers, setHeaders] = useState({
-    title: 'Title',
-    status: 'Status',
-    responses: 'Responses',
-  });
-
-  const handleHeaderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setHeaders((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const saveHeaders = async () => {
-    // In a real application, you would save the headers to the database.
-    // For this example, we'll just log them to the console.
-    console.log('Saving headers:', headers);
-    setIsEditingHeaders(false);
-  };
-
-  const [dashboardItems, setDashboardItems] = useState(['surveys', 'chart']);
-
-  const onDragEnd = (result: any) => {
-    if (!result.destination) {
-      return;
-    }
-
-    const items = Array.from(dashboardItems);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    setDashboardItems(items);
-  };
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
@@ -152,21 +153,33 @@ const ClientDashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label htmlFor="region" className="block text-sm font-medium text-gray-700">Region</label>
-                <select id="region" name="region" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
-                  <option>All</option>
-                  <option>North</option>
-                  <option>South</option>
-                  <option>East</option>
-                  <option>West</option>
+                <select 
+                  id="region" 
+                  name="region" 
+                  value={region}
+                  onChange={(e) => setRegion(e.target.value)}
+                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
+                >
+                  <option value="all">All</option>
+                  <option value="north">North</option>
+                  <option value="south">South</option>
+                  <option value="east">East</option>
+                  <option value="west">West</option>
                 </select>
               </div>
               <div>
                 <label htmlFor="timePeriod" className="block text-sm font-medium text-gray-700">Time Period</label>
-                <select id="timePeriod" name="timePeriod" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
-                  <option>All Time</option>
-                  <option>Last 30 Days</option>
-                  <option>Last 90 Days</option>
-                  <option>Last Year</option>
+                <select 
+                  id="timePeriod" 
+                  name="timePeriod" 
+                  value={timePeriod}
+                  onChange={(e) => setTimePeriod(e.target.value)}
+                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
+                >
+                  <option value="all">All Time</option>
+                  <option value="30days">Last 30 Days</option>
+                  <option value="90days">Last 90 Days</option>
+                  <option value="year">Last Year</option>
                 </select>
               </div>
             </div>
