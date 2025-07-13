@@ -233,6 +233,11 @@ const Surveys: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [shouldRefetch, setShouldRefetch] = useState(false);
+
+  const triggerRefetch = () => {
+    setShouldRefetch(prev => !prev);
+  };
 
   const resetForm = useCallback(() => {
     setFormData({
@@ -322,7 +327,7 @@ const Surveys: React.FC = () => {
     };
 
     fetchApiSurveys();
-  }, [user, apiError]);
+  }, [user, apiError, shouldRefetch]);
 
   const handleAddSurvey = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -364,11 +369,12 @@ const Surveys: React.FC = () => {
       setSurveys(prevSurveys => [newSurvey, ...prevSurveys]);
       setIsAddModalOpen(false);
       resetForm();
+      triggerRefetch();
     } catch (error: any) {
       console.error('Error adding survey via API:', error);
       setApiError(error.message || 'An unexpected error occurred while adding the survey.');
     }
-  }, [formData, resetForm]);
+  }, [formData, resetForm, triggerRefetch]);
 
   const handleEditSurvey = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
