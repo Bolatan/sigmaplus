@@ -662,7 +662,7 @@ useEffect(() => {
                   {user.companyId && (
                     <div className="flex items-center text-sm text-gray-500 mt-1">
                       <Building2 className="h-4 w-4 mr-1" />
-                      Company ID: {user.companyId}
+                      {companies.find(c => c.id === user.companyId)?.name || 'Unknown Company'}
                     </div>
                   )}
                 </div>
