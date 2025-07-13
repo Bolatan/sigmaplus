@@ -15,6 +15,19 @@ const Settings: React.FC = () => {
     newPassword: '',
     confirmPassword: '',
   });
+  const [branding, setBranding] = useState({
+    logo: null,
+    color: '#000000',
+  });
+
+  const handleBrandingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.name === 'logo') {
+      // @ts-ignore
+      setBranding({ ...branding, logo: e.target.files[0] });
+    } else {
+      setBranding({ ...branding, [e.target.name]: e.target.value });
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -27,6 +40,34 @@ const Settings: React.FC = () => {
     e.preventDefault();
     // TODO: Implement settings update logic
     console.log('Settings updated:', formData);
+
+    if (user?.role === 'admin' && user.companyId) {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      const brandingData = new FormData();
+      if (branding.logo) {
+        // In a real app, you'd upload the logo to a file storage service
+        // and get back a URL to save in the database.
+        // For now, we'll just log a message.
+        console.log('Logo would be uploaded here.');
+      }
+
+      const response = await fetch(`/api/companies/${user.companyId}/branding`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ color: branding.color }),
+      });
+
+      if (response.ok) {
+        console.log('Branding updated successfully');
+      } else {
+        console.error('Failed to update branding');
+      }
+    }
   };
 
   return (
@@ -96,6 +137,30 @@ const Settings: React.FC = () => {
               onChange={handleChange}
               leftIcon={<Lock className="h-5 w-5 text-gray-400" />}
             />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Report Branding</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label htmlFor="logo" className="block text-sm font-medium text-gray-700">
+                Company Logo
+              </label>
+              <div className="mt-1">
+                <input type="file" name="logo" id="logo" onChange={handleBrandingChange} />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="color" className="block text-sm font-medium text-gray-700">
+                Report Color Scheme
+              </label>
+              <div className="mt-1">
+                <input type="color" name="color" id="color" value={branding.color} onChange={handleBrandingChange} />
+              </div>
+            </div>
           </CardContent>
         </Card>
 

@@ -8,11 +8,14 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Survey, SurveyQuestion, QuestionType } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+import { ConditionalLogicModal } from '../components/surveys/ConditionalLogicModal';
+import { TemplateSelectionModal } from '../components/surveys/TemplateSelectionModal';
 
 interface SurveyFormData {
   title: string;
   description: string;
   questions: SurveyQuestion[];
+  agentId?: string;
 }
 
 const SurveyForm: React.FC<{
@@ -21,7 +24,9 @@ const SurveyForm: React.FC<{
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onCancel: () => void;
   buttonText: string;
-}> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText }) => {
+  agents: any[];
+  user: any;
+}> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, user }) => {
 
   if (!formData || !Array.isArray(formData.questions)) {
     return <div>Loading survey form...</div>;
@@ -54,10 +59,24 @@ const SurveyForm: React.FC<{
     onFormDataChange({ ...formData, questions: newQuestions });
   }, [formData, onFormDataChange]);
 
+  const [isLogicModalOpen, setIsLogicModalOpen] = useState(false);
+  const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null);
+
+  const openLogicModal = (index: number) => {
+    setSelectedQuestionIndex(index);
+    setIsLogicModalOpen(true);
+  };
+
+  const closeLogicModal = () => {
+    setSelectedQuestionIndex(null);
+    setIsLogicModalOpen(false);
+  };
+
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
-      <Input
-        label="Survey Title"
+    <>
+      <form onSubmit={onSubmit} className="space-y-6">
+        <Input
+          label="Survey Title"
         value={formData.title}
         onChange={(e) => handleInputChange('title', e.target.value)}
         required
@@ -100,6 +119,12 @@ const SurveyForm: React.FC<{
                 <option value="textarea">Textarea</option>
                 <option value="single-choice">Single Choice (Radio)</option>
                 <option value="multiple-choice">Multiple Choice (Checkbox)</option>
+                <option value="rating">Rating (1-5)</option>
+                <option value="nps">Net Promoter Score (NPS)</option>
+                <option value="ces">Customer Effort Score (CES)</option>
+                <option value="image-choice">Image Choice</option>
+                <option value="file-upload">File Upload</option>
+                <option value="video">Video</option>
               </select>
             </div>
 
@@ -147,6 +172,29 @@ const SurveyForm: React.FC<{
               </div>
             )}
 
+            {q.type === 'rating' && (
+              <div className="mt-2">
+                <Input
+                  label="Max Rating"
+                  type="number"
+                  value={q.maxRating || 5}
+                  onChange={(e) => handleQuestionChange(index, 'maxRating', parseInt(e.target.value, 10))}
+                  min={2}
+                  max={10}
+                />
+              </div>
+            )}
+
+            {q.type === 'video' && (
+              <div className="mt-2">
+                <Input
+                  label="Video URL"
+                  value={q.videoUrl || ''}
+                  onChange={(e) => handleQuestionChange(index, 'videoUrl', e.target.value)}
+                />
+              </div>
+            )}
+
             <div className="mt-2">
               <label className="flex items-center space-x-2">
                 <input
@@ -168,6 +216,16 @@ const SurveyForm: React.FC<{
             >
               Remove Question
             </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-2 ml-2"
+              onClick={() => openLogicModal(index)}
+            >
+              Conditional Logic
+            </Button>
           </div>
         ))} {/* <-- The crucial closing parenthesis and curly brace are correctly positioned here */}
         <Button type="button" variant="outline" onClick={addQuestion} leftIcon={<Plus className="h-4 w-4" />} className="mt-2">
@@ -179,12 +237,34 @@ const SurveyForm: React.FC<{
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
+        {user?.role === 'admin' && (
+          <div className="col-span-1">
+            <label htmlFor="agentId" className="block text-sm font-medium text-gray-700">
+              Assign to Agent (Optional)
+            </label>
+            <select
+              id="agentId"
+              name="agentId"
+              value={formData.agentId || ''}
+              onChange={(e) => onFormDataChange({ ...formData, agentId: e.target.value })}
+              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
+            >
+              <option value="">-- Select Agent --</option>
+              {agents.map((agent) => (
+                <option key={agent._id} value={agent._id}>
+                  {agent.name} ({agent.email})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <Button type="submit" variant="primary">
           {buttonText}
         </Button>
       </div>
     </form>
-  );
+    <ConditionalLogicModal isOpen={isLogicModalOpen} onClose={closeLogicModal} />
+    </>
 });
 
 SurveyForm.displayName = 'SurveyForm';
@@ -211,6 +291,8 @@ const Surveys: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatusMessage, setUploadStatusMessage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [agents, setAgents] = useState<any[]>([]);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
 
   const resetForm = useCallback(() => {
     setFormData({
@@ -229,6 +311,28 @@ const Surveys: React.FC = () => {
       }));
     }
   }, []);
+
+  useEffect(() => {
+    const fetchAgents = async () => {
+      if (user?.role !== 'admin') return;
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      try {
+        const response = await fetch('/api/users?role=agent', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const { data } = await response.json();
+          setAgents(data || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch agents:", error);
+      }
+    };
+
+    fetchAgents();
+  }, [user]);
 
   useEffect(() => {
     const fetchApiSurveys = async () => {
@@ -305,6 +409,7 @@ const Surveys: React.FC = () => {
           title: formData.title,
           description: formData.description,
           questions: formData.questions,
+          agentId: formData.agentId,
         }),
       });
 
@@ -354,6 +459,7 @@ const Surveys: React.FC = () => {
           title: formData.title,
           description: formData.description,
           questions: formData.questions,
+          agentId: formData.agentId,
         }),
       });
 
@@ -547,13 +653,23 @@ const Surveys: React.FC = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Surveys</h1>
         {(user?.role === 'admin' || user?.role === 'agent') && (
-          <Button
-            variant="primary"
-            leftIcon={<Plus className="h-5 w-5" />}
-            onClick={() => setIsAddModalOpen(true)}
-          >
-            Create Survey
-          </Button>
+          <div className="flex space-x-2">
+            <Button
+              variant="primary"
+              leftIcon={<Plus className="h-5 w-5" />}
+              onClick={() => setIsAddModalOpen(true)}
+            >
+              Create Survey
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                // Open template selection modal
+              }}
+            >
+              Use Template
+            </Button>
+          </div>
         )}
       </div>
 
@@ -688,6 +804,8 @@ const Surveys: React.FC = () => {
           onSubmit={handleAddSurvey}
           onCancel={handleCancelAdd}
           buttonText="Create Survey"
+          agents={agents}
+          user={user}
         />
       </Modal>
 
@@ -702,6 +820,8 @@ const Surveys: React.FC = () => {
           onSubmit={handleEditSurvey}
           onCancel={handleCancelEdit}
           buttonText="Save Changes"
+          agents={agents}
+          user={user}
         />
       </Modal>
 
@@ -766,6 +886,16 @@ const Surveys: React.FC = () => {
           </p>
         </div>
       )}
+
+            {q.type === 'file-upload' && (
+              <div className="mt-2">
+                <Input
+                  label="Allowed File Types (e.g., .pdf,.jpg,.png)"
+                  value={q.allowedFileTypes || ''}
+                  onChange={(e) => handleQuestionChange(index, 'allowedFileTypes', e.target.value)}
+                />
+              </div>
+            )}
     </div>
   );
 };

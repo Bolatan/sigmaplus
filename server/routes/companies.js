@@ -7,7 +7,8 @@ import {
   getCompanies,
   getCompanyById,
   updateCompany,
-  deleteCompany
+  deleteCompany,
+  updateCompanyBranding
 } from '../controllers/companies.js';
 
 const router = express.Router();
@@ -95,6 +96,22 @@ router.delete(
     next();
   },
   deleteCompany
+);
+
+// @route   PUT api/companies/:id/branding
+// @desc    Update a company's branding
+// @access  Admin
+router.put(
+  '/:id/branding',
+  [
+    verifyToken,
+    authorizeRole(['admin']),
+    param('id').isMongoId().withMessage('Invalid Company ID format.'),
+    body('logo').optional().isURL().withMessage('Invalid logo URL.'),
+    body('color').optional().isHexColor().withMessage('Invalid color format.'),
+    validateRequest
+  ],
+  updateCompanyBranding
 );
 
 export default router;

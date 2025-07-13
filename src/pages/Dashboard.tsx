@@ -147,6 +147,68 @@ const Dashboard: React.FC = () => {
     // The isLoading from AuthContext can also be used here for a more global loading state.
   }, [isAdmin, user]); // Depend on user to ensure role is available and re-fetch if user changes.
 
+  useEffect(() => {
+    const fetchSurveyStatusData = async () => {
+      // This fetch is independent of the main dashboard stats, so it runs in its own useEffect.
+      // It depends on the user being available to get the token.
+      if (!user) return;
+
+      setIsSurveyStatusChartLoading(true);
+      setSurveyStatusChartError(null);
+
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setSurveyStatusChartError('Authentication token not found.');
+        setIsSurveyStatusChartLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/stats/survey-statuses', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to fetch chart data: ${response.statusText}`);
+        }
+        const result = await response.json();
+        const chartData = result.data || [];
+
+        if (chartData.length > 0) {
+          setSurveyStatusChartData({
+            labels: chartData.map((d: any) => d.status.charAt(0).toUpperCase() + d.status.slice(1)), // Capitalize status
+            datasets: [{
+              label: 'Survey Count',
+              data: chartData.map((d: any) => d.count),
+              backgroundColor: [
+                'rgba(255, 99, 132, 0.6)', // Draft
+                'rgba(54, 162, 235, 0.6)', // Active
+                'rgba(75, 192, 192, 0.6)', // Completed
+                'rgba(255, 206, 86, 0.6)', // Archived/Other
+              ],
+              borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(255, 206, 86, 1)',
+              ],
+              borderWidth: 1,
+            }]
+          });
+        } else {
+          setSurveyStatusChartData(null); // No data to show
+        }
+
+      } catch (err: any) {
+        console.error("Error fetching survey status data:", err);
+        setSurveyStatusChartError(err.message || 'Failed to load survey status distribution.');
+      } finally {
+        setIsSurveyStatusChartLoading(false);
+      }
+    };
+
+    fetchSurveyStatusData();
+  }, [user]); // Re-run if the user object changes.
+
   // Combined loading state: true if this page is loading OR if auth context is still loading user
   const pageIsLoading = isLoading || (!user && !!localStorage.getItem('authToken'));
 
@@ -165,6 +227,8 @@ const Dashboard: React.FC = () => {
     if (user?.role === UserRole.CLIENT) return "Client Dashboard";
     return "Dashboard";
   };
+
+  const isAgent = user?.role === UserRole.AGENT;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -201,142 +265,150 @@ const Dashboard: React.FC = () => {
             value={stats.totalResponses?.toLocaleString() || '0'}
             icon={<Users className="h-6 w-6 text-secondary-500" />}
           />
-          <StatCard
-            title="Reports Generated"
-            value={stats.reportsGenerated?.toString() || '0'}
-            icon={<BarChart3 className="h-6 w-6 text-accent-500" />}
-          />
-          <StatCard
-            title="Avg. Completion Rate"
-            value={`${Math.round(stats.averageCompletionRate || 0)}%`}
-            icon={<TrendingUp className="h-6 w-6 text-success-500" />}
-          />
-          <StatCard
-            title="Total Companies"
-            value={stats.totalCompanies?.toString() || '0'}
-            icon={<Building2 className="h-6 w-6 text-indigo-500" />}
-          />
-          {isAdmin && ( // Only show Total Users card if user is admin
-            <StatCard
-              title="Total Users"
-              value={stats.totalUsers?.toString() || 'N/A'}
-              icon={<UserCheck className="h-6 w-6 text-teal-500" />}
-            />
+          {!isAgent && (
+            <>
+              <StatCard
+                title="Reports Generated"
+                value={stats.reportsGenerated?.toString() || '0'}
+                icon={<BarChart3 className="h-6 w-6 text-accent-500" />}
+              />
+              <StatCard
+                title="Avg. Completion Rate"
+                value={`${Math.round(stats.averageCompletionRate || 0)}%`}
+                icon={<TrendingUp className="h-6 w-6 text-success-500" />}
+              />
+              <StatCard
+                title="Total Companies"
+                value={stats.totalCompanies?.toString() || '0'}
+                icon={<Building2 className="h-6 w-6 text-indigo-500" />}
+              />
+              {isAdmin && ( // Only show Total Users card if user is admin
+                <StatCard
+                  title="Total Users"
+                  value={stats.totalUsers?.toString() || 'N/A'}
+                  icon={<UserCheck className="h-6 w-6 text-teal-500" />}
+                />
+              )}
+            </>
           )}
         </div>
       )}
 
       {/* Charts and Visualizations */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <DashboardCard
-          title="Survey Status Distribution"
-          variant="pie" // Or use a new variant if DashboardCard's icon logic is tied to it
-          isLoading={isSurveyStatusChartLoading}
-        >
-          {surveyStatusChartError && (
-            <div className="h-[300px] flex items-center justify-center p-4 text-red-500">
-              <p>{surveyStatusChartError}</p>
-            </div>
-          )}
-          {!isSurveyStatusChartLoading && !surveyStatusChartError && surveyStatusChartData && (
-            <div className="h-[300px] p-4 flex justify-center items-center"> {/* Ensure chart has height */}
-              <Pie
-                data={surveyStatusChartData}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'top' as const,
+      {!isAgent && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <DashboardCard
+            title="Survey Status Distribution"
+            variant="pie" // Or use a new variant if DashboardCard's icon logic is tied to it
+            isLoading={isSurveyStatusChartLoading}
+          >
+            {surveyStatusChartError && (
+              <div className="h-[300px] flex items-center justify-center p-4 text-red-500">
+                <p>{surveyStatusChartError}</p>
+              </div>
+            )}
+            {!isSurveyStatusChartLoading && !surveyStatusChartError && surveyStatusChartData && (
+              <div className="h-[300px] p-4 flex justify-center items-center"> {/* Ensure chart has height */}
+                <Pie
+                  data={surveyStatusChartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'top' as const,
+                      },
+                      title: {
+                        display: false, // Title is on DashboardCard
+                        text: 'Survey Statuses',
+                      },
                     },
-                    title: {
-                      display: false, // Title is on DashboardCard
-                      text: 'Survey Statuses',
-                    },
-                  },
-                }}
-              />
+                  }}
+                />
+              </div>
+            )}
+            {!isSurveyStatusChartLoading && !surveyStatusChartError && !surveyStatusChartData && (
+              <div className="h-[300px] flex items-center justify-center p-4 text-gray-500">
+                  <p>No survey status data available.</p>
+              </div>
+            )}
+          </DashboardCard>
+
+          <DashboardCard
+            title="Market Share Distribution (Placeholder)"
+            variant="pie"
+          >
+            <div className="h-[300px] flex items-center justify-center p-4">
+              <div className="text-center text-gray-500">
+                <p className="text-lg">Sample Pie Chart</p>
+                <p className="text-sm">Showing market share by brand</p>
+              </div>
             </div>
-          )}
-           {!isSurveyStatusChartLoading && !surveyStatusChartError && !surveyStatusChartData && (
-             <div className="h-[300px] flex items-center justify-center p-4 text-gray-500">
-                <p>No survey status data available.</p>
-             </div>
-           )}
-        </DashboardCard>
-        
-        <DashboardCard
-          title="Market Share Distribution (Placeholder)"
-          variant="pie"
-        >
-          <div className="h-[300px] flex items-center justify-center p-4">
-            <div className="text-center text-gray-500">
-              <p className="text-lg">Sample Pie Chart</p>
-              <p className="text-sm">Showing market share by brand</p>
+          </DashboardCard>
+
+          <DashboardCard
+            title="Customer Satisfaction Score"
+            variant="bar"
+          >
+            <div className="h-[300px] flex items-center justify-center p-4">
+              <div className="text-center text-gray-500">
+                <p className="text-lg">Sample Bar Chart</p>
+                <p className="text-sm">Showing CSAT scores by product category</p>
+              </div>
             </div>
-          </div>
-        </DashboardCard>
-        
-        <DashboardCard
-          title="Customer Satisfaction Score"
-          variant="bar"
-        >
-          <div className="h-[300px] flex items-center justify-center p-4">
-            <div className="text-center text-gray-500">
-              <p className="text-lg">Sample Bar Chart</p>
-              <p className="text-sm">Showing CSAT scores by product category</p>
+          </DashboardCard>
+
+          <DashboardCard
+            title="Regional Performance"
+            variant="heatmap"
+          >
+            <div className="h-[300px] flex items-center justify-center p-4">
+              <div className="text-center text-gray-500">
+                <p className="text-lg">Sample Heatmap</p>
+                <p className="text-sm">Showing brand performance by region</p>
+              </div>
             </div>
-          </div>
-        </DashboardCard>
-        
-        <DashboardCard
-          title="Regional Performance"
-          variant="heatmap"
-        >
-          <div className="h-[300px] flex items-center justify-center p-4">
-            <div className="text-center text-gray-500">
-              <p className="text-lg">Sample Heatmap</p>
-              <p className="text-sm">Showing brand performance by region</p>
-            </div>
-          </div>
-        </DashboardCard>
-      </div>
+          </DashboardCard>
+        </div>
+      )}
 
       {/* Recent Activity */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="p-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold">Recent Activity</h3>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {[1, 2, 3, 4, 5].map((item) => (
-              <div key={item} className="p-4 hover:bg-gray-50">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
-                    {item % 2 === 0 ? (
-                      <ClipboardList className="h-5 w-5" />
-                    ) : (
-                      <Users className="h-5 w-5" />
-                    )}
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-900">
-                      {item % 2 === 0
-                        ? 'New survey response submitted'
-                        : 'Report generated for Client'}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {new Date(
-                        Date.now() - item * 3600000
-                      ).toLocaleString()}
-                    </p>
+      {!isAgent && (
+        <Card>
+          <CardContent className="p-0">
+            <div className="p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold">Recent Activity</h3>
+            </div>
+            <div className="divide-y divide-gray-200">
+              {[1, 2, 3, 4, 5].map((item) => (
+                <div key={item} className="p-4 hover:bg-gray-50">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
+                      {item % 2 === 0 ? (
+                        <ClipboardList className="h-5 w-5" />
+                      ) : (
+                        <Users className="h-5 w-5" />
+                      )}
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-900">
+                        {item % 2 === 0
+                          ? 'New survey response submitted'
+                          : 'Report generated for Client'}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {new Date(
+                          Date.now() - item * 3600000
+                        ).toLocaleString()}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

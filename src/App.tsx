@@ -10,6 +10,7 @@ import Users from './pages/Users';
 import Settings from './pages/Settings';
 import Companies from './pages/Companies';
 import SurveyResponsePage from './pages/SurveyResponsePage'; // Import the new page
+import ClientDashboard from './pages/ClientDashboard';
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -41,7 +42,14 @@ const AppRoutes: React.FC = () => {
       <Route path="/" element={
         <ProtectedRoute>
           <Layout>
-            <Dashboard />
+            {user?.role === 'client' ? <Navigate to="/client-dashboard" /> : <Dashboard />}
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/client-dashboard" element={
+        <ProtectedRoute>
+          <Layout>
+            <ClientDashboard />
           </Layout>
         </ProtectedRoute>
       } />
