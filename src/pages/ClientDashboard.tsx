@@ -4,6 +4,7 @@ import { Survey } from '../types';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import ShareModal from '../components/dashboard/ShareModal';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
@@ -16,6 +17,18 @@ const ClientDashboard: React.FC = () => {
   const [chartType, setChartType] = useState('bar');
   const [region, setRegion] = useState('all');
   const [timePeriod, setTimePeriod] = useState('all');
+  const [isShareModalOpen, setShareModalOpen] = useState(false);
+
+  const handleShareByEmail = (email: string) => {
+    console.log(`Sharing dashboard with ${email}`);
+  };
+
+  const handleShareByLink = () => {
+    const link = window.location.href;
+    navigator.clipboard.writeText(link).then(() => {
+      alert('Link copied to clipboard!');
+    });
+  };
 
   useEffect(() => {
     const fetchSurveys = async () => {
@@ -121,6 +134,20 @@ const ClientDashboard: React.FC = () => {
           <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-6">
             <h1 className="text-2xl font-bold text-gray-900">Client Dashboard</h1>
             <p>Welcome to your dedicated client portal.</p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShareModalOpen(true)}
+                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+              >
+                Share
+              </button>
+            </div>
+            <ShareModal
+              isOpen={isShareModalOpen}
+              onClose={() => setShareModalOpen(false)}
+              onShareByEmail={handleShareByEmail}
+              onShareByLink={handleShareByLink}
+            />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label htmlFor="region" className="block text-sm font-medium text-gray-700">Region</label>
