@@ -19,6 +19,11 @@ export const generateReport = async (req, res) => {
     // based on the survey responses. For now, we'll just create a
     // placeholder report document.
 
+    const survey = await db.collection('surveys').findOne({ _id: new ObjectId(surveyId) });
+    if (!survey) {
+      return res.status(404).json({ error: 'Survey not found' });
+    }
+
     const newReport = {
       title,
       surveyId: new ObjectId(surveyId),
@@ -26,11 +31,48 @@ export const generateReport = async (req, res) => {
       generatedBy: new ObjectId(req.user.id),
       createdAt: new Date(),
       status: 'completed', // or 'generating'
-      // a 'sections' field would contain the actual report data
       sections: [
-        { type: 'summary', content: 'This is an auto-generated summary.' },
-        { type: 'charts', data: [] }
-      ]
+        {
+          id: 'study-overview',
+          title: 'Study Overview',
+          order: 1,
+          content: [],
+          projectName: survey.title,
+          background: survey.description,
+          objectives: 'To understand customer feedback',
+          methodology: 'Online survey',
+        },
+        {
+          id: 'respondent-profile',
+          title: 'Respondent Profile',
+          order: 2,
+          content: [],
+        },
+        {
+          id: 'executive-summary',
+          title: 'Executive Summary',
+          order: 3,
+          content: [],
+        },
+        {
+          id: 'core-insight-areas',
+          title: 'Core Insight Areas',
+          order: 4,
+          content: [],
+        },
+        {
+          id: 'regional-findings',
+          title: 'Regional and Outlet-Level Findings',
+          order: 5,
+          content: [],
+        },
+        {
+          id: 'recommendations',
+          title: 'Recommendations',
+          order: 6,
+          content: [],
+        },
+      ],
     };
 
     const result = await reportsCollection.insertOne(newReport);
@@ -96,6 +138,7 @@ export const getReportById = async (req, res) => {
     const responses = await db.collection('responses').find({ surveyId: new ObjectId(report.surveyId) }).toArray();
     const user = await db.collection('users').findOne({ _id: new ObjectId(report.generatedBy) });
     const company = await db.collection('companies').findOne({ _id: new ObjectId(report.companyId) });
+    const client = await db.collection('users').findOne({ _id: new ObjectId(report.clientId) });
 
     // Access control: Ensure client can only access their own reports
     if (req.user.role === 'client' && req.user.companyId) {
@@ -107,19 +150,18 @@ export const getReportById = async (req, res) => {
     if (format === 'pptx') {
       const pptx = new pptxgen();
 
-      if (company && company.branding) {
-        if (company.branding.color) {
+      if (client && client.branding) {
+        if (client.branding.primaryColor) {
           pptx.defineLayout({
             name: 'MASTER_SLIDE',
             width: 10,
             height: 5.625,
-            background: { color: company.branding.color },
+            background: { color: client.branding.primaryColor },
           });
           pptx.layout = 'MASTER_SLIDE';
         }
-        if (company.branding.logo) {
-          // Assuming the logo is a base64 string, prepend the necessary data URI scheme
-          pptx.addSlide().addImage({ data: `data:image/png;base64,${company.branding.logo}`, x: 1, y: 1, w: 1, h: 1 });
+        if (client.branding.logoUrl) {
+          pptx.addSlide().addImage({ path: client.branding.logoUrl, x: 1, y: 1, w: 1, h: 1 });
         }
       }
 
@@ -313,5 +355,33 @@ export const deleteReport = async (req, res) => {
   } catch (err) {
     console.error(`Failed to delete report ${req.params.id}:`, err);
     res.status(500).json({ error: 'Failed to delete report' });
+  }
+};
+
+export const generateAllReports = async (req, res) => {
+  try {
+    const db = getDb();
+    const clients = await db.collection('users').find({ role: 'client' }).toArray();
+
+    for (const client of clients) {
+      const surveys = await db.collection('surveys').find({ clientId: client._id }).toArray();
+      for (const survey of surveys) {
+        await generateReport({
+          body: {
+            surveyId: survey._id.toString(),
+            title: `${client.name} - ${survey.title} Report`,
+          },
+          user: {
+            companyId: client.companyId,
+            id: client._id,
+          },
+        });
+      }
+    }
+
+    res.status(200).json({ message: 'Reports generated successfully' });
+  } catch (err) {
+    console.error('Failed to generate all reports:', err);
+    res.status(500).json({ error: 'Failed to generate all reports' });
   }
 };
