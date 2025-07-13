@@ -4,6 +4,12 @@ export enum UserRole {
   CLIENT = 'client',
 }
 
+export interface Branding {
+  logoUrl?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -11,6 +17,7 @@ export interface User {
   role: UserRole;
   companyId?: string;
   avatar?: string;
+  branding?: Branding;
 }
 
 export interface Company {
@@ -49,6 +56,7 @@ export interface Survey {
   title: string;
   description: string;
   companyId?: string; // Made optional, or ensure it's always set by backend
+  clientId?: string;
   createdAt: string;
   updatedAt: string;
   status: 'draft' | 'active' | 'completed';
