@@ -378,9 +378,11 @@ export const bulkUploadSurveyResponses = async (req, res, next) => {
     const errorsInRows = [];
 
     const stream = Readable.from(req.file.buffer);
+    console.log('CSV stream created.');
     stream
       .pipe(csv())
       .on('data', (row) => {
+        console.log('CSV row data:', row);
         processedRows++;
         try {
           const responseData = { ...row };
@@ -400,10 +402,52 @@ export const bulkUploadSurveyResponses = async (req, res, next) => {
             throw new Error('Row has no response data.');
           }
 
+          const validatedResponseData = {};
+          const questionMap = survey.questions.reduce((map, q) => {
+            map[q.id] = q;
+            return map;
+          }, {});
+
+          for (const questionId in responseData) {
+            if (Object.prototype.hasOwnProperty.call(responseData, questionId)) {
+              const question = questionMap[questionId];
+              const answer = responseData[questionId];
+
+              if (question) {
+                switch (question.type) {
+                  case 'rating':
+                    const rating = parseInt(answer, 10);
+                    if (isNaN(rating) || rating < 1 || rating > question.maxRating) {
+                      throw new Error(`Invalid rating for question '${questionId}'. Must be a number between 1 and ${question.maxRating}.`);
+                    }
+                    validatedResponseData[questionId] = rating;
+                    break;
+                  case 'image-choice':
+                    if (!question.options.includes(answer)) {
+                      throw new Error(`Invalid option for question '${questionId}'.`);
+                    }
+                    validatedResponseData[questionId] = answer;
+                    break;
+                  case 'file-upload':
+                    // For file upload, we expect a URL. Basic validation can be improved.
+                    if (typeof answer !== 'string' || !answer.startsWith('http')) {
+                      throw new Error(`Invalid file URL for question '${questionId}'.`);
+                    }
+                    validatedResponseData[questionId] = answer;
+                    break;
+                  default:
+                    validatedResponseData[questionId] = answer;
+                }
+              } else {
+                validatedResponseData[questionId] = answer;
+              }
+            }
+          }
+
           const newResponse = {
             surveyId: surveyObjectId,
             userId: new ObjectId(uploaderUserId),
-            responseData: responseData,
+            responseData: validatedResponseData,
             submittedAt: new Date(),
             uploadBatchId: new ObjectId(),
           };
