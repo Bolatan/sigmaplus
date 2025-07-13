@@ -32,8 +32,8 @@ export default class Reporting {
     const presentation = new Presentation({ sections }).generate();
 
     // 4. Export to PDF and Excel
-    const exporter = new Exporter(presentation);
-    exporter.toPdf();
+    const exporter = new Exporter(presentation, this.clientData);
+    await exporter.toPdf();
     exporter.toExcel();
 
     // Save the presentation

@@ -16,6 +16,7 @@ interface SurveyFormData {
   description: string;
   questions: SurveyQuestion[];
   agentId?: string;
+  companyIds?: string[];
 }
 
 const SurveyForm: React.FC<{
@@ -25,8 +26,9 @@ const SurveyForm: React.FC<{
   onCancel: () => void;
   buttonText: string;
   agents: any[];
+  companies: any[];
   user: any;
-}> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, user }) => {
+}> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, companies, user }) => {
   if (!formData || !Array.isArray(formData.questions)) {
     return <div>Loading survey form...</div>;
   }
@@ -193,6 +195,29 @@ const SurveyForm: React.FC<{
             Add Question
           </Button>
         </div>
+        {user?.role === 'admin' && (
+          <div>
+            <label htmlFor="companyIds" className="block text-sm font-medium text-gray-700 mb-1">
+              Assign to Companies
+            </label>
+            <select
+              id="companyIds"
+              multiple
+              value={formData.companyIds || []}
+              onChange={(e) => {
+                const selectedIds = Array.from(e.target.selectedOptions, option => option.value);
+                onFormDataChange({ ...formData, companyIds: selectedIds });
+              }}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+            >
+              {companies.map(company => (
+                <option key={company._id} value={company._id}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="flex justify-end space-x-2 mt-6">
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
@@ -232,6 +257,7 @@ const Surveys: React.FC = () => {
   const [uploadStatusMessage, setUploadStatusMessage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
+  const [companies, setCompanies] = useState<any[]>([]);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [shouldRefetch, setShouldRefetch] = useState(false);
 
@@ -276,7 +302,26 @@ const Surveys: React.FC = () => {
       }
     };
 
+    const fetchCompanies = async () => {
+      if (user?.role !== 'admin') return;
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      try {
+        const response = await fetch('/api/companies', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const { data } = await response.json();
+          setCompanies(data || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch companies:", error);
+      }
+    };
+
     fetchAgents();
+    fetchCompanies();
   }, [user]);
 
   useEffect(() => {
@@ -355,6 +400,7 @@ const Surveys: React.FC = () => {
           description: formData.description,
           questions: formData.questions,
           agentId: formData.agentId,
+          companyIds: formData.companyIds,
         }),
       });
 
@@ -406,6 +452,7 @@ const Surveys: React.FC = () => {
           description: formData.description,
           questions: formData.questions,
           agentId: formData.agentId,
+          companyIds: formData.companyIds,
         }),
       });
 
@@ -478,6 +525,7 @@ const Surveys: React.FC = () => {
       title: survey.title || '',
       description: survey.description || '',
       questions: survey.questions || [],
+      companyIds: survey.companyIds || [],
     });
     setIsEditModalOpen(true);
   }, []);
@@ -761,6 +809,7 @@ const Surveys: React.FC = () => {
           onCancel={handleCancelAdd}
           buttonText="Create Survey"
           agents={agents}
+          companies={companies}
           user={user}
         />
       </Modal>
@@ -777,6 +826,7 @@ const Surveys: React.FC = () => {
           onCancel={handleCancelEdit}
           buttonText="Save Changes"
           agents={agents}
+          companies={companies}
           user={user}
         />
       </Modal>
