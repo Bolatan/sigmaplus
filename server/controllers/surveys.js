@@ -176,13 +176,28 @@ export const updateSurvey = async (req, res, next) => {
         if (!q.type || typeof q.type !== 'string' || !['text', 'textarea', 'single-choice', 'multiple-choice', 'rating', 'nps', 'ces', 'image-choice', 'file-upload', 'video'].includes(q.type)) {
           throw new ApiError(400, `Update: Question '${q.id}' (index ${index}) has an invalid 'type'.`);
         }
-        return {
+        const updatedQuestion = {
           id: q.id,
           text: q.text.trim(),
           type: q.type,
           options: q.options && Array.isArray(q.options) ? q.options.map(opt => String(opt)) : [],
           isRequired: typeof q.isRequired === 'boolean' ? q.isRequired : !!q.isRequired,
         };
+
+        if (q.type === 'rating') {
+          updatedQuestion.maxRating = q.maxRating;
+        }
+        if (q.type === 'file-upload') {
+          updatedQuestion.allowedFileTypes = q.allowedFileTypes;
+        }
+        if (q.type === 'video') {
+          updatedQuestion.videoUrl = q.videoUrl;
+        }
+        if (q.type === 'image-choice') {
+          updatedQuestion.options = q.options;
+        }
+
+        return updatedQuestion;
       });
     }
 
