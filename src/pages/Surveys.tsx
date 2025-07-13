@@ -13,6 +13,7 @@ interface SurveyFormData {
   title: string;
   description: string;
   questions: SurveyQuestion[];
+  agentId?: string;
 }
 
 const SurveyForm: React.FC<{
@@ -21,7 +22,9 @@ const SurveyForm: React.FC<{
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onCancel: () => void;
   buttonText: string;
-}> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText }) => {
+  agents: any[];
+  user: any;
+}> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, user }) => {
 
   if (!formData || !Array.isArray(formData.questions)) {
     return <div>Loading survey form...</div>;
@@ -179,6 +182,27 @@ const SurveyForm: React.FC<{
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
+        {user?.role === 'admin' && (
+          <div className="col-span-1">
+            <label htmlFor="agentId" className="block text-sm font-medium text-gray-700">
+              Assign to Agent (Optional)
+            </label>
+            <select
+              id="agentId"
+              name="agentId"
+              value={formData.agentId || ''}
+              onChange={(e) => onFormDataChange({ ...formData, agentId: e.target.value })}
+              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
+            >
+              <option value="">-- Select Agent --</option>
+              {agents.map((agent) => (
+                <option key={agent._id} value={agent._id}>
+                  {agent.name} ({agent.email})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <Button type="submit" variant="primary">
           {buttonText}
         </Button>
@@ -211,6 +235,7 @@ const Surveys: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatusMessage, setUploadStatusMessage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [agents, setAgents] = useState<any[]>([]);
 
   const resetForm = useCallback(() => {
     setFormData({
@@ -229,6 +254,28 @@ const Surveys: React.FC = () => {
       }));
     }
   }, []);
+
+  useEffect(() => {
+    const fetchAgents = async () => {
+      if (user?.role !== 'admin') return;
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      try {
+        const response = await fetch('/api/users?role=agent', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const { data } = await response.json();
+          setAgents(data || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch agents:", error);
+      }
+    };
+
+    fetchAgents();
+  }, [user]);
 
   useEffect(() => {
     const fetchApiSurveys = async () => {
@@ -305,6 +352,7 @@ const Surveys: React.FC = () => {
           title: formData.title,
           description: formData.description,
           questions: formData.questions,
+          agentId: formData.agentId,
         }),
       });
 
@@ -354,6 +402,7 @@ const Surveys: React.FC = () => {
           title: formData.title,
           description: formData.description,
           questions: formData.questions,
+          agentId: formData.agentId,
         }),
       });
 
@@ -688,6 +737,8 @@ const Surveys: React.FC = () => {
           onSubmit={handleAddSurvey}
           onCancel={handleCancelAdd}
           buttonText="Create Survey"
+          agents={agents}
+          user={user}
         />
       </Modal>
 
@@ -702,6 +753,8 @@ const Surveys: React.FC = () => {
           onSubmit={handleEditSurvey}
           onCancel={handleCancelEdit}
           buttonText="Save Changes"
+          agents={agents}
+          user={user}
         />
       </Modal>
 
