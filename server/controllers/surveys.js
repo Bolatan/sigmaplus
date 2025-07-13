@@ -321,14 +321,6 @@ export const submitSurveyResponse = async (req, res, next) => {
       throw new ApiError(400, `Survey is not active. Current status: ${survey.status}.`);
     }
 
-    const existingResponse = await db.collection('responses').findOne({
-      surveyId: surveyObjectId,
-      userId: new ObjectId(userId),
-    });
-
-    if (existingResponse) {
-      throw new ApiError(400, 'You have already submitted a response for this survey.');
-    }
 
     const newResponse = {
       surveyId: surveyObjectId,
