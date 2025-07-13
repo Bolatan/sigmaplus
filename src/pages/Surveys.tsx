@@ -188,7 +188,7 @@ const SurveyForm: React.FC<{
                 Remove Question
               </Button>
             </div>
-          ))}
+          ))
           <Button type="button" variant="outline" onClick={addQuestion} leftIcon={<Plus className="h-4 w-4" />} className="mt-2">
             Add Question
           </Button>
