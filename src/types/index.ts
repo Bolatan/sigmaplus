@@ -21,7 +21,17 @@ export interface Company {
   secondaryColor?: string;
 }
 
-export type QuestionType = 'text' | 'textarea' | 'single-choice' | 'multiple-choice' | 'rating';
+export type QuestionType =
+  | 'text'
+  | 'textarea'
+  | 'single-choice'
+  | 'multiple-choice'
+  | 'rating'
+  | 'nps'
+  | 'ces'
+  | 'image-choice'
+  | 'file-upload'
+  | 'video';
 
 export interface SurveyQuestion {
   id: string; // Frontend generated unique ID (e.g., UUID)
@@ -29,7 +39,9 @@ export interface SurveyQuestion {
   type: QuestionType;
   options?: string[]; // For single-choice, multiple-choice
   isRequired?: boolean;
-  // Add other question-specific properties like 'maxRating' for 'rating' type later
+  maxRating?: number; // For rating
+  allowedFileTypes?: string; // For file-upload
+  videoUrl?: string; // For video
 }
 
 export interface Survey {
