@@ -4,6 +4,8 @@ import { Survey } from '../types';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { SurveyDetailModal } from '../../components/dashboard/SurveyDetailModal';
+import { ShareModal } from '../../components/dashboard/ShareModal';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
@@ -16,6 +18,16 @@ const ClientDashboard: React.FC = () => {
   const [chartType, setChartType] = useState('bar');
   const [region, setRegion] = useState('all');
   const [timePeriod, setTimePeriod] = useState('all');
+  const [selectedSurvey, setSelectedSurvey] = useState<Survey | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+
+  const handleBarClick = (event: any, elements: any) => {
+    if (elements.length > 0) {
+      const { index } = elements[0];
+      setSelectedSurvey(filteredSurveys[index]);
+    }
+  };
 
   useEffect(() => {
     const fetchSurveys = async () => {
@@ -100,7 +112,7 @@ const ClientDashboard: React.FC = () => {
     setIsEditingHeaders(false);
   };
 
-  const [dashboardItems, setDashboardItems] = useState(['surveys', 'chart']);
+  const [dashboardItems, setDashboardItems] = useState(['surveys', 'chart', 'annotations']);
 
   const onDragEnd = (result: any) => {
     if (!result.destination) {
@@ -119,7 +131,19 @@ const ClientDashboard: React.FC = () => {
       <Droppable droppableId="dashboard">
         {(provided) => (
           <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-6">
-            <h1 className="text-2xl font-bold text-gray-900">Client Dashboard</h1>
+            <div className="flex justify-between items-center">
+              <h1 className="text-2xl font-bold text-gray-900">Client Dashboard</h1>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const url = `${window.location.origin}/client-dashboard?id=${user?.companyId}`;
+                  setShareUrl(url);
+                  setIsShareModalOpen(true);
+                }}
+              >
+                Share
+              </Button>
+            </div>
             <p>Welcome to your dedicated client portal.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
@@ -209,15 +233,18 @@ const ClientDashboard: React.FC = () => {
                           {chartType === 'bar' ? (
                             <Bar
                               data={{
-                                labels: surveys.map((s) => s.title),
+                labels: filteredSurveys.map((s) => s.title),
                                 datasets: [
                                   {
                                     label: 'Number of Responses',
-                                    data: surveys.map((s) => s.responseCount),
+                    data: filteredSurveys.map((s) => s.responseCount),
                                     backgroundColor: 'rgba(54, 162, 235, 0.6)',
                                   },
                                 ],
                               }}
+              options={{
+                onClick: handleBarClick,
+              }}
                             />
                           ) : (
                             <Pie
@@ -242,6 +269,15 @@ const ClientDashboard: React.FC = () => {
                         </div>
                       </div>
                     )}
+                    {item === 'annotations' && (
+                      <div className="mt-8">
+                        <h2 className="text-xl font-semibold">Annotations</h2>
+                        <textarea
+                          className="w-full h-32 p-2 border rounded"
+                          placeholder="Add your annotations here..."
+                        ></textarea>
+                      </div>
+                    )}
                   </div>
                 )}
               </Draggable>
@@ -250,6 +286,11 @@ const ClientDashboard: React.FC = () => {
           </div>
         )}
       </Droppable>
+      <SurveyDetailModal
+        isOpen={!!selectedSurvey}
+        onClose={() => setSelectedSurvey(null)}
+        survey={selectedSurvey}
+      />
     </DragDropContext>
   );
 };
