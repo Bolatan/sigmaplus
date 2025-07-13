@@ -27,7 +27,6 @@ const SurveyForm: React.FC<{
   agents: any[];
   user: any;
 }> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, user }) => {
-
   if (!formData || !Array.isArray(formData.questions)) {
     return <div>Loading survey form...</div>;
   }
@@ -77,68 +76,76 @@ const SurveyForm: React.FC<{
       <form onSubmit={onSubmit} className="space-y-6">
         <Input
           label="Survey Title"
-        value={formData.title}
-        onChange={(e) => handleInputChange('title', e.target.value)}
-        required
-      />
-      <div>
-        <label htmlFor="surveyDescription" className="block text-sm font-medium text-gray-700 mb-1">
-          Description
-        </label>
-        <textarea
-          id="surveyDescription"
-          value={formData.description}
-          onChange={(e) => handleInputChange('description', e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-          rows={3}
+          value={formData.title}
+          onChange={(e) => handleInputChange('title', e.target.value)}
           required
         />
-      </div>
-
-      {/* Questions Section */}
-      <div className="space-y-4 border-t pt-4">
-        <h3 className="text-md font-semibold">Questions</h3>
-        {(formData.questions || []).map((q, index) => ( // <-- Outer parenthesis starts here
-          <div key={q.id || index} className="p-3 border rounded-md space-y-2 bg-gray-50">
-            <Input
-              label={`Question ${index + 1} Text`}
-              value={q.text}
-              onChange={(e) => handleQuestionChange(index, 'text', e.target.value)}
-              required
-            />
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Question Type
-              </label>
-              <select
-                value={q.type}
-                onChange={(e) => handleQuestionChange(index, 'type', e.target.value as QuestionType)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-              >
-                <option value="text">Text</option>
-                <option value="textarea">Textarea</option>
-                <option value="single-choice">Single Choice (Radio)</option>
-                <option value="multiple-choice">Multiple Choice (Checkbox)</option>
-                <option value="rating">Rating (1-5)</option>
-                <option value="nps">Net Promoter Score (NPS)</option>
-                <option value="ces">Customer Effort Score (CES)</option>
-                <option value="image-choice">Image Choice</option>
-                <option value="file-upload">File Upload</option>
-                <option value="video">Video</option>
-              </select>
-            </div>
-
-            {/* Options for choice-based questions */}
-            {(q.type === 'single-choice' || q.type === 'multiple-choice') && (
+        <div>
+          <label htmlFor="surveyDescription" className="block text-sm font-medium text-gray-700 mb-1">
+            Description
+          </label>
+          <textarea
+            id="surveyDescription"
+            value={formData.description}
+            onChange={(e) => handleInputChange('description', e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+            rows={3}
+            required
+          />
+        </div>
+        {/* Questions Section */}
+        <div className="space-y-4 border-t pt-4">
+          <h3 className="text-md font-semibold">Questions</h3>
+          {(formData.questions || []).map((question, index) => (
+            <div key={question.id || index} className="p-3 border rounded-md space-y-2 bg-gray-50">
+              <Input
+                label={`Question ${index + 1} Text`}
+                value={question.text}
+                onChange={(e) => handleQuestionChange(index, 'text', e.target.value)}
+                required
+              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Question Type
+                </label>
+                <select
+                  value={question.type}
+                  onChange={(e) => handleQuestionChange(index, 'type', e.target.value as QuestionType)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                >
+                  <option value="text">Text</option>
+                  <option value="textarea">Textarea</option>
+                  <option value="single-choice">Single Choice (Radio)</option>
+                  <option value="multiple-choice">Multiple Choice (Checkbox)</option>
+                  <option value="rating">Rating (1-5)</option>
+                  <option value="nps">Net Promoter Score (NPS)</option>
+                  <option value="ces">Customer Effort Score (CES)</option>
+                  <option value="image-choice">Image Choice</option>
+                  <option value="file-upload">File Upload</option>
+                  <option value="video">Video</option>
+                </select>
+              </div>
+              <div className="mt-2">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={!!question.isRequired}
+                    onChange={(e) => handleQuestionChange(index, 'isRequired', e.target.checked)}
+                    className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50"
+                  />
+                  <span className="text-sm text-gray-700">Required</span>
+                </label>
+              </div>
+              {(question.type === 'single-choice' || question.type === 'multiple-choice') && (
               <div className="mt-2 space-y-2 pl-4 border-l-2">
-                {(q.options || []).map((opt, optIndex) => (
+                {(question.options || []).map((opt, optIndex) => (
                   <div key={optIndex} className="flex items-center space-x-2">
                     <Input
                       type="text"
                       value={opt}
                       placeholder={`Option ${optIndex + 1}`}
                       onChange={(e) => {
-                        const newOptions = [...(q.options || [])];
+                        const newOptions = [...(question.options || [])];
                         newOptions[optIndex] = e.target.value;
                         handleQuestionChange(index, 'options', newOptions);
                       }}
@@ -149,7 +156,7 @@ const SurveyForm: React.FC<{
                       variant="danger"
                       size="sm"
                       onClick={() => {
-                        const newOptions = (q.options || []).filter((_, i) => i !== optIndex);
+                        const newOptions = (question.options || []).filter((_, i) => i !== optIndex);
                         handleQuestionChange(index, 'options', newOptions);
                       }}
                     >
@@ -162,7 +169,7 @@ const SurveyForm: React.FC<{
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const newOptions = [...(q.options || []), 'New Option'];
+                    const newOptions = [...(question.options || []), 'New Option'];
                     handleQuestionChange(index, 'options', newOptions);
                   }}
                   leftIcon={<Plus className="h-3 w-3" />}
@@ -170,102 +177,36 @@ const SurveyForm: React.FC<{
                   Add Option
                 </Button>
               </div>
-            )}
-
-            {q.type === 'rating' && (
-              <div className="mt-2">
-                <Input
-                  label="Max Rating"
-                  type="number"
-                  value={q.maxRating || 5}
-                  onChange={(e) => handleQuestionChange(index, 'maxRating', parseInt(e.target.value, 10))}
-                  min={2}
-                  max={10}
-                />
-              </div>
-            )}
-
-            {q.type === 'video' && (
-              <div className="mt-2">
-                <Input
-                  label="Video URL"
-                  value={q.videoUrl || ''}
-                  onChange={(e) => handleQuestionChange(index, 'videoUrl', e.target.value)}
-                />
-              </div>
-            )}
-
-            <div className="mt-2">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={!!q.isRequired}
-                  onChange={(e) => handleQuestionChange(index, 'isRequired', e.target.checked)}
-                  className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50"
-                />
-                <span className="text-sm text-gray-700">Required</span>
-              </label>
+              )}
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                onClick={() => removeQuestion(index)}
+                className="mt-2"
+              >
+                Remove Question
+              </Button>
             </div>
-
-            <Button
-              type="button"
-              variant="danger"
-              size="sm"
-              onClick={() => removeQuestion(index)}
-              className="mt-2"
-            >
-              Remove Question
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-2 ml-2"
-              onClick={() => openLogicModal(index)}
-            >
-              Conditional Logic
-            </Button>
-          </div>
-        ))} {/* <-- The crucial closing parenthesis and curly brace are correctly positioned here */}
-        <Button type="button" variant="outline" onClick={addQuestion} leftIcon={<Plus className="h-4 w-4" />} className="mt-2">
-          Add Question
-        </Button>
-      </div>
-
-      <div className="flex justify-end space-x-2 mt-6">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        {user?.role === 'admin' && (
-          <div className="col-span-1">
-            <label htmlFor="agentId" className="block text-sm font-medium text-gray-700">
-              Assign to Agent (Optional)
-            </label>
-            <select
-              id="agentId"
-              name="agentId"
-              value={formData.agentId || ''}
-              onChange={(e) => onFormDataChange({ ...formData, agentId: e.target.value })}
-              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
-            >
-              <option value="">-- Select Agent --</option>
-              {agents.map((agent) => (
-                <option key={agent._id} value={agent._id}>
-                  {agent.name} ({agent.email})
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        <Button type="submit" variant="primary">
-          {buttonText}
-        </Button>
-      </div>
-    </form>
-    <ConditionalLogicModal isOpen={isLogicModalOpen} onClose={closeLogicModal} />
+          ))}
+          <Button type="button" variant="outline" onClick={addQuestion} leftIcon={<Plus className="h-4 w-4" />} className="mt-2">
+            Add Question
+          </Button>
+        </div>
+        <div className="flex justify-end space-x-2 mt-6">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary">
+            {buttonText}
+          </Button>
+        </div>
+      </form>
+      <ConditionalLogicModal isOpen={isLogicModalOpen} onClose={closeLogicModal} />
     </>
-);
+  );
+});
+
 
 SurveyForm.displayName = 'SurveyForm';
 
@@ -663,15 +604,25 @@ const Surveys: React.FC = () => {
             </Button>
             <Button
               variant="outline"
-              onClick={() => {
-                // Open template selection modal
-              }}
+              onClick={() => setIsTemplateModalOpen(true)}
             >
               Use Template
             </Button>
           </div>
         )}
       </div>
+
+      <TemplateSelectionModal
+        isOpen={isTemplateModalOpen}
+        onClose={() => setIsTemplateModalOpen(false)}
+        onSelectTemplate={(template) => {
+          setFormData({
+            ...formData,
+            questions: template,
+          });
+          setIsAddModalOpen(true);
+        }}
+      />
 
       <div className="flex space-x-4">
         <div className="flex-1">
@@ -886,16 +837,6 @@ const Surveys: React.FC = () => {
           </p>
         </div>
       )}
-
-            {q.type === 'file-upload' && (
-              <div className="mt-2">
-                <Input
-                  label="Allowed File Types (e.g., .pdf,.jpg,.png)"
-                  value={q.allowedFileTypes || ''}
-                  onChange={(e) => handleQuestionChange(index, 'allowedFileTypes', e.target.value)}
-                />
-              </div>
-            )}
     </div>
   );
 };

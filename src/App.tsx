@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/layout/Layout';
+import CookieConsent from 'react-cookie-consent';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Surveys from './pages/Surveys';
@@ -11,6 +12,7 @@ import Settings from './pages/Settings';
 import Companies from './pages/Companies';
 import SurveyResponsePage from './pages/SurveyResponsePage'; // Import the new page
 import ClientDashboard from './pages/ClientDashboard';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -95,6 +97,7 @@ const AppRoutes: React.FC = () => {
           </Layout>
         </ProtectedRoute>
       } />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
@@ -105,6 +108,9 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <AppRoutes />
+        <CookieConsent>
+          This website uses cookies to enhance the user experience.
+        </CookieConsent>
       </AuthProvider>
     </BrowserRouter>
   );
