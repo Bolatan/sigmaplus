@@ -657,7 +657,7 @@ const Surveys: React.FC = () => {
                   {survey.status}
                 </span>
               </div>
-              
+
               <div className="flex items-center text-sm text-gray-500 mt-4">
                 <BarChart2 className="h-4 w-4 mr-1" />
                 {survey.responseCount} responses
@@ -705,7 +705,7 @@ const Surveys: React.FC = () => {
                     )}
                   </div>
                 </div>
-                
+
                 {(user?.role === 'admin' || user?.role === 'agent') && (
                   <div className="mt-3 flex space-x-2">
                     {survey.status === 'draft' && (

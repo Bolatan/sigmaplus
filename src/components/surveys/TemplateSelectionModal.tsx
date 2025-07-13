@@ -2,6 +2,8 @@ import React from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { brandAwarenessTemplate } from '../../data/survey-templates/brand-awareness';
+import { customerSatisfactionTemplate } from '../../data/survey-templates/customer-satisfaction';
+import { productFeedbackTemplate } from '../../data/survey-templates/product-feedback';
 
 interface TemplateSelectionModalProps {
   isOpen: boolean;
@@ -12,6 +14,8 @@ interface TemplateSelectionModalProps {
 export const TemplateSelectionModal: React.FC<TemplateSelectionModalProps> = ({ isOpen, onClose, onSelectTemplate }) => {
   const templates = [
     { name: 'Brand Awareness', template: brandAwarenessTemplate },
+    { name: 'Customer Satisfaction', template: customerSatisfactionTemplate },
+    { name: 'Product Feedback', template: productFeedbackTemplate },
   ];
 
   return (
