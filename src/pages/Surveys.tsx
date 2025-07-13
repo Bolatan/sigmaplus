@@ -96,11 +96,11 @@ const SurveyForm: React.FC<{
         {/* Questions Section */}
         <div className="space-y-4 border-t pt-4">
           <h3 className="text-md font-semibold">Questions</h3>
-          {(formData.questions || []).map((q, index) => (
-            <div key={q.id || index} className="p-3 border rounded-md space-y-2 bg-gray-50">
+          {(formData.questions || []).map((question, index) => (
+            <div key={question.id || index} className="p-3 border rounded-md space-y-2 bg-gray-50">
               <Input
                 label={`Question ${index + 1} Text`}
-                value={q.text}
+                value={question.text}
                 onChange={(e) => handleQuestionChange(index, 'text', e.target.value)}
                 required
               />
@@ -109,7 +109,7 @@ const SurveyForm: React.FC<{
                   Question Type
                 </label>
                 <select
-                  value={q.type}
+                  value={question.type}
                   onChange={(e) => handleQuestionChange(index, 'type', e.target.value as QuestionType)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                 >
@@ -129,23 +129,23 @@ const SurveyForm: React.FC<{
                 <label className="flex items-center space-x-2">
                   <input
                     type="checkbox"
-                    checked={!!q.isRequired}
+                    checked={!!question.isRequired}
                     onChange={(e) => handleQuestionChange(index, 'isRequired', e.target.checked)}
                     className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50"
                   />
                   <span className="text-sm text-gray-700">Required</span>
                 </label>
               </div>
-              {(q.type === 'single-choice' || q.type === 'multiple-choice') && (
+              {(question.type === 'single-choice' || question.type === 'multiple-choice') && (
               <div className="mt-2 space-y-2 pl-4 border-l-2">
-                {(q.options || []).map((opt, optIndex) => (
+                {(question.options || []).map((opt, optIndex) => (
                   <div key={optIndex} className="flex items-center space-x-2">
                     <Input
                       type="text"
                       value={opt}
                       placeholder={`Option ${optIndex + 1}`}
                       onChange={(e) => {
-                        const newOptions = [...(q.options || [])];
+                        const newOptions = [...(question.options || [])];
                         newOptions[optIndex] = e.target.value;
                         handleQuestionChange(index, 'options', newOptions);
                       }}
@@ -156,7 +156,7 @@ const SurveyForm: React.FC<{
                       variant="danger"
                       size="sm"
                       onClick={() => {
-                        const newOptions = (q.options || []).filter((_, i) => i !== optIndex);
+                        const newOptions = (question.options || []).filter((_, i) => i !== optIndex);
                         handleQuestionChange(index, 'options', newOptions);
                       }}
                     >
@@ -169,7 +169,7 @@ const SurveyForm: React.FC<{
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const newOptions = [...(q.options || []), 'New Option'];
+                    const newOptions = [...(question.options || []), 'New Option'];
                     handleQuestionChange(index, 'options', newOptions);
                   }}
                   leftIcon={<Plus className="h-3 w-3" />}
