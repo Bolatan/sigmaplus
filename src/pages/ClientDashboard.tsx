@@ -32,7 +32,6 @@ const ClientDashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchSurveys = async () => {
-      if (!user) return;
       setIsLoading(true);
       setError(null);
       const token = localStorage.getItem('authToken');
@@ -59,7 +58,9 @@ const ClientDashboard: React.FC = () => {
       }
     };
 
-    fetchSurveys();
+    if (user) {
+      fetchSurveys();
+    }
   }, [user]);
 
   useEffect(() => {
