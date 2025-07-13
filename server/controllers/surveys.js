@@ -6,7 +6,7 @@ import { Readable } from 'stream';
 
 export const createSurvey = async (req, res, next) => {
   try {
-    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId, clientId } = req.body;
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
     const db = getDb();
@@ -72,6 +72,10 @@ export const createSurvey = async (req, res, next) => {
       newSurveyData.agentId = new ObjectId(agentId);
     }
 
+    if (clientId && ObjectId.isValid(clientId)) {
+      newSurveyData.clientId = new ObjectId(clientId);
+    }
+
     const result = await db.collection('surveys').insertOne(newSurveyData);
     const createdSurvey = await db.collection('surveys').findOne({ _id: result.insertedId });
 
@@ -93,7 +97,7 @@ export const getSurveys = async (req, res, next) => {
       if (!userCompanyId) {
         return res.json({ status: 'success', data: [] });
       }
-      query.companyId = new ObjectId(userCompanyId);
+      query.clientId = new ObjectId(userId);
     } else if (userRole === 'agent') {
       query.agentId = new ObjectId(userId);
     }
@@ -153,7 +157,7 @@ export const updateSurvey = async (req, res, next) => {
     const db = getDb();
     const { id: surveyId } = req.params;
     const { id: userId, role: userRole } = req.user;
-    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId, clientId } = req.body;
 
     if (!ObjectId.isValid(surveyId)) {
       throw new ApiError(404, 'Survey not found (invalid ID format)');
@@ -229,6 +233,16 @@ export const updateSurvey = async (req, res, next) => {
         updateFields.agentId = new ObjectId(agentId);
       } else {
         throw new ApiError(400, 'Invalid Agent ID format provided for update by admin.');
+      }
+    }
+
+    if (clientId !== undefined) {
+      if (clientId === null || clientId === '') {
+        updateFields.clientId = null;
+      } else if (ObjectId.isValid(clientId)) {
+        updateFields.clientId = new ObjectId(clientId);
+      } else {
+        throw new ApiError(400, 'Invalid Client ID format provided for update.');
       }
     }
 
@@ -378,11 +392,9 @@ export const bulkUploadSurveyResponses = async (req, res, next) => {
     const errorsInRows = [];
 
     const stream = Readable.from(req.file.buffer);
-    console.log('CSV stream created.');
     stream
       .pipe(csv())
       .on('data', (row) => {
-        console.log('CSV row data:', row);
         processedRows++;
         try {
           const responseData = { ...row };
@@ -402,52 +414,10 @@ export const bulkUploadSurveyResponses = async (req, res, next) => {
             throw new Error('Row has no response data.');
           }
 
-          const validatedResponseData = {};
-          const questionMap = survey.questions.reduce((map, q) => {
-            map[q.id] = q;
-            return map;
-          }, {});
-
-          for (const questionId in responseData) {
-            if (Object.prototype.hasOwnProperty.call(responseData, questionId)) {
-              const question = questionMap[questionId];
-              const answer = responseData[questionId];
-
-              if (question) {
-                switch (question.type) {
-                  case 'rating':
-                    const rating = parseInt(answer, 10);
-                    if (isNaN(rating) || rating < 1 || rating > question.maxRating) {
-                      throw new Error(`Invalid rating for question '${questionId}'. Must be a number between 1 and ${question.maxRating}.`);
-                    }
-                    validatedResponseData[questionId] = rating;
-                    break;
-                  case 'image-choice':
-                    if (!question.options.includes(answer)) {
-                      throw new Error(`Invalid option for question '${questionId}'.`);
-                    }
-                    validatedResponseData[questionId] = answer;
-                    break;
-                  case 'file-upload':
-                    // For file upload, we expect a URL. Basic validation can be improved.
-                    if (typeof answer !== 'string' || !answer.startsWith('http')) {
-                      throw new Error(`Invalid file URL for question '${questionId}'.`);
-                    }
-                    validatedResponseData[questionId] = answer;
-                    break;
-                  default:
-                    validatedResponseData[questionId] = answer;
-                }
-              } else {
-                validatedResponseData[questionId] = answer;
-              }
-            }
-          }
-
           const newResponse = {
             surveyId: surveyObjectId,
             userId: new ObjectId(uploaderUserId),
-            responseData: validatedResponseData,
+            responseData: responseData,
             submittedAt: new Date(),
             uploadBatchId: new ObjectId(),
           };

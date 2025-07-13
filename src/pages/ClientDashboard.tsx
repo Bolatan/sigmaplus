@@ -4,28 +4,24 @@ import { Survey } from '../types';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-
 import Heatmap from '../components/dashboard/Heatmap';
 import Scorecard from '../components/dashboard/Scorecard';
 import Annotations from '../components/dashboard/Annotations';
 
-
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 const ClientDashboard: React.FC = () => {
-
   const [annotations, setAnnotations] = useState([]);
-
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [filteredSurveys, setFilteredSurveys] = useState<Survey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
   const [chartType, setChartType] = useState('bar');
   const [region, setRegion] = useState('all');
   const [timePeriod, setTimePeriod] = useState('all');
   const [demographics, setDemographics] = useState('all');
   const [outletType, setOutletType] = useState('all');
-
 
   useEffect(() => {
     const fetchSurveys = async () => {
@@ -84,7 +80,6 @@ const ClientDashboard: React.FC = () => {
     setFilteredSurveys(newFilteredSurveys);
   }, [surveys, region, timePeriod, demographics, outletType]);
 
-  // NOW the conditional returns are safe - all hooks have been called
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -92,7 +87,6 @@ const ClientDashboard: React.FC = () => {
   if (error) {
     return <div className="text-red-500">{error}</div>;
   }
-
 
   const [isEditingHeaders, setIsEditingHeaders] = useState(false);
   const [headers, setHeaders] = useState({
@@ -147,12 +141,10 @@ const ClientDashboard: React.FC = () => {
                   navigator.clipboard.writeText(url.toString());
                 }}
                 className="bg-blue-500 text-white px-4 py-2 rounded"
-
               >
                 Share
               </button>
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label htmlFor="region" className="block text-sm font-medium">Region</label>
@@ -171,7 +163,6 @@ const ClientDashboard: React.FC = () => {
                   <option>Last 30 Days</option>
                   <option>Last 90 Days</option>
                   <option>Last Year</option>
-
                 </select>
               </div>
               <div>

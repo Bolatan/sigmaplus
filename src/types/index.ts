@@ -56,6 +56,7 @@ export interface Survey {
   title: string;
   description: string;
   companyId?: string; // Made optional, or ensure it's always set by backend
+  clientId?: string;
   createdAt: string;
   updatedAt: string;
   status: 'draft' | 'active' | 'completed';
