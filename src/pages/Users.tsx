@@ -414,6 +414,7 @@ useEffect(() => {
     const payload: any = {
       name: formData.name,
       role: formData.role,
+      status: editingUser.status, // Preserve existing status
     };
     // Send companyId as null if empty string to explicitly unset it on backend
     payload.companyId = formData.companyId === '' ? null : formData.companyId;
