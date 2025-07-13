@@ -548,8 +548,8 @@ const Surveys: React.FC = () => {
   }, [selectedFile, uploadTargetSurveyId]);
 
   const filteredSurveys = surveys.filter(survey =>
-    survey.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    survey.description.toLowerCase().includes(searchTerm.toLowerCase())
+    (survey.title && survey.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (survey.description && survey.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const getStatusColor = (status: string) => {
