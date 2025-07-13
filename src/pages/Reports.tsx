@@ -107,8 +107,12 @@ const Reports: React.FC = () => {
       }
 
       const data = await response.json();
-      setReports(data.data || data || []); // Handle if data is directly the array or nested under 'data'
-      console.log('Fetched from /api/reports:', data);
+      const fetchedReports = (data.data || data || []).map((r: any) => ({
+        ...r,
+        id: r._id,
+      }));
+      setReports(fetchedReports);
+      console.log('Fetched from /api/reports:', fetchedReports);
     } catch (error: any) {
       console.error('Error fetching reports:', error);
       setApiError(error.message || 'Failed to fetch reports');
