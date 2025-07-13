@@ -1,33 +1,27 @@
 import express from 'express';
+import { verifyToken } from '../middleware/auth.js';
+import { getReports, getReportById, generateReport, updateReport, deleteReport } from '../controllers/reports.js';
 import { body } from 'express-validator';
-import { authorize } from '../middleware/auth.js';
 import { validateRequest } from '../middleware/validator.js';
-import {
-  generateReport,
-  getReports,
-  getReportById,
-  updateReport,
-  deleteReport
-} from '../controllers/reports.js';
 
 const router = express.Router();
 
+router.get('/', verifyToken, getReports);
+router.get('/:id', verifyToken, getReportById);
+
 router.post('/', [
-  authorize('admin', 'agent'),
-  body('surveyId').notEmpty().withMessage('Survey ID is required'),
-  body('title').notEmpty().withMessage('Title is required'),
+  verifyToken,
+  body('surveyId').notEmpty().isMongoId(),
+  body('title').notEmpty().trim(),
   validateRequest
 ], generateReport);
 
-router.get('/', getReports);
-router.get('/:id', getReportById);
-
 router.put('/:id', [
-  authorize('admin', 'agent'),
-  body('title').optional().notEmpty().withMessage('Title cannot be empty'),
+  verifyToken,
+  body('title').optional().notEmpty().trim(),
   validateRequest
 ], updateReport);
 
-router.delete('/:id', authorize('admin'), deleteReport);
+router.delete('/:id', verifyToken, deleteReport);
 
 export default router;
