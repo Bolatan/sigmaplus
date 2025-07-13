@@ -6,7 +6,7 @@ import { Readable } from 'stream';
 
 export const createSurvey = async (req, res, next) => {
   try {
-    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId } = req.body;
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
     const db = getDb();
@@ -51,6 +51,10 @@ export const createSurvey = async (req, res, next) => {
       if (bodyCompanyId && bodyCompanyId !== userCompanyId.toString() && userRole !== 'admin') {
         console.warn(`User ${userId} (role: ${userRole}) attempted to set companyId to ${bodyCompanyId} but is associated with ${userCompanyId}. Using user's companyId.`);
       }
+    }
+
+    if (userRole === 'admin' && agentId && ObjectId.isValid(agentId)) {
+      newSurveyData.agentId = new ObjectId(agentId);
     }
 
     const result = await db.collection('surveys').insertOne(newSurveyData);
@@ -123,7 +127,7 @@ export const updateSurvey = async (req, res, next) => {
     const db = getDb();
     const { id: surveyId } = req.params;
     const { id: userId, role: userRole } = req.user;
-    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId } = req.body;
 
     if (!ObjectId.isValid(surveyId)) {
       throw new ApiError(404, 'Survey not found (invalid ID format)');
@@ -175,6 +179,16 @@ export const updateSurvey = async (req, res, next) => {
         } else {
             throw new ApiError(400, 'Invalid Company ID format provided for update by admin.');
         }
+    }
+
+    if (userRole === 'admin' && agentId !== undefined) {
+      if (agentId === null || agentId === '') {
+        updateFields.agentId = null;
+      } else if (ObjectId.isValid(agentId)) {
+        updateFields.agentId = new ObjectId(agentId);
+      } else {
+        throw new ApiError(400, 'Invalid Agent ID format provided for update by admin.');
+      }
     }
 
     if (Object.keys(updateFields).length === 0) {
