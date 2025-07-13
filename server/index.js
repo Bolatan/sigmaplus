@@ -135,7 +135,7 @@ connectToServer()
   .then(() => {
     app.listen(port, () => {
       console.log(`Server running on port ${port} and connected to MongoDB.`);
-      scheduleReportGeneration(); // Start the cron job
+      scheduleReportGeneration();
     });
   })
   .catch(err => {
