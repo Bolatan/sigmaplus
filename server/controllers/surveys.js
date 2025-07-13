@@ -6,7 +6,7 @@ import { Readable } from 'stream';
 
 export const createSurvey = async (req, res, next) => {
   try {
-    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyIds, agentId } = req.body;
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
     const db = getDb();
@@ -59,13 +59,10 @@ export const createSurvey = async (req, res, next) => {
       responseCount: 0,
     };
 
-    if (userRole === 'admin' && bodyCompanyId && ObjectId.isValid(bodyCompanyId)) {
-      newSurveyData.companyId = new ObjectId(bodyCompanyId);
-    } else if ((userRole === 'agent' || userRole === 'client') && userCompanyId && ObjectId.isValid(userCompanyId)) {
-      newSurveyData.companyId = new ObjectId(userCompanyId);
-      if (bodyCompanyId && bodyCompanyId !== userCompanyId.toString() && userRole !== 'admin') {
-        console.warn(`User ${userId} (role: ${userRole}) attempted to set companyId to ${bodyCompanyId} but is associated with ${userCompanyId}. Using user's companyId.`);
-      }
+    if (userRole === 'admin' && companyIds && Array.isArray(companyIds)) {
+      newSurveyData.companyIds = companyIds.filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id));
+    } else if (userRole === 'agent' && userCompanyId && ObjectId.isValid(userCompanyId)) {
+      newSurveyData.companyIds = [new ObjectId(userCompanyId)];
     }
 
     if (userRole === 'admin' && agentId && ObjectId.isValid(agentId)) {
@@ -92,7 +89,7 @@ export const getSurveys = async (req, res, next) => {
       if (!userCompanyId) {
         return res.json({ status: 'success', data: [] });
       }
-      query.companyId = new ObjectId(userCompanyId);
+      query.companyIds = new ObjectId(userCompanyId);
     } else if (userRole === 'agent') {
       query.agentId = new ObjectId(userId);
     }
@@ -122,7 +119,7 @@ export const getSurveyById = async (req, res, next) => {
     }
 
     if (userRole === 'client') {
-      if (!userCompanyId || !survey.companyId || survey.companyId.toString() !== userCompanyId.toString()) {
+      if (!userCompanyId || !survey.companyIds || !survey.companyIds.some(id => id.toString() === userCompanyId.toString())) {
         throw new ApiError(403, 'Not authorized to access this survey');
       }
     } else if (userRole === 'agent') {
@@ -186,14 +183,14 @@ export const updateSurvey = async (req, res, next) => {
       });
     }
 
-    if (userRole === 'admin' && bodyCompanyId !== undefined) {
-        if (bodyCompanyId === null || bodyCompanyId === '') {
-            updateFields.companyId = null;
-        } else if (ObjectId.isValid(bodyCompanyId)) {
-            updateFields.companyId = new ObjectId(bodyCompanyId);
-        } else {
-            throw new ApiError(400, 'Invalid Company ID format provided for update by admin.');
-        }
+    if (userRole === 'admin' && req.body.companyIds !== undefined) {
+      if (Array.isArray(req.body.companyIds)) {
+        updateFields.companyIds = req.body.companyIds
+          .filter(id => ObjectId.isValid(id))
+          .map(id => new ObjectId(id));
+      } else {
+        throw new ApiError(400, 'companyIds must be an array.');
+      }
     }
 
     if (userRole === 'admin' && agentId !== undefined) {
