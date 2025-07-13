@@ -33,7 +33,7 @@ export type QuestionType =
   | 'textarea'
   | 'single-choice'
   | 'multiple-choice'
-  | 'rating'
+  | 'range'
   | 'nps'
   | 'ces'
   | 'image-choice'
@@ -56,7 +56,7 @@ export interface Survey {
   title: string;
   description: string;
   companyId?: string; // Made optional, or ensure it's always set by backend
-  clientId?: string;
+  customerId?: string;
   createdAt: string;
   updatedAt: string;
   status: 'draft' | 'active' | 'completed';

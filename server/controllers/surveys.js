@@ -6,7 +6,7 @@ import { Readable } from 'stream';
 
 export const createSurvey = async (req, res, next) => {
   try {
-    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId, clientId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId, customerId } = req.body;
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
     const db = getDb();
@@ -72,8 +72,8 @@ export const createSurvey = async (req, res, next) => {
       newSurveyData.agentId = new ObjectId(agentId);
     }
 
-    if (clientId && ObjectId.isValid(clientId)) {
-      newSurveyData.clientId = new ObjectId(clientId);
+    if (customerId && ObjectId.isValid(customerId)) {
+      newSurveyData.customerId = new ObjectId(customerId);
     }
 
     const result = await db.collection('surveys').insertOne(newSurveyData);
@@ -97,7 +97,7 @@ export const getSurveys = async (req, res, next) => {
       if (!userCompanyId) {
         return res.json({ status: 'success', data: [] });
       }
-      query.clientId = new ObjectId(userId);
+      query.customerId = new ObjectId(userId);
     } else if (userRole === 'agent') {
       query.agentId = new ObjectId(userId);
     }
@@ -157,7 +157,7 @@ export const updateSurvey = async (req, res, next) => {
     const db = getDb();
     const { id: surveyId } = req.params;
     const { id: userId, role: userRole } = req.user;
-    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId, clientId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId, customerId } = req.body;
 
     if (!ObjectId.isValid(surveyId)) {
       throw new ApiError(404, 'Survey not found (invalid ID format)');
@@ -236,13 +236,13 @@ export const updateSurvey = async (req, res, next) => {
       }
     }
 
-    if (clientId !== undefined) {
-      if (clientId === null || clientId === '') {
-        updateFields.clientId = null;
-      } else if (ObjectId.isValid(clientId)) {
-        updateFields.clientId = new ObjectId(clientId);
+    if (customerId !== undefined) {
+      if (customerId === null || customerId === '') {
+        updateFields.customerId = null;
+      } else if (ObjectId.isValid(customerId)) {
+        updateFields.customerId = new ObjectId(customerId);
       } else {
-        throw new ApiError(400, 'Invalid Client ID format provided for update.');
+        throw new ApiError(400, 'Invalid Customer ID format provided for update.');
       }
     }
 
