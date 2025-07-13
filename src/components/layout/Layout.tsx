@@ -46,6 +46,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           {children}
         </main>
+        <footer className="bg-white border-t border-gray-200 p-4 text-center text-sm text-gray-500">
+          <p>&copy; {new Date().getFullYear()} Signa Plus. All rights reserved.</p>
+          <p>
+            <a href="/privacy-policy" className="hover:text-primary-500">Privacy Policy</a>
+          </p>
+        </footer>
       </div>
     </div>
   );

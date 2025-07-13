@@ -4,12 +4,15 @@ dotenv.config(); // Load environment variables from .env file
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import https from 'https';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { ObjectId } from 'mongodb'; // Import ObjectId
 import { connectToServer, getDb } from './utils/db.js';
 import authRoutes from './routes/auth.js';
 import { verifyToken, authorizeRole } from './middleware/auth.js';
 import { body, validationResult } from 'express-validator';
+import { logger } from './middleware/logger.js';
 
 import surveyRoutesFunction from './routes/surveys.js'; // Renamed import
 import userRoutes from './routes/users.js';
@@ -29,6 +32,7 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 
 app.use(express.json());
+app.use(logger);
 
 // Multer configuration for file uploads (using memory storage)
 const storage = multer.memoryStorage(); // Stores file in memory as Buffer
@@ -128,7 +132,12 @@ app.get('*', (req, res) => {
 // Start the server only after successful DB connection
 connectToServer()
   .then(() => {
-    app.listen(port, () => {
+    const options = {
+      key: fs.readFileSync('key.pem'),
+      cert: fs.readFileSync('cert.pem')
+    };
+
+    https.createServer(options, app).listen(port, () => {
       console.log(`Server running on port ${port} and connected to MongoDB.`);
     });
   })
