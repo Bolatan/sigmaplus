@@ -129,7 +129,7 @@ const ClientDashboard: React.FC = () => {
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <Droppable droppableId="dashboard">
-        {(provided)_ => (
+        {(provided) => (
           <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-6" style={{ backgroundColor: brandStyles.secondaryColor, color: brandStyles.primaryColor }}>
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-bold">{user?.branding?.logoUrl ? <img src={user.branding.logoUrl} alt="Client Logo" className="h-10" /> : 'Client Dashboard'}</h1>
