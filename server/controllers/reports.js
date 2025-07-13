@@ -19,6 +19,11 @@ export const generateReport = async (req, res) => {
     // based on the survey responses. For now, we'll just create a
     // placeholder report document.
 
+    const survey = await db.collection('surveys').findOne({ _id: new ObjectId(surveyId) });
+    if (!survey) {
+      return res.status(404).json({ error: 'Survey not found' });
+    }
+
     const newReport = {
       title,
       surveyId: new ObjectId(surveyId),
@@ -26,11 +31,48 @@ export const generateReport = async (req, res) => {
       generatedBy: new ObjectId(req.user.id),
       createdAt: new Date(),
       status: 'completed', // or 'generating'
-      // a 'sections' field would contain the actual report data
       sections: [
-        { type: 'summary', content: 'This is an auto-generated summary.' },
-        { type: 'charts', data: [] }
-      ]
+        {
+          id: 'study-overview',
+          title: 'Study Overview',
+          order: 1,
+          content: [],
+          projectName: survey.title,
+          background: survey.description,
+          objectives: 'To understand customer feedback',
+          methodology: 'Online survey',
+        },
+        {
+          id: 'respondent-profile',
+          title: 'Respondent Profile',
+          order: 2,
+          content: [],
+        },
+        {
+          id: 'executive-summary',
+          title: 'Executive Summary',
+          order: 3,
+          content: [],
+        },
+        {
+          id: 'core-insight-areas',
+          title: 'Core Insight Areas',
+          order: 4,
+          content: [],
+        },
+        {
+          id: 'regional-findings',
+          title: 'Regional and Outlet-Level Findings',
+          order: 5,
+          content: [],
+        },
+        {
+          id: 'recommendations',
+          title: 'Recommendations',
+          order: 6,
+          content: [],
+        },
+      ],
     };
 
     const result = await reportsCollection.insertOne(newReport);
@@ -96,6 +138,7 @@ export const getReportById = async (req, res) => {
     const responses = await db.collection('responses').find({ surveyId: new ObjectId(report.surveyId) }).toArray();
     const user = await db.collection('users').findOne({ _id: new ObjectId(report.generatedBy) });
     const company = await db.collection('companies').findOne({ _id: new ObjectId(report.companyId) });
+    const client = await db.collection('users').findOne({ _id: new ObjectId(report.clientId) });
 
     // Access control: Ensure client can only access their own reports
     if (req.user.role === 'client' && req.user.companyId) {
@@ -107,19 +150,18 @@ export const getReportById = async (req, res) => {
     if (format === 'pptx') {
       const pptx = new pptxgen();
 
-      if (company && company.branding) {
-        if (company.branding.color) {
+      if (client && client.branding) {
+        if (client.branding.primaryColor) {
           pptx.defineLayout({
             name: 'MASTER_SLIDE',
             width: 10,
             height: 5.625,
-            background: { color: company.branding.color },
+            background: { color: client.branding.primaryColor },
           });
           pptx.layout = 'MASTER_SLIDE';
         }
-        if (company.branding.logo) {
-          // Assuming the logo is a base64 string, prepend the necessary data URI scheme
-          pptx.addSlide().addImage({ data: `data:image/png;base64,${company.branding.logo}`, x: 1, y: 1, w: 1, h: 1 });
+        if (client.branding.logoUrl) {
+          pptx.addSlide().addImage({ path: client.branding.logoUrl, x: 1, y: 1, w: 1, h: 1 });
         }
       }
 
@@ -379,3 +421,4 @@ function createCustomerSatisfactionSlide(pptx, survey, responses) {
   slide.addText('Customer Satisfaction & Loyalty Metrics', { x: 1, y: 1, fontSize: 24, bold: true });
   slide.addText('Data and visualizations for this section will be added in a future update.', { x: 1, y: 2 });
 }
+

@@ -74,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(errorMessage);
       }
       
-      // Backend now returns { token, user: { _id, name, email, role, companyId? } }
+      // Backend now returns { token, user: { _id, name, email, role, companyId?, branding? } }
       if (data.token && data.user) {
         setUser(data.user); // Set user state with the user object from backend
         localStorage.setItem('user', JSON.stringify(data.user)); // Store user object

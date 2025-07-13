@@ -473,26 +473,24 @@ const Reports: React.FC = () => {
                   <dt className="text-sm font-medium text-gray-500">Last Updated</dt>
                   <dd className="text-sm text-gray-900 mt-1">{formatDate(selectedReportForDetail.updatedAt)}</dd>
                 </div>
-                {/* Add more details as needed, e.g., sections, companyId if relevant */}
-                 {selectedReportForDetail.companyId && (
+                {selectedReportForDetail.companyId && (
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Company ID</dt>
                     <dd className="text-sm text-gray-900 mt-1">{selectedReportForDetail.companyId}</dd>
                   </div>
                 )}
-                {/* Example for sections if they were simple strings - adjust if sections is complex */}
-                {/* {selectedReportForDetail.sections && selectedReportForDetail.sections.length > 0 && (
+                {selectedReportForDetail.sections && selectedReportForDetail.sections.length > 0 && (
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Sections</dt>
                     <dd className="text-sm text-gray-900 mt-1">
                       <ul>
                         {selectedReportForDetail.sections.map((section, index) => (
-                          <li key={index}>{typeof section === 'string' ? section : JSON.stringify(section)}</li>
+                          <li key={index}>{section.title}</li>
                         ))}
                       </ul>
                     </dd>
                   </div>
-                )} */}
+                )}
               </dl>
             </div>
             <div className="flex justify-end mt-6">

@@ -16,6 +16,7 @@ interface SurveyFormData {
   description: string;
   questions: SurveyQuestion[];
   agentId?: string;
+  customerId?: string;
 }
 
 const SurveyForm: React.FC<{
@@ -25,8 +26,9 @@ const SurveyForm: React.FC<{
   onCancel: () => void;
   buttonText: string;
   agents: any[];
+  customers: any[];
   user: any;
-}> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, user }) => {
+}> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, customers, user }) => {
   if (!formData || !Array.isArray(formData.questions)) {
     return <div>Loading survey form...</div>;
   }
@@ -80,6 +82,26 @@ const SurveyForm: React.FC<{
           onChange={(e) => handleInputChange('title', e.target.value)}
           required
         />
+        {(user?.role === 'admin' || user?.role === 'agent') && (
+          <div>
+            <label htmlFor="customer" className="block text-sm font-medium text-gray-700 mb-1">
+              Assign to Customer
+            </label>
+            <select
+              id="customer"
+              value={formData.customerId}
+              onChange={(e) => handleInputChange('customerId', e.target.value)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+            >
+              <option value="">Select a customer</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div>
           <label htmlFor="surveyDescription" className="block text-sm font-medium text-gray-700 mb-1">
             Description
@@ -117,7 +139,7 @@ const SurveyForm: React.FC<{
                   <option value="textarea">Textarea</option>
                   <option value="single-choice">Single Choice (Radio)</option>
                   <option value="multiple-choice">Multiple Choice (Checkbox)</option>
-                  <option value="rating">Rating (1-5)</option>
+                  <option value="range">Range</option>
                   <option value="nps">Net Promoter Score (NPS)</option>
                   <option value="ces">Customer Effort Score (CES)</option>
                   <option value="image-choice">Image Choice</option>
@@ -136,7 +158,7 @@ const SurveyForm: React.FC<{
                   <span className="text-sm text-gray-700">Required</span>
                 </label>
               </div>
-              {(question.type === 'single-choice' || question.type === 'multiple-choice') && (
+              {(question.type === 'single-choice' || question.type === 'multiple-choice' || question.type === 'image-choice') && (
               <div className="mt-2 space-y-2 pl-4 border-l-2">
                 {(question.options || []).map((opt, optIndex) => (
                   <div key={optIndex} className="flex items-center space-x-2">
@@ -177,6 +199,38 @@ const SurveyForm: React.FC<{
                   Add Option
                 </Button>
               </div>
+              )}
+              {question.type === 'rating' && (
+                <div className="mt-2">
+                  <Input
+                    label="Max Rating"
+                    type="number"
+                    value={question.maxRating || 5}
+                    onChange={(e) => handleQuestionChange(index, 'maxRating', parseInt(e.target.value, 10))}
+                    min={2}
+                    max={10}
+                  />
+                </div>
+              )}
+              {question.type === 'file-upload' && (
+                <div className="mt-2">
+                  <Input
+                    label="Allowed File Types"
+                    value={question.allowedFileTypes || ''}
+                    onChange={(e) => handleQuestionChange(index, 'allowedFileTypes', e.target.value)}
+                    placeholder="e.g., .pdf,.jpg,.png"
+                  />
+                </div>
+              )}
+              {question.type === 'video' && (
+                <div className="mt-2">
+                  <Input
+                    label="Video URL"
+                    value={question.videoUrl || ''}
+                    onChange={(e) => handleQuestionChange(index, 'videoUrl', e.target.value)}
+                    placeholder="https://example.com/video.mp4"
+                  />
+                </div>
               )}
               <Button
                 type="button"
@@ -232,7 +286,13 @@ const Surveys: React.FC = () => {
   const [uploadStatusMessage, setUploadStatusMessage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [shouldRefetch, setShouldRefetch] = useState(false);
+
+  const triggerRefetch = () => {
+    setShouldRefetch(prev => !prev);
+  };
 
   const resetForm = useCallback(() => {
     setFormData({
@@ -272,6 +332,28 @@ const Surveys: React.FC = () => {
     };
 
     fetchAgents();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      if (user?.role !== 'admin' && user?.role !== 'agent') return;
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      try {
+        const response = await fetch('/api/users?role=customer', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const { data } = await response.json();
+          setCustomers(data || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch customers:", error);
+      }
+    };
+
+    fetchCustomers();
   }, [user]);
 
   useEffect(() => {
@@ -322,7 +404,7 @@ const Surveys: React.FC = () => {
     };
 
     fetchApiSurveys();
-  }, [user, apiError]);
+  }, [user, apiError, shouldRefetch]);
 
   const handleAddSurvey = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -350,6 +432,7 @@ const Surveys: React.FC = () => {
           description: formData.description,
           questions: formData.questions,
           agentId: formData.agentId,
+          customerId: formData.customerId,
         }),
       });
 
@@ -358,17 +441,18 @@ const Surveys: React.FC = () => {
         throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to create survey: ${response.statusText}`);
       }
 
-      const newSurveyFromApi = await response.json();
+      const { data: newSurveyFromApi } = await response.json();
       const newSurvey = { ...newSurveyFromApi, id: newSurveyFromApi._id, questions: newSurveyFromApi.questions || [] };
 
       setSurveys(prevSurveys => [newSurvey, ...prevSurveys]);
       setIsAddModalOpen(false);
       resetForm();
+      triggerRefetch();
     } catch (error: any) {
       console.error('Error adding survey via API:', error);
       setApiError(error.message || 'An unexpected error occurred while adding the survey.');
     }
-  }, [formData, resetForm]);
+  }, [formData, resetForm, triggerRefetch]);
 
   const handleEditSurvey = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -400,6 +484,7 @@ const Surveys: React.FC = () => {
           description: formData.description,
           questions: formData.questions,
           agentId: formData.agentId,
+          customerId: formData.customerId,
         }),
       });
 
@@ -408,7 +493,7 @@ const Surveys: React.FC = () => {
           throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update survey: ${response.statusText}`);
       }
 
-      const updatedSurveyFromApi = await response.json();
+      const { data: updatedSurveyFromApi } = await response.json();
       const updatedSurvey = { ...updatedSurveyFromApi, id: updatedSurveyFromApi._id, questions: updatedSurveyFromApi.questions || [] };
 
       setSurveys(prevSurveys =>
@@ -755,6 +840,7 @@ const Surveys: React.FC = () => {
           onCancel={handleCancelAdd}
           buttonText="Create Survey"
           agents={agents}
+          customers={customers}
           user={user}
         />
       </Modal>
@@ -771,6 +857,7 @@ const Surveys: React.FC = () => {
           onCancel={handleCancelEdit}
           buttonText="Save Changes"
           agents={agents}
+          customers={customers}
           user={user}
         />
       </Modal>
