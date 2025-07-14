@@ -133,34 +133,157 @@ export const downloadReport = async (req, res) => {
       return res.status(404).json({ error: 'Report not found' });
     }
 
-    // Access control
-    if (req.user.role === 'client' && (!report.companyId || report.companyId.toString() !== req.user.companyId.toString())) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
 
-    const exporter = new Exporter(report);
-    let file;
+    const logo = fs.readFileSync('logo.png').toString('base64');
+    const chart = await createChart(responses);
 
-    switch (format) {
-      case 'pptx':
-        file = await exporter.toPPTX();
-        res.writeHead(200, {
-          'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-          'Content-Disposition': `attachment; filename="${report.title}.pptx"`,
-        });
-        break;
-      case 'xlsx':
-        file = await exporter.toXLSX();
-        res.writeHead(200, {
-          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          'Content-Disposition': `attachment; filename="${report.title}.xlsx"`,
-        });
-        break;
-      case 'pdf':
-        file = await exporter.toPDF();
-        res.writeHead(200, {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="${report.title}.pdf"`,
+    if (format === 'pptx') {
+      const pptx = new pptxgen();
+
+      if (client && client.branding) {
+        if (client.branding.primaryColor) {
+          pptx.defineLayout({
+            name: 'MASTER_SLIDE',
+            width: 10,
+            height: 5.625,
+            background: { color: client.branding.primaryColor },
+          });
+          pptx.layout = 'MASTER_SLIDE';
+        }
+        if (client.branding.logoUrl) {
+          pptx.addSlide().addImage({ path: client.branding.logoUrl, x: 1, y: 1, w: 1, h: 1 });
+        }
+      }
+
+      // --- Landing Page ---
+      createLandingPageSlide(pptx, survey, logo);
+
+      // --- Study Overview ---
+      createStudyOverviewSlide(pptx, survey);
+
+      // --- Respondent Profile ---
+      const profileSlide = pptx.addSlide();
+      profileSlide.addText('Respondent Profile', { x: 1, y: 1, fontSize: 24, bold: true });
+
+      const demographics = responses.map(r => r.demographics).filter(d => d);
+      const locations = responses.map(r => r.location).filter(l => l);
+
+      const ageGroups = demographics.reduce((acc, d) => {
+        const age = d.age || 'N/A';
+        acc[age] = (acc[age] || 0) + 1;
+        return acc;
+      }, {});
+
+      const genderGroups = demographics.reduce((acc, d) => {
+        const gender = d.gender || 'N/A';
+        acc[gender] = (acc[gender] || 0) + 1;
+        return acc;
+      }, {});
+
+      profileSlide.addText('Age Distribution:', { x: 1, y: 2 });
+      Object.entries(ageGroups).forEach(([age, count], index) => {
+        profileSlide.addText(`${age}: ${count}`, { x: 1.5, y: 2.5 + (index * 0.5) });
+      });
+
+      profileSlide.addText('Gender Distribution:', { x: 1, y: 4 });
+      Object.entries(genderGroups).forEach(([gender, count], index) => {
+        profileSlide.addText(`${gender}: ${count}`, { x: 1.5, y: 4.5 + (index * 0.5) });
+      });
+
+      // --- Executive Summary ---
+      const summarySlide = pptx.addSlide();
+      summarySlide.addText('Executive Summary', { x: 1, y: 1, fontSize: 24, bold: true });
+      summarySlide.addText(report.summary || 'No summary available.', { x: 1, y: 2 });
+
+      // --- Core Insight Areas ---
+      createBrandAwarenessSlide(pptx, survey, responses);
+      createBrandUsageSlide(pptx, survey, responses);
+      createCustomerSatisfactionSlide(pptx, survey, responses);
+
+      const chartSlide = pptx.addSlide();
+      chartSlide.addText('Chart', { x: 1, y: 1, fontSize: 24, bold: true });
+      chartSlide.addImage({ data: `data:image/png;base64,${chart}`, x: 1, y: 2, w: 8, h: 4 });
+
+      // --- Regional and Outlet-Level Findings ---
+      const regionalSlide = pptx.addSlide();
+      regionalSlide.addText('Regional and Outlet-Level Findings', { x: 1, y: 1, fontSize: 24, bold: true });
+      regionalSlide.addText('Comparisons and heatmaps by state or zone will be added in a future update.', { x: 1, y: 2 });
+
+      // --- Recommendations ---
+      const recommendationsSlide = pptx.addSlide();
+      recommendationsSlide.addText('Recommendations', { x: 1, y: 1, fontSize: 24, bold: true });
+      recommendationsSlide.addText('Strategic actions based on key insights will be added in a future update.', { x: 1, y: 2 });
+
+      // --- Historical Trend Comparisons ---
+      const historicalSlide = pptx.addSlide();
+      historicalSlide.addText('Historical Trend Comparisons', { x: 1, y: 1, fontSize: 24, bold: true });
+      historicalSlide.addText('Historical trend comparisons will be added in a future update.', { x: 1, y: 2 });
+
+      // --- Add Footers ---
+      const firstRespondent = responses[0] || {};
+      const respondentName = firstRespondent.respondentName || 'N/A';
+      const respondentLocation = firstRespondent.location ? `${firstRespondent.location.city}, ${firstRespondent.location.country}` : 'N/A';
+      const respondentResponse = firstRespondent.response ? JSON.stringify(firstRespondent.response).substring(0, 50) + '...' : 'N/A';
+
+      pptx.slides.forEach((slide, index) => {
+        slide.addText(
+          `Respondent: ${respondentName} | Location: ${respondentLocation} | Response: ${respondentResponse}`,
+          { x: 0.5, y: 5.2, fontSize: 8, color: '666666' }
+        );
+        slide.addText(
+            `Slide ${index + 1}`,
+            { x: 9, y: 5.2, fontSize: 8, color: '666666' }
+        );
+      });
+
+      const buffer = await pptx.write('buffer');
+      res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pptx`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+      res.send(buffer);
+    } else if (format === 'xlsx') {
+      const workbook = new Excel.Workbook();
+      const worksheet = workbook.addWorksheet('Report');
+
+      worksheet.columns = [
+        { header: 'ID', key: 'id', width: 30 },
+        { header: 'Title', key: 'title', width: 30 },
+        { header: 'Description', key: 'description', width: 50 },
+      ];
+
+      worksheet.addRow({id: report._id, title: report.title, description: report.description});
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      res.setHeader('Content-Disposition', `attachment; filename=${report.title}.xlsx`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(buffer);
+    } else if (format === 'pdf') {
+      const doc = new PDFDocument();
+      let buffers = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => {
+        const pdfData = Buffer.concat(buffers);
+        res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.send(pdfData);
+      });
+
+      // --- PDF Landing Page ---
+      doc.image(Buffer.from(logo, 'base64'), {
+        fit: [100, 100],
+        align: 'center',
+        valign: 'center'
+      });
+      doc.moveDown(2);
+      doc.fontSize(25).text(survey.title, {
+        align: 'center'
+      });
+
+      // --- PDF Content ---
+      report.sections.forEach((section, pageIndex) => {
+        doc.addPage();
+        doc.fontSize(20).text(section.title, {
+          underline: true
+
         });
         break;
       default:
