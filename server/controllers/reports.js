@@ -120,12 +120,7 @@ export const getReportById = async (req, res) => {
       }
     }
 
-    let logo = null;
-    try {
-      logo = fs.readFileSync('logo.png').toString('base64');
-    } catch (error) {
-      console.warn('Could not load logo.png, continuing without it.');
-    }
+    const logo = fs.readFileSync('logo.png').toString('base64');
     const chart = await createChart(responses);
 
     if (format === 'pptx') {
@@ -147,44 +142,44 @@ export const getReportById = async (req, res) => {
       }
 
       // --- Landing Page ---
-
+      // createLandingPageSlide(pptx, survey, logo);
 
       // --- Study Overview ---
       // createStudyOverviewSlide(pptx, survey);
 
       // --- Respondent Profile ---
-      const profileSlide = pptx.addSlide();
-      profileSlide.addText('Respondent Profile', { x: 1, y: 1, fontSize: 24, bold: true });
+      // const profileSlide = pptx.addSlide();
+      // profileSlide.addText('Respondent Profile', { x: 1, y: 1, fontSize: 24, bold: true });
 
-      const demographics = responses.map(r => r.demographics).filter(d => d);
-      const locations = responses.map(r => r.location).filter(l => l);
+      // const demographics = responses.map(r => r.demographics).filter(d => d);
+      // const locations = responses.map(r => r.location).filter(l => l);
 
-      const ageGroups = demographics.reduce((acc, d) => {
-        const age = d.age || 'N/A';
-        acc[age] = (acc[age] || 0) + 1;
-        return acc;
-      }, {});
+      // const ageGroups = demographics.reduce((acc, d) => {
+      //   const age = d.age || 'N/A';
+      //   acc[age] = (acc[age] || 0) + 1;
+      //   return acc;
+      // }, {});
 
-      const genderGroups = demographics.reduce((acc, d) => {
-        const gender = d.gender || 'N/A';
-        acc[gender] = (acc[gender] || 0) + 1;
-        return acc;
-      }, {});
+      // const genderGroups = demographics.reduce((acc, d) => {
+      //   const gender = d.gender || 'N/A';
+      //   acc[gender] = (acc[gender] || 0) + 1;
+      //   return acc;
+      // }, {});
 
-      profileSlide.addText('Age Distribution:', { x: 1, y: 2 });
-      Object.entries(ageGroups).forEach(([age, count], index) => {
-        profileSlide.addText(`${age}: ${count}`, { x: 1.5, y: 2.5 + (index * 0.5) });
-      });
+      // profileSlide.addText('Age Distribution:', { x: 1, y: 2 });
+      // Object.entries(ageGroups).forEach(([age, count], index) => {
+      //   profileSlide.addText(`${age}: ${count}`, { x: 1.5, y: 2.5 + (index * 0.5) });
+      // });
 
-      profileSlide.addText('Gender Distribution:', { x: 1, y: 4 });
-      Object.entries(genderGroups).forEach(([gender, count], index) => {
-        profileSlide.addText(`${gender}: ${count}`, { x: 1.5, y: 4.5 + (index * 0.5) });
-      });
+      // profileSlide.addText('Gender Distribution:', { x: 1, y: 4 });
+      // Object.entries(genderGroups).forEach(([gender, count], index) => {
+      //   profileSlide.addText(`${gender}: ${count}`, { x: 1.5, y: 4.5 + (index * 0.5) });
+      // });
 
       // --- Executive Summary ---
-      const summarySlide = pptx.addSlide();
-      summarySlide.addText('Executive Summary', { x: 1, y: 1, fontSize: 24, bold: true });
-      summarySlide.addText(report.summary || 'No summary available.', { x: 1, y: 2 });
+      // const summarySlide = pptx.addSlide();
+      // summarySlide.addText('Executive Summary', { x: 1, y: 1, fontSize: 24, bold: true });
+      // summarySlide.addText(report.summary || 'No summary available.', { x: 1, y: 2 });
 
       // --- Core Insight Areas ---
       createBrandAwarenessSlide(pptx, survey, responses);
@@ -201,9 +196,9 @@ export const getReportById = async (req, res) => {
       regionalSlide.addText('Comparisons and heatmaps by state or zone will be added in a future update.', { x: 1, y: 2 });
 
       // --- Recommendations ---
-      const recommendationsSlide = pptx.addSlide();
-      recommendationsSlide.addText('Recommendations', { x: 1, y: 1, fontSize: 24, bold: true });
-      recommendationsSlide.addText('Strategic actions based on key insights will be added in a future update.', { x: 1, y: 2 });
+      // const recommendationsSlide = pptx.addSlide();
+      // recommendationsSlide.addText('Recommendations', { x: 1, y: 1, fontSize: 24, bold: true });
+      // recommendationsSlide.addText('Strategic actions based on key insights will be added in a future update.', { x: 1, y: 2 });
 
       // --- Historical Trend Comparisons ---
       const historicalSlide = pptx.addSlide();
@@ -265,13 +260,11 @@ export const getReportById = async (req, res) => {
       });
 
       // --- PDF Landing Page ---
-      if (logo) {
-        doc.image(Buffer.from(logo, 'base64'), {
-          fit: [100, 100],
-          align: 'center',
-          valign: 'center'
-        });
-      }
+      doc.image(Buffer.from(logo, 'base64'), {
+        fit: [100, 100],
+        align: 'center',
+        valign: 'center'
+      });
       doc.moveDown(2);
       doc.fontSize(25).text(survey.title, {
         align: 'center'
@@ -314,7 +307,7 @@ export const getReportById = async (req, res) => {
 
   } catch (err) {
     console.error(`Failed to fetch report ${req.params.id}:`, err);
-    return res.status(500).json({ error: 'Failed to fetch report' });
+    res.status(500).json({ error: 'Failed to fetch report' });
   }
 };
 
