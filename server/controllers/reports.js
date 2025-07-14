@@ -6,6 +6,7 @@ import Excel from 'exceljs';
 import fs from 'fs';
 import { createStudyOverviewSlide, createLandingPageSlide } from '../templates/study-overview.js';
 import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
+import Reporting from '../reporting/index.js';
 
 // @desc    Generate a new report
 // @route   POST /api/reports
@@ -13,77 +14,45 @@ import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
 export const generateReport = async (req, res) => {
   try {
     const db = getDb();
-    const { surveyId, title } = req.body;
+    const { surveyId, title, clientId } = req.body;
     const reportsCollection = db.collection('reports');
 
-    // Basic validation
-    if (!ObjectId.isValid(surveyId)) {
-      return res.status(400).json({ error: 'Invalid survey ID format' });
+    if (!ObjectId.isValid(surveyId) || (clientId && !ObjectId.isValid(clientId))) {
+      return res.status(400).json({ error: 'Invalid ID format' });
     }
-
-    // TODO: Add logic here to actually generate the report content
-    // based on the survey responses. For now, we'll just create a
-    // placeholder report document.
 
     const survey = await db.collection('surveys').findOne({ _id: new ObjectId(surveyId) });
-    if (!survey) {
-      return res.status(404).json({ error: 'Survey not found' });
-    }
+    if (!survey) return res.status(404).json({ error: 'Survey not found' });
+
+    const responses = await db.collection('responses').find({ surveyId: new ObjectId(surveyId) }).toArray();
+    const user = await db.collection('users').findOne({ _id: new ObjectId(req.user.id) });
+    const company = await db.collection('companies').findOne({ _id: new ObjectId(req.user.companyId) });
+    const client = clientId ? await db.collection('users').findOne({ _id: new ObjectId(clientId) }) : null;
+
+    const reporting = new Reporting({
+      survey,
+      responses,
+      user,
+      company,
+      client,
+      title
+    });
+
+    const reportData = await reporting.generateReport();
 
     const newReport = {
       title,
       surveyId: new ObjectId(surveyId),
-      companyId: req.user.companyId, // Assuming agent/admin has companyId
+      companyId: req.user.companyId,
       generatedBy: new ObjectId(req.user.id),
+      clientId: client ? new ObjectId(clientId) : null,
       createdAt: new Date(),
-      status: 'completed', // or 'generating'
-      sections: [
-        {
-          id: 'study-overview',
-          title: 'Study Overview',
-          order: 1,
-          content: [],
-          projectName: survey.title,
-          background: survey.description,
-          objectives: 'To understand customer feedback',
-          methodology: 'Online survey',
-        },
-        {
-          id: 'respondent-profile',
-          title: 'Respondent Profile',
-          order: 2,
-          content: [],
-        },
-        {
-          id: 'executive-summary',
-          title: 'Executive Summary',
-          order: 3,
-          content: [],
-        },
-        {
-          id: 'core-insight-areas',
-          title: 'Core Insight Areas',
-          order: 4,
-          content: [],
-        },
-        {
-          id: 'regional-findings',
-          title: 'Regional and Outlet-Level Findings',
-          order: 5,
-          content: [],
-        },
-        {
-          id: 'recommendations',
-          title: 'Recommendations',
-          order: 6,
-          content: [],
-        },
-      ],
+      status: 'completed',
+      ...reportData,
     };
 
     const result = await reportsCollection.insertOne(newReport);
     res.status(201).json({ data: { ...newReport, _id: result.insertedId } });
-
   } catch (err) {
     console.error('Failed to generate report:', err);
     res.status(500).json({ error: 'Failed to generate report' });
@@ -121,230 +90,88 @@ export const getReports = async (req, res) => {
 export const getReportById = async (req, res) => {
   try {
     const db = getDb();
-    const reportsCollection = db.collection('reports');
     const { id } = req.params;
-    const { format } = req.query;
 
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid report ID format' });
     }
 
-    const report = await reportsCollection.findOne({ _id: new ObjectId(id) });
+    const report = await db.collection('reports').findOne({ _id: new ObjectId(id) });
 
     if (!report) {
       return res.status(404).json({ error: 'Report not found' });
     }
 
-    const survey = await db.collection('surveys').findOne({ _id: new ObjectId(report.surveyId) });
-    const responses = await db.collection('responses').find({ surveyId: new ObjectId(report.surveyId) }).toArray();
-    const user = await db.collection('users').findOne({ _id: new ObjectId(report.generatedBy) });
-    const company = await db.collection('companies').findOne({ _id: new ObjectId(report.companyId) });
-    const client = await db.collection('users').findOne({ _id: new ObjectId(report.clientId) });
-
-    // Access control: Ensure client can only access their own reports
-    if (req.user.role === 'client' && req.user.companyId) {
-      if (!report.companyId || report.companyId.toString() !== req.user.companyId.toString()) {
-        return res.status(403).json({ error: 'Access denied to this report' });
-      }
+    // Access control
+    if (req.user.role === 'client' && (!report.companyId || report.companyId.toString() !== req.user.companyId.toString())) {
+      return res.status(403).json({ error: 'Access denied' });
     }
 
-    let logo = null;
-    try {
-      logo = fs.readFileSync('logo.png').toString('base64');
-    } catch (error) {
-      console.warn('Could not load logo.png, continuing without it.');
-    }
-    const chart = await createChart(responses);
-
-    if (format === 'pptx') {
-      const pptx = new pptxgen();
-
-      if (client && client.branding) {
-        if (client.branding.primaryColor) {
-          pptx.defineLayout({
-            name: 'MASTER_SLIDE',
-            width: 10,
-            height: 5.625,
-            background: { color: client.branding.primaryColor },
-          });
-          pptx.layout = 'MASTER_SLIDE';
-        }
-        if (client.branding.logoUrl) {
-          pptx.addSlide().addImage({ path: client.branding.logoUrl, x: 1, y: 1, w: 1, h: 1 });
-        }
-      }
-
-      // --- Landing Page ---
-      if (logo) {
-        createLandingPageSlide(pptx, survey, logo);
-      }
-
-      // --- Study Overview ---
-      createStudyOverviewSlide(pptx, survey);
-
-      // --- Respondent Profile ---
-      const profileSlide = pptx.addSlide();
-      profileSlide.addText('Respondent Profile', { x: 1, y: 1, fontSize: 24, bold: true });
-
-      const demographics = responses.map(r => r.demographics).filter(d => d);
-      const locations = responses.map(r => r.location).filter(l => l);
-
-      const ageGroups = demographics.reduce((acc, d) => {
-        const age = d.age || 'N/A';
-        acc[age] = (acc[age] || 0) + 1;
-        return acc;
-      }, {});
-
-      const genderGroups = demographics.reduce((acc, d) => {
-        const gender = d.gender || 'N/A';
-        acc[gender] = (acc[gender] || 0) + 1;
-        return acc;
-      }, {});
-
-      profileSlide.addText('Age Distribution:', { x: 1, y: 2 });
-      Object.entries(ageGroups).forEach(([age, count], index) => {
-        profileSlide.addText(`${age}: ${count}`, { x: 1.5, y: 2.5 + (index * 0.5) });
-      });
-
-      profileSlide.addText('Gender Distribution:', { x: 1, y: 4 });
-      Object.entries(genderGroups).forEach(([gender, count], index) => {
-        profileSlide.addText(`${gender}: ${count}`, { x: 1.5, y: 4.5 + (index * 0.5) });
-      });
-
-      // --- Executive Summary ---
-      const summarySlide = pptx.addSlide();
-      summarySlide.addText('Executive Summary', { x: 1, y: 1, fontSize: 24, bold: true });
-      summarySlide.addText(report.summary || 'No summary available.', { x: 1, y: 2 });
-
-      // --- Core Insight Areas ---
-      createBrandAwarenessSlide(pptx, survey, responses);
-      createBrandUsageSlide(pptx, survey, responses);
-      createCustomerSatisfactionSlide(pptx, survey, responses);
-
-      const chartSlide = pptx.addSlide();
-      chartSlide.addText('Chart', { x: 1, y: 1, fontSize: 24, bold: true });
-      chartSlide.addImage({ data: `data:image/png;base64,${chart}`, x: 1, y: 2, w: 8, h: 4 });
-
-      // --- Regional and Outlet-Level Findings ---
-      const regionalSlide = pptx.addSlide();
-      regionalSlide.addText('Regional and Outlet-Level Findings', { x: 1, y: 1, fontSize: 24, bold: true });
-      regionalSlide.addText('Comparisons and heatmaps by state or zone will be added in a future update.', { x: 1, y: 2 });
-
-      // --- Recommendations ---
-      const recommendationsSlide = pptx.addSlide();
-      recommendationsSlide.addText('Recommendations', { x: 1, y: 1, fontSize: 24, bold: true });
-      recommendationsSlide.addText('Strategic actions based on key insights will be added in a future update.', { x: 1, y: 2 });
-
-      // --- Historical Trend Comparisons ---
-      const historicalSlide = pptx.addSlide();
-      historicalSlide.addText('Historical Trend Comparisons', { x: 1, y: 1, fontSize: 24, bold: true });
-      historicalSlide.addText('Historical trend comparisons will be added in a future update.', { x: 1, y: 2 });
-
-      // --- Add Footers ---
-      const firstRespondent = responses[0] || {};
-      const respondentName = firstRespondent.respondentName || 'N/A';
-      const respondentLocation = firstRespondent.location ? `${firstRespondent.location.city}, ${firstRespondent.location.country}` : 'N/A';
-      const respondentResponse = firstRespondent.response ? JSON.stringify(firstRespondent.response).substring(0, 50) + '...' : 'N/A';
-
-      pptx.slides.forEach((slide, index) => {
-        slide.addText(
-          `Respondent: ${respondentName} | Location: ${respondentLocation} | Response: ${respondentResponse}`,
-          { x: 0.5, y: 5.2, fontSize: 8, color: '666666' }
-        );
-        slide.addText(
-            `Slide ${index + 1}`,
-            { x: 9, y: 5.2, fontSize: 8, color: '666666' }
-        );
-      });
-
-      const buffer = await pptx.write('buffer');
-      res.writeHead(200, {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'Content-Disposition': `attachment;filename=${report.title}.pptx`,
-      });
-      res.end(buffer);
-    } else if (format === 'xlsx') {
-      const workbook = new Excel.Workbook();
-      const worksheet = workbook.addWorksheet('Report');
-
-      worksheet.columns = [
-        { header: 'ID', key: 'id', width: 30 },
-        { header: 'Title', key: 'title', width: 30 },
-        { header: 'Description', key: 'description', width: 50 },
-      ];
-
-      worksheet.addRow({id: report._id, title: report.title, description: report.description});
-
-      const buffer = await workbook.xlsx.writeBuffer();
-      res.writeHead(200, {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment;filename=${report.title}.xlsx`,
-      });
-      res.end(buffer);
-    } else {
-      const doc = new PDFDocument();
-      let buffers = [];
-      doc.on('data', buffers.push.bind(buffers));
-      doc.on('end', () => {
-        let pdfData = Buffer.concat(buffers);
-        res.writeHead(200, {
-          'Content-Length': Buffer.byteLength(pdfData),
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment;filename=${report.title}.pdf`,
-        }).end(pdfData);
-      });
-
-      // --- PDF Landing Page ---
-      if (logo) {
-        doc.image(Buffer.from(logo, 'base64'), {
-          fit: [100, 100],
-          align: 'center',
-          valign: 'center'
-        });
-      }
-      doc.moveDown(2);
-      doc.fontSize(25).text(survey.title, {
-        align: 'center'
-      });
-
-      // --- PDF Content ---
-      report.sections.forEach((section, pageIndex) => {
-        doc.addPage();
-        doc.fontSize(20).text(section.title, {
-          underline: true
-        });
-        doc.fontSize(12).text(section.content.toString());
-
-        // --- PDF Footer ---
-        const firstRespondent = responses[0] || {};
-        const respondentName = firstRespondent.respondentName || 'N/A';
-        const respondentLocation = firstRespondent.location ? `${firstRespondent.location.city}, ${firstRespondent.location.country}` : 'N/A';
-        const respondentResponse = firstRespondent.response ? JSON.stringify(firstRespondent.response).substring(0, 50) + '...' : 'N/A';
-
-        doc.fontSize(8).text(
-          `Respondent: ${respondentName} | Location: ${respondentLocation} | Response: ${respondentResponse}`,
-          50,
-          750,
-          { align: 'center' }
-        );
-      });
-
-      doc.addPage();
-      doc.fontSize(20).text('Chart', {
-        underline: true
-      });
-      doc.image(Buffer.from(chart, 'base64'), {
-        fit: [500, 400],
-        align: 'center',
-        valign: 'center'
-      });
-
-      doc.end();
-    }
-
+    res.json({ data: report });
   } catch (err) {
     console.error(`Failed to fetch report ${req.params.id}:`, err);
     res.status(500).json({ error: 'Failed to fetch report' });
+  }
+};
+
+// @desc    Download a report by ID
+// @route   GET /api/reports/:id/download
+// @access  Private
+export const downloadReport = async (req, res) => {
+  try {
+    const db = getDb();
+    const { id } = req.params;
+    const { format } = req.query; // pptx, xlsx, pdf
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid report ID format' });
+    }
+
+    const report = await db.collection('reports').findOne({ _id: new ObjectId(id) });
+
+    if (!report) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    // Access control
+    if (req.user.role === 'client' && (!report.companyId || report.companyId.toString() !== req.user.companyId.toString())) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const exporter = new Exporter(report);
+    let file;
+
+    switch (format) {
+      case 'pptx':
+        file = await exporter.toPPTX();
+        res.writeHead(200, {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          'Content-Disposition': `attachment; filename="${report.title}.pptx"`,
+        });
+        break;
+      case 'xlsx':
+        file = await exporter.toXLSX();
+        res.writeHead(200, {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': `attachment; filename="${report.title}.xlsx"`,
+        });
+        break;
+      case 'pdf':
+        file = await exporter.toPDF();
+        res.writeHead(200, {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${report.title}.pdf"`,
+        });
+        break;
+      default:
+        return res.status(400).json({ error: 'Invalid format specified' });
+    }
+
+    res.end(file);
+
+  } catch (err) {
+    console.error(`Failed to download report ${req.params.id}:`, err);
+    res.status(500).json({ error: 'Failed to download report' });
   }
 };
 

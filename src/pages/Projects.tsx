@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Filter, BarChart2, AlertTriangle } from 'lucide-react';
 import { Button } from '../components/ui/Button.tsx'; // Explicit .tsx extension
