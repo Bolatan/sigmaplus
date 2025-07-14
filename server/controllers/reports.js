@@ -1,5 +1,9 @@
 import { getDb } from '../utils/db.js';
 import { ObjectId } from 'mongodb';
+import PDFDocument from 'pdfkit';
+import pptxgen from 'pptxgenjs';
+import Excel from 'exceljs';
+import { createStudyOverviewSlide } from '../templates/study-overview.js';
 
 // @desc    Generate a new report
 // @route   POST /api/reports
@@ -109,11 +113,6 @@ export const getReports = async (req, res) => {
   }
 };
 
-import PDFDocument from 'pdfkit';
-import pptxgen from 'pptxgenjs';
-import Excel from 'exceljs';
-import { createStudyOverviewSlide } from '../templates/study-overview.js';
-
 // @desc    Get a single report by ID
 // @route   GET /api/reports/:id
 // @access  Private
@@ -202,7 +201,6 @@ export const getReportById = async (req, res) => {
       summarySlide.addText('Executive Summary', { x: 1, y: 1, fontSize: 24, bold: true });
       summarySlide.addText(report.summary || 'No summary available.', { x: 1, y: 2 });
 
-      // --- Core Insight Areas ---
       // --- Core Insight Areas ---
       createBrandAwarenessSlide(pptx, survey, responses);
       createBrandUsageSlide(pptx, survey, responses);
@@ -343,12 +341,11 @@ export const deleteReport = async (req, res) => {
   }
 };
 
-<<<<<<< HEAD
 export const generateAllReports = async () => {
   console.log('Generating all reports...');
   // This is a placeholder for the actual report generation logic
 };
-=======
+
 function createBrandAwarenessSlide(pptx, survey, responses) {
   const slide = pptx.addSlide();
   slide.addText('Brand Awareness & Perception', { x: 1, y: 1, fontSize: 24, bold: true });
@@ -427,5 +424,3 @@ function createCustomerSatisfactionSlide(pptx, survey, responses) {
   slide.addText('Customer Satisfaction & Loyalty Metrics', { x: 1, y: 1, fontSize: 24, bold: true });
   slide.addText('Data and visualizations for this section will be added in a future update.', { x: 1, y: 2 });
 }
-
->>>>>>> main

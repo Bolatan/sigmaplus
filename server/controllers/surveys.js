@@ -189,7 +189,6 @@ export const updateSurvey = async (req, res, next) => {
       } else {
         throw new ApiError(400, 'companyIds must be an array.');
       }
-
     }
 
     if (userRole === 'admin' && agentId !== undefined) {
@@ -251,7 +250,7 @@ export const deleteSurvey = async (req, res, next) => {
     if (userRole === 'agent' && existingSurvey.createdBy.toString() !== userId) {
       throw new ApiError(403, 'Forbidden: You can only delete surveys you created.');
     }
-      if (userRole !== 'admin' && userRole !== 'agent') {
+     if (userRole !== 'admin' && userRole !== 'agent') {
         throw new ApiError(403, 'Forbidden: You are not authorized to delete surveys.');
     }
 
@@ -315,7 +314,7 @@ export const submitSurveyResponse = async (req, res, next) => {
     if (error instanceof ApiError) {
         next(error);
     } else {
-      next(new ApiError(500, error.message || 'Failed to submit survey response.'));
+        next(new ApiError(500, error.message || 'Failed to submit survey response.'));
     }
   }
 };
