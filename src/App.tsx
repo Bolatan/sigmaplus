@@ -17,6 +17,7 @@ import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import Projects from '@/pages/Projects';
 import EditReportSections from '@/pages/EditReportSections';
 
+
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -79,10 +80,15 @@ const AppRoutes: React.FC = () => {
           </Layout>
         </ProtectedRoute>
       } />
+      {/*
+
+      */}
       <Route path="/surveys" element={
         <ProtectedRoute>
           <Layout>
-            <Surveys />
+            <Projects /> {/* Using Projects component for the /surveys route */}
+
+
           </Layout>
         </ProtectedRoute>
       } />
