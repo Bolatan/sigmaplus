@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Filter, BarChart2, AlertTriangle } from 'lucide-react';
-import { Button } from '../components/ui/Button.tsx'; // Explicit .tsx extension
-import { Input } from '../components/ui/Input.tsx';   // Explicit .tsx extension
-import { Card, CardContent } from '../components/ui/Card.tsx'; // Explicit .tsx extension
-import { Modal } from '../components/ui/Modal.tsx';   // Explicit .tsx extension
+import { Button } from '../components/ui/Button.tsx';
+import { Input } from '../components/ui/Input.tsx';
+import { Card, CardContent } from '../components/ui/Card.tsx';
+import { Modal } from '../components/ui/Modal.tsx';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Survey, SurveyQuestion, QuestionType } from '../types'; // Assuming Survey type is suitable for Project
+import { Survey, SurveyQuestion, QuestionType } from '../types';
 import { v4 as uuidv4 } from 'uuid';
-import { ConditionalLogicModal } from '../components/surveys/ConditionalLogicModal'; // Re-using survey modals
-import { TemplateSelectionModal } from '../components/surveys/TemplateSelectionModal'; // Re-using survey templates
-import SurveyForm from '../components/surveys/SurveyForm'; // Assuming ProjectForm was meant to be SurveyForm based on usage
+import { ConditionalLogicModal } from '../components/surveys/ConditionalLogicModal';
+import { TemplateSelectionModal } from '../components/surveys/TemplateSelectionModal';
+import SurveyForm from '../components/surveys/SurveyForm'; // Ensure this path is correct
 
 interface ProjectFormData {
   title: string;
@@ -18,11 +18,11 @@ interface ProjectFormData {
   questions: SurveyQuestion[];
   agentId?: string;
   companyIds?: string[];
-  projectId?: string; // Added projectId to ProjectFormData
+  projectId?: string;
 }
 
 const Projects: React.FC = () => {
-  const [projects, setProjects] = useState<Survey[]>([]); // Using Survey type as projects seem to be surveys
+  const [projects, setProjects] = useState<Survey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -35,7 +35,7 @@ const Projects: React.FC = () => {
   });
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [apiProjects, setApiProjects] = useState<any>(null); // This might be redundant if projects state is used
+  const [apiProjects, setApiProjects] = useState<any>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -45,7 +45,7 @@ const Projects: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
-  const [allProjects, setAllProjects] = useState<any[]>([]); // Renamed to avoid conflict with `projects` state
+  const [allProjects, setAllProjects] = useState<any[]>([]);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [shouldRefetch, setShouldRefetch] = useState(false);
 
@@ -63,10 +63,11 @@ const Projects: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // Ensure formData.questions is always an array
     if (!formData.questions) {
-      onFormDataChange({ ...formData, questions: [] }); // Call onFormDataChange to update parent state
+      setFormData(prev => ({ ...prev, questions: [] }));
     }
-  }, [formData, onFormDataChange]); // Added onFormDataChange to dependency array
+  }, [formData]); // Removed onFormDataChange from dependencies as it's not needed here and could cause a loop
 
   useEffect(() => {
     const fetchAgents = async () => {
@@ -88,7 +89,6 @@ const Projects: React.FC = () => {
     };
 
     const fetchCompanies = async () => {
-      // Assuming non-admin users might also need company data for dropdowns/filters
       const token = localStorage.getItem('authToken');
       if (!token) return;
 
@@ -115,7 +115,6 @@ const Projects: React.FC = () => {
         });
         if (response.ok) {
           const { data } = await response.json();
-          // Filter out surveys that are not intended to be "projects" if necessary, or rename the endpoint
           setAllProjects(data || []);
         }
       } catch (error) {
@@ -128,12 +127,6 @@ const Projects: React.FC = () => {
     fetchAllProjectsForDropdown();
   }, [user]);
 
-
-  useEffect(() => {
-    return () => {
-      setApiError(null);
-    };
-  }, []);
 
   useEffect(() => {
     const fetchApiProjects = async () => {
@@ -149,7 +142,6 @@ const Projects: React.FC = () => {
       }
 
       try {
-        // Assuming projects are fetched from the /api/surveys endpoint
         const response = await fetch('/api/surveys', {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -171,8 +163,7 @@ const Projects: React.FC = () => {
             questions: s.questions || [],
           }));
           setProjects(fetchedProjects);
-          setApiProjects(fetchedProjects); // Keeping this for now, but `projects` state is primary
-          console.log('Fetched from /api/surveys (acting as projects):', fetchedProjects);
+          setApiProjects(fetchedProjects);
         }
       } catch (error: any) {
         console.error('Error fetching from /api/surveys (acting as projects):', error);
@@ -184,7 +175,7 @@ const Projects: React.FC = () => {
     };
 
     fetchApiProjects();
-  }, [user, shouldRefetch]); // Removed apiError from dependencies to prevent infinite loop if error always changes
+  }, [user, shouldRefetch]);
 
   const handleAddProject = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,7 +192,7 @@ const Projects: React.FC = () => {
     }
 
     try {
-      const response = await fetch('/api/surveys', { // Creating a new survey as a project
+      const response = await fetch('/api/surveys', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -213,7 +204,7 @@ const Projects: React.FC = () => {
           questions: formData.questions,
           agentId: formData.agentId,
           companyIds: formData.companyIds,
-          projectId: formData.projectId, // Include projectId in the payload
+          projectId: formData.projectId,
         }),
       });
 
@@ -228,7 +219,7 @@ const Projects: React.FC = () => {
       setProjects(prevProjects => [newProject, ...prevProjects]);
       setIsAddModalOpen(false);
       resetForm();
-      triggerRefetch(); // Trigger refetch to update the list
+      triggerRefetch();
     } catch (error: any) {
       console.error('Error adding project via API:', error);
       setApiError(error.message || 'An unexpected error occurred while adding the project.');
@@ -248,7 +239,7 @@ const Projects: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`/api/surveys/${projectId}`, { // Deleting a survey as a project
+      const response = await fetch(`/api/surveys/${projectId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -286,7 +277,7 @@ const Projects: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`/api/surveys/${editingProject.id}`, { // Updating a survey as a project
+      const response = await fetch(`/api/surveys/${editingProject.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -298,7 +289,7 @@ const Projects: React.FC = () => {
           questions: formData.questions,
           agentId: formData.agentId,
           companyIds: formData.companyIds,
-          projectId: formData.projectId, // Include projectId in the payload
+          projectId: formData.projectId,
         }),
       });
 
@@ -337,7 +328,7 @@ const Projects: React.FC = () => {
     );
 
     try {
-      const response = await fetch(`/api/surveys/${projectId}`, { // Updating survey status as project status
+      const response = await fetch(`/api/surveys/${projectId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -348,7 +339,7 @@ const Projects: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        setProjects(originalProjects); // Revert on error
+        setProjects(originalProjects);
         throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update project status: ${response.statusText}`);
       }
 
@@ -361,7 +352,7 @@ const Projects: React.FC = () => {
     } catch (error: any) {
       console.error('Error updating project status via API:', error);
       setApiError(error.message || 'An unexpected error occurred while updating status.');
-      setProjects(originalProjects); // Revert on error
+      setProjects(originalProjects);
     }
   }, [projects]);
 
@@ -372,7 +363,7 @@ const Projects: React.FC = () => {
       description: project.description || '',
       questions: project.questions || [],
       companyIds: project.companyIds || [],
-      projectId: project.projectId || '', // Set projectId for editing
+      projectId: project.projectId || '',
     });
     setIsEditModalOpen(true);
   }, []);
@@ -406,7 +397,7 @@ const Projects: React.FC = () => {
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedFile(e.target.files ? e.target.files[0] : null);
-    setUploadStatusMessage(null); // Clear previous status message on new file selection
+    setUploadStatusMessage(null);
   }, []);
 
   const handleFileUpload = useCallback(async () => {
@@ -444,7 +435,7 @@ const Projects: React.FC = () => {
       }
 
       setUploadStatusMessage(result.message || 'Upload successful! Responses are being processed.');
-      triggerRefetch(); // Refresh projects list to show updated response count
+      triggerRefetch();
 
     } catch (error: any) {
       console.error('Error uploading CSV file:', error);
@@ -596,7 +587,7 @@ const Projects: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/surveys/${project.id}`)} {/* Navigating to survey details */}
+                      onClick={() => navigate(`/surveys/${project.id}`)}
                     >
                       View Details
                     </Button>
@@ -604,7 +595,7 @@ const Projects: React.FC = () => {
                         <Button
                           variant="success"
                           size="sm"
-                          onClick={() => navigate(`/surveys/${project.id}/respond`)} {/* Navigating to survey response */}
+                          onClick={() => navigate(`/surveys/${project.id}/respond`)}
                         >
                           Take Survey
                         </Button>
@@ -664,7 +655,7 @@ const Projects: React.FC = () => {
         onClose={handleCancelAdd}
         title="Create New Project"
       >
-        <SurveyForm // Using SurveyForm for Project creation
+        <SurveyForm
           formData={formData}
           onFormDataChange={handleFormDataChange}
           onSubmit={handleAddProject}
@@ -672,7 +663,7 @@ const Projects: React.FC = () => {
           buttonText="Create Project"
           agents={agents}
           companies={companies}
-          projects={allProjects} // Pass allProjects to SurveyForm for the dropdown
+          projects={allProjects}
           user={user}
         />
       </Modal>
@@ -682,7 +673,7 @@ const Projects: React.FC = () => {
         onClose={handleCancelEdit}
         title="Edit Project"
       >
-        <SurveyForm // Using SurveyForm for Project editing
+        <SurveyForm
           formData={formData}
           onFormDataChange={handleFormDataChange}
           onSubmit={handleEditProject}
@@ -690,7 +681,7 @@ const Projects: React.FC = () => {
           buttonText="Save Changes"
           agents={agents}
           companies={companies}
-          projects={allProjects} // Pass allProjects to SurveyForm for the dropdown
+          projects={allProjects}
           user={user}
         />
       </Modal>
@@ -711,7 +702,7 @@ const Projects: React.FC = () => {
               id="csvFile"
               type="file"
               accept=".csv"
-              onChange={handleFileChange} // Use the new handleFileChange
+              onChange={handleFileChange}
               className="mt-1 block w-full text-sm text-gray-500
                          file:mr-4 file:py-2 file:px-4
                          file:rounded-full file:border-0
