@@ -12,7 +12,7 @@ import {
   submitSurveyResponse,
   bulkUploadSurveyResponses, // Import the new controller
   uploadFile,
-} from '../controllers/projects.js';
+} from '../controllers/surveys.js';
 import multer from 'multer'; // Import multer to check for MulterError instance
 import upload from '../middleware/multer-config.js';
 
