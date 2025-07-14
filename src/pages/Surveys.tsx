@@ -82,6 +82,26 @@ const SurveyForm: React.FC<{
           onChange={(e) => handleInputChange('title', e.target.value)}
           required
         />
+        {(user?.role === 'admin' || user?.role === 'agent') && (
+          <div>
+            <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">
+              Assign to Company
+            </label>
+            <select
+              id="company"
+              value={formData.companyId}
+              onChange={(e) => handleInputChange('companyId', e.target.value)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+            >
+              <option value="">Select a company</option>
+              {companies.map((company) => (
+                <option key={company._id} value={company._id}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div>
           <label htmlFor="surveyDescription" className="block text-sm font-medium text-gray-700 mb-1">
             Description
