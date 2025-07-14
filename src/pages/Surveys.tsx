@@ -256,14 +256,10 @@ const SurveyForm: React.FC<{
               id="companyIds"
               multiple
               value={formData.companyIds || []}
-<<<<<<< HEAD
               onChange={(e) => {
                 const selectedIds = Array.from(e.target.selectedOptions, option => option.value);
                 onFormDataChange({ ...formData, companyIds: selectedIds });
               }}
-=======
-              onChange={(e) => onFormDataChange({ ...formData, companyIds: Array.from(e.target.selectedOptions, option => option.value) })}
->>>>>>> main
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
             >
               {companies.map(company => (
@@ -314,10 +310,6 @@ const Surveys: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
-<<<<<<< HEAD
-=======
-
->>>>>>> main
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [shouldRefetch, setShouldRefetch] = useState(false);
 
@@ -506,10 +498,6 @@ const Surveys: React.FC = () => {
           questions: formData.questions,
           agentId: formData.agentId,
           companyIds: formData.companyIds,
-<<<<<<< HEAD
-=======
-
->>>>>>> main
         }),
       });
 
@@ -562,10 +550,6 @@ const Surveys: React.FC = () => {
           questions: formData.questions,
           agentId: formData.agentId,
           companyIds: formData.companyIds,
-<<<<<<< HEAD
-=======
-
->>>>>>> main
         }),
       });
 
@@ -923,10 +907,6 @@ const Surveys: React.FC = () => {
           buttonText="Create Survey"
           agents={agents}
           companies={companies}
-<<<<<<< HEAD
-=======
-
->>>>>>> main
           user={user}
         />
       </Modal>
@@ -944,10 +924,6 @@ const Surveys: React.FC = () => {
           buttonText="Save Changes"
           agents={agents}
           companies={companies}
-<<<<<<< HEAD
-=======
-
->>>>>>> main
           user={user}
         />
       </Modal>
