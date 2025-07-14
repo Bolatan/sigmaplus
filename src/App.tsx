@@ -5,7 +5,7 @@ import { Layout } from './components/layout/Layout';
 import CookieConsent from 'react-cookie-consent';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import Surveys from './pages/Surveys.tsx';
+import Surveys from 'pages/Surveys.tsx';
 import Reports from './pages/Reports';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
