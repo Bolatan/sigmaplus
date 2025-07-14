@@ -1,13 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
-  ClipboardList, 
-  BarChart3, 
-  Users, 
-  Building2, 
-  Settings, 
-  LogOut 
+  LayoutDashboard,
+  ClipboardList,
+  BarChart3,
+  Users,
+  Building2,
+  Settings,
+  LogOut
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types';
