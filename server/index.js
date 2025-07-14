@@ -15,6 +15,7 @@ import { logger } from './middleware/logger.js';
 import surveyRoutesFunction from './routes/surveys.js'; // Renamed import
 import userRoutes from './routes/users.js';
 import companyRoutes from './routes/companies.js';
+import projectRoutes from './routes/projects.js';
 import reportRoutes from './routes/reports.js'; // Uncommented
 import cronRoutes from './routes/cron.js';
 import scheduleReportGeneration from './services/reportingService.js';
@@ -66,6 +67,7 @@ app.use('/api/auth', authRoutes); // Mount authentication routes
 app.use('/api/surveys', surveyRoutesFunction(upload)); // Pass multer instance to survey routes
 app.use('/api/users', userRoutes);
 app.use('/api/companies', companyRoutes);
+app.use('/api/projects', projectRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/cron', cronRoutes);
 

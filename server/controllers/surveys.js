@@ -6,7 +6,7 @@ import { Readable } from 'stream';
 
 export const createSurvey = async (req, res, next) => {
   try {
-    const { title, description, questions: inputQuestions, status, companyIds: bodyCompanyIds, agentId, customerId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyIds: bodyCompanyIds, agentId, customerId, projectId } = req.body;
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
     const db = getDb();
@@ -75,6 +75,10 @@ export const createSurvey = async (req, res, next) => {
       newSurveyData.customerId = new ObjectId(customerId);
     }
 
+    if (projectId && ObjectId.isValid(projectId)) {
+      newSurveyData.projectId = new ObjectId(projectId);
+    }
+
     const result = await db.collection('surveys').insertOne(newSurveyData);
     const createdSurvey = await db.collection('surveys').findOne({ _id: result.insertedId });
 
@@ -88,7 +92,7 @@ export const createSurvey = async (req, res, next) => {
 export const getSurveys = async (req, res, next) => {
   try {
     const db = getDb();
-    const { region, demographics, outletType } = req.query;
+    const { region, demographics, outletType, projectId } = req.query;
     const query = {};
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
@@ -109,6 +113,10 @@ export const getSurveys = async (req, res, next) => {
     }
     if (outletType && outletType !== 'all') {
       query.outletType = outletType;
+    }
+
+    if (projectId) {
+      query.projectId = new ObjectId(projectId);
     }
 
     const surveysData = await db.collection('surveys').find(query).toArray();
@@ -156,7 +164,7 @@ export const updateSurvey = async (req, res, next) => {
     const db = getDb();
     const { id: surveyId } = req.params;
     const { id: userId, role: userRole } = req.user;
-    const { title, description, questions: inputQuestions, status, companyIds: bodyCompanyIds, agentId, customerId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyIds: bodyCompanyIds, agentId, customerId, projectId } = req.body;
 
     if (!ObjectId.isValid(surveyId)) {
       throw new ApiError(404, 'Survey not found (invalid ID format)');
@@ -238,6 +246,10 @@ export const updateSurvey = async (req, res, next) => {
       } else {
         throw new ApiError(400, 'Invalid Customer ID format provided for update.');
       }
+    }
+
+    if (projectId && ObjectId.isValid(projectId)) {
+      updateFields.projectId = new ObjectId(projectId);
     }
 
     if (Object.keys(updateFields).length === 0) {
