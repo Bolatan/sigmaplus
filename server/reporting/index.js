@@ -9,36 +9,25 @@ import Presentation from './presentation.js';
 import Exporter from './exporter.js';
 
 export default class Reporting {
-  constructor(clientData) {
-    this.clientData = clientData;
+  constructor(data) {
+    this.data = data;
   }
 
   async generateReport() {
-    // 1. Process data
-    const dataProcessor = new DataProcessor(this.clientData);
-    const processedData = dataProcessor.process();
+    const { survey, responses, company, client, sections } = this.data;
 
-    // 2. Generate each section
-    const sections = [
-      new StudyOverview(processedData).generate(),
-      new RespondentProfile(processedData).generate(),
-      new ExecutiveSummary(processedData).generate(),
-      new CoreInsights(processedData).generate(),
-      new RegionalFindings(processedData).generate(),
-      new Recommendations(processedData).generate(),
-    ];
+    const presentation = new Presentation({
+      title: survey.title,
+      company,
+      client,
+      sections,
+    }).generate();
 
-    // 3. Create PowerPoint presentation
-    const presentation = new Presentation({ sections }).generate();
-
-    // 4. Export to PDF and Excel
-    const exporter = new Exporter(presentation, this.clientData);
+    const exporter = new Exporter(presentation, this.data);
     await exporter.toPdf();
-    exporter.toExcel();
+    await exporter.toExcel();
 
-    // Save the presentation
-    await presentation.writeFile({ fileName: `${this.clientData.clientName}-report.pptx` });
-
-    console.log("Report generated successfully.");
+    await presentation.writeFile({ fileName: `${this.data.clientName}-report.pptx` });
+    console.log('Report generated successfully.');
   }
 }

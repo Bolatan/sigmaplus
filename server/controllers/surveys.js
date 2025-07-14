@@ -6,13 +6,47 @@ import { Readable } from 'stream';
 
 export const createSurvey = async (req, res, next) => {
   try {
-    const { title, description, questions: inputQuestions, status, companyIds: bodyCompanyIds, agentId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyIds: bodyCompanyIds, agentId, customerId } = req.body;
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
     const db = getDb();
 
     const validatedQuestions = (inputQuestions || []).map((q, index) => {
-      // ... (existing question validation logic)
+      if (!q || typeof q !== 'object') {
+        throw new ApiError(400, `Question at index ${index} is not a valid object.`);
+      }
+      if (!q.id || typeof q.id !== 'string') {
+        throw new ApiError(400, `Question at index ${index} is missing a valid 'id'.`);
+      }
+      if (!q.text || typeof q.text !== 'string' || q.text.trim() === '') {
+        throw new ApiError(400, `Question '${q.id}' (index ${index}) must have non-empty 'text'.`);
+      }
+      if (!q.type || typeof q.type !== 'string' || !['text', 'textarea', 'single-choice', 'multiple-choice', 'rating', 'nps', 'ces', 'image-choice', 'file-upload', 'video'].includes(q.type)) {
+        throw new ApiError(400, `Question '${q.id}' (index ${index}) has an invalid 'type'.`);
+      }
+
+      const newQuestion = {
+        id: q.id,
+        text: q.text.trim(),
+        type: q.type,
+        options: q.options && Array.isArray(q.options) ? q.options.map(opt => String(opt)) : [],
+        isRequired: typeof q.isRequired === 'boolean' ? q.isRequired : !!q.isRequired,
+      };
+
+      if (q.type === 'rating') {
+        newQuestion.maxRating = q.maxRating;
+      }
+      if (q.type === 'file-upload') {
+        newQuestion.allowedFileTypes = q.allowedFileTypes;
+      }
+      if (q.type === 'video') {
+        newQuestion.videoUrl = q.videoUrl;
+      }
+      if (q.type === 'image-choice') {
+        newQuestion.options = q.options;
+      }
+
+      return newQuestion;
     });
 
     const newSurveyData = {
@@ -27,9 +61,9 @@ export const createSurvey = async (req, res, next) => {
       companyIds: [],
     };
 
-    if (userRole === 'admin' && bodyCompanyIds && Array.isArray(bodyCompanyIds)) {
-      newSurveyData.companyIds = bodyCompanyIds.filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id));
-    } else if ((userRole === 'agent' || userRole === 'client') && userCompanyId && ObjectId.isValid(userCompanyId)) {
+    if (bodyCompanyIds && Array.isArray(bodyCompanyIds) && bodyCompanyIds.every(id => ObjectId.isValid(id))) {
+      newSurveyData.companyIds = bodyCompanyIds.map(id => new ObjectId(id));
+    } else if (userCompanyId && ObjectId.isValid(userCompanyId)) {
       newSurveyData.companyIds = [new ObjectId(userCompanyId)];
     }
 
@@ -63,10 +97,6 @@ export const getSurveys = async (req, res, next) => {
         return res.json({ status: 'success', data: [] });
       }
       query.companyIds = new ObjectId(userCompanyId);
-<<<<<<< HEAD
-=======
-
->>>>>>> main
     } else if (userRole === 'agent') {
       query.agentId = new ObjectId(userId);
     }
@@ -106,11 +136,7 @@ export const getSurveyById = async (req, res, next) => {
     }
 
     if (userRole === 'client') {
-<<<<<<< HEAD
-      if (!userCompanyId || !survey.companyIds.some(id => id.toString() === userCompanyId.toString())) {
-=======
       if (!userCompanyId || !survey.companyIds || !survey.companyIds.some(id => id.toString() === userCompanyId.toString())) {
->>>>>>> main
         throw new ApiError(403, 'Not authorized to access this survey');
       }
     } else if (userRole === 'agent') {
@@ -130,11 +156,7 @@ export const updateSurvey = async (req, res, next) => {
     const db = getDb();
     const { id: surveyId } = req.params;
     const { id: userId, role: userRole } = req.user;
-<<<<<<< HEAD
-    const { title, description, questions: inputQuestions, status, companyIds: bodyCompanyIds, agentId } = req.body;
-=======
-    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId, customerId } = req.body;
->>>>>>> main
+    const { title, description, questions: inputQuestions, status, companyIds: bodyCompanyIds, agentId, customerId } = req.body;
 
     if (!ObjectId.isValid(surveyId)) {
       throw new ApiError(404, 'Survey not found (invalid ID format)');
@@ -155,19 +177,6 @@ export const updateSurvey = async (req, res, next) => {
     if (status !== undefined) updateFields.status = status;
 
     if (inputQuestions !== undefined) {
-<<<<<<< HEAD
-      // ... (existing question validation logic)
-    }
-
-    if (userRole === 'admin' && bodyCompanyIds !== undefined) {
-        if (bodyCompanyIds === null || (Array.isArray(bodyCompanyIds) && bodyCompanyIds.length === 0)) {
-            updateFields.companyIds = [];
-        } else if (Array.isArray(bodyCompanyIds)) {
-            updateFields.companyIds = bodyCompanyIds.filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id));
-        } else {
-            throw new ApiError(400, 'Invalid Company IDs format provided for update by admin.');
-        }
-=======
       updateFields.questions = (inputQuestions || []).map((q, index) => {
         if (!q || typeof q !== 'object') {
           throw new ApiError(400, `Update: Question at index ${index} is not a valid object.`);
@@ -206,16 +215,6 @@ export const updateSurvey = async (req, res, next) => {
       });
     }
 
-    if (userRole === 'admin' && req.body.companyIds !== undefined) {
-      if (Array.isArray(req.body.companyIds)) {
-        updateFields.companyIds = req.body.companyIds
-          .filter(id => ObjectId.isValid(id))
-          .map(id => new ObjectId(id));
-      } else {
-        throw new ApiError(400, 'companyIds must be an array.');
-      }
->>>>>>> main
-    }
 
     if (userRole === 'admin' && agentId !== undefined) {
       if (agentId === null || agentId === '') {
@@ -225,6 +224,10 @@ export const updateSurvey = async (req, res, next) => {
       } else {
         throw new ApiError(400, 'Invalid Agent ID format provided for update by admin.');
       }
+    }
+
+    if (bodyCompanyIds && Array.isArray(bodyCompanyIds) && bodyCompanyIds.every(id => ObjectId.isValid(id))) {
+      updateFields.companyIds = bodyCompanyIds.map(id => new ObjectId(id));
     }
 
     if (customerId !== undefined) {

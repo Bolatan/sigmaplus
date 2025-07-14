@@ -33,7 +33,7 @@ const SurveyForm: React.FC<{
     return <div>Loading survey form...</div>;
   }
 
-  const handleInputChange = useCallback((field: keyof Omit<SurveyFormData, 'questions'>, value: string) => {
+  const handleInputChange = useCallback((field: keyof Omit<SurveyFormData, 'questions'>, value: string | string[]) => {
     onFormDataChange({ ...formData, [field]: value });
   }, [formData, onFormDataChange]);
 
@@ -84,19 +84,23 @@ const SurveyForm: React.FC<{
         />
         {(user?.role === 'admin' || user?.role === 'agent') && (
           <div>
-            <label htmlFor="customer" className="block text-sm font-medium text-gray-700 mb-1">
-              Assign to Customer
+            <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">
+              Assign to Company
             </label>
             <select
-              id="customer"
-              value={formData.customerId}
-              onChange={(e) => handleInputChange('customerId', e.target.value)}
+              id="company"
+              multiple
+              value={formData.companyIds || []}
+              onChange={(e) => {
+                const selectedIds = Array.from(e.target.selectedOptions, (option) => option.value);
+                handleInputChange('companyIds', selectedIds);
+              }}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
             >
-              <option value="">Select a customer</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name}
+              <option value="" disabled>Select companies</option>
+              {companies.map((company) => (
+                <option key={company._id} value={company._id}>
+                  {company.name}
                 </option>
               ))}
             </select>
@@ -112,7 +116,6 @@ const SurveyForm: React.FC<{
             onChange={(e) => handleInputChange('description', e.target.value)}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
             rows={3}
-            required
           />
         </div>
         {/* Questions Section */}
@@ -247,33 +250,6 @@ const SurveyForm: React.FC<{
             Add Question
           </Button>
         </div>
-        {user?.role === 'admin' && (
-          <div>
-            <label htmlFor="companyIds" className="block text-sm font-medium text-gray-700 mb-1">
-              Assign to Companies
-            </label>
-            <select
-              id="companyIds"
-              multiple
-              value={formData.companyIds || []}
-<<<<<<< HEAD
-              onChange={(e) => {
-                const selectedIds = Array.from(e.target.selectedOptions, option => option.value);
-                onFormDataChange({ ...formData, companyIds: selectedIds });
-              }}
-=======
-              onChange={(e) => onFormDataChange({ ...formData, companyIds: Array.from(e.target.selectedOptions, option => option.value) })}
->>>>>>> main
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-            >
-              {companies.map(company => (
-                <option key={company._id} value={company._id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
         <div className="flex justify-end space-x-2 mt-6">
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
@@ -314,10 +290,6 @@ const Surveys: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
-<<<<<<< HEAD
-=======
-
->>>>>>> main
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [shouldRefetch, setShouldRefetch] = useState(false);
 
@@ -430,6 +402,12 @@ const Surveys: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
+    return () => {
+      setApiError(null);
+    };
+  }, []);
+
+  useEffect(() => {
     const fetchApiSurveys = async () => {
       setIsLoading(true);
       setApiError(null);
@@ -506,10 +484,6 @@ const Surveys: React.FC = () => {
           questions: formData.questions,
           agentId: formData.agentId,
           companyIds: formData.companyIds,
-<<<<<<< HEAD
-=======
-
->>>>>>> main
         }),
       });
 
@@ -562,10 +536,6 @@ const Surveys: React.FC = () => {
           questions: formData.questions,
           agentId: formData.agentId,
           companyIds: formData.companyIds,
-<<<<<<< HEAD
-=======
-
->>>>>>> main
         }),
       });
 
@@ -848,6 +818,7 @@ const Surveys: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => navigate(`/surveys/${survey.id}`)}
                     >
                       View Details
                     </Button>
@@ -923,10 +894,6 @@ const Surveys: React.FC = () => {
           buttonText="Create Survey"
           agents={agents}
           companies={companies}
-<<<<<<< HEAD
-=======
-
->>>>>>> main
           user={user}
         />
       </Modal>
@@ -944,10 +911,6 @@ const Surveys: React.FC = () => {
           buttonText="Save Changes"
           agents={agents}
           companies={companies}
-<<<<<<< HEAD
-=======
-
->>>>>>> main
           user={user}
         />
       </Modal>

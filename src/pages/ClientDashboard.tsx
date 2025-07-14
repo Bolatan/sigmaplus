@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Survey } from '../types';
+import { BarChart3, PieChart } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { DashboardCard } from '../components/dashboard/DashboardCard';
+import { StatCard } from '../components/dashboard/StatCard';
 import Heatmap from '../components/dashboard/Heatmap';
 import Scorecard from '../components/dashboard/Scorecard';
 import Annotations from '../components/dashboard/Annotations';
@@ -28,7 +31,7 @@ const ClientDashboard: React.FC = () => {
     status: 'Status',
     responses: 'Responses',
   });
-  const [dashboardItems, setDashboardItems] = useState(['surveys', 'chart']);
+  const [dashboardItems, setDashboardItems] = useState(['stats', 'surveys', 'chart']);
 
   const { user } = useAuth();
 
@@ -69,8 +72,7 @@ const ClientDashboard: React.FC = () => {
     let newFilteredSurveys = [...surveys];
 
     if (region !== 'all') {
-      // This is a placeholder for region filtering.
-      // In a real application, you would filter based on the survey's location data.
+      newFilteredSurveys = newFilteredSurveys.filter(s => s.region === region);
     }
 
     if (timePeriod !== 'all') {
@@ -84,6 +86,14 @@ const ClientDashboard: React.FC = () => {
         startDate.setFullYear(now.getFullYear() - 1);
       }
       newFilteredSurveys = newFilteredSurveys.filter(s => new Date(s.createdAt) >= startDate);
+    }
+
+    if (demographics !== 'all') {
+      newFilteredSurveys = newFilteredSurveys.filter(s => s.demographics === demographics);
+    }
+
+    if (outletType !== 'all') {
+      newFilteredSurveys = newFilteredSurveys.filter(s => s.outletType === outletType);
     }
 
     setFilteredSurveys(newFilteredSurveys);
@@ -146,8 +156,8 @@ const ClientDashboard: React.FC = () => {
                 Share
               </button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:space-x-4">
+              <div className="flex-1">
                 <label htmlFor="region" className="block text-sm font-medium">Region</label>
                 <select id="region" name="region" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
                   <option>All</option>
@@ -157,7 +167,7 @@ const ClientDashboard: React.FC = () => {
                   <option>West</option>
                 </select>
               </div>
-              <div>
+              <div className="flex-1">
                 <label htmlFor="timePeriod" className="block text-sm font-medium">Time Period</label>
                 <select id="timePeriod" name="timePeriod" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
                   <option>All Time</option>
@@ -166,7 +176,7 @@ const ClientDashboard: React.FC = () => {
                   <option>Last Year</option>
                 </select>
               </div>
-              <div>
+              <div className="flex-1">
                 <label htmlFor="demographics" className="block text-sm font-medium">Demographics</label>
                 <select id="demographics" name="demographics" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
                   <option>All</option>
@@ -176,7 +186,7 @@ const ClientDashboard: React.FC = () => {
                   <option>Income</option>
                 </select>
               </div>
-              <div>
+              <div className="flex-1">
                 <label htmlFor="outletType" className="block text-sm font-medium">Outlet Type</label>
                 <select id="outletType" name="outletType" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
                   <option>All</option>
@@ -195,15 +205,7 @@ const ClientDashboard: React.FC = () => {
                     {...provided.dragHandleProps}
                   >
                     {item === 'surveys' && (
-                      <div className="mt-8">
-                        <div className="flex justify-between items-center mb-4">
-                          <h2 className="text-xl font-semibold">Your Surveys</h2>
-                          {isEditingHeaders ? (
-                            <button onClick={saveHeaders} className="bg-blue-500 text-white px-4 py-2 rounded">Save Headers</button>
-                          ) : (
-                            <button onClick={() => setIsEditingHeaders(true)} className="bg-gray-200 px-4 py-2 rounded">Edit Headers</button>
-                          )}
-                        </div>
+                      <DashboardCard title="Your Surveys" variant="bar">
                         {surveys.length === 0 ? (
                           <p>You do not have any surveys yet.</p>
                         ) : (
@@ -234,6 +236,12 @@ const ClientDashboard: React.FC = () => {
                             </table>
                           </div>
                         )}
+                      </DashboardCard>
+                    )}
+                    {item === 'stats' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <StatCard title="Total Surveys" value={surveys.length} icon={<BarChart3 className="h-6 w-6 text-primary-500" />} />
+                        <StatCard title="Total Responses" value={surveys.reduce((acc, s) => acc + s.responseCount, 0)} icon={<PieChart className="h-6 w-6 text-secondary-500" />} />
                       </div>
                     )}
                     {item === 'chart' && (

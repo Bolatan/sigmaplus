@@ -1,5 +1,6 @@
 import { getDb } from '../utils/db.js';
 import { ObjectId } from 'mongodb';
+import Reporting from '../reporting/index.js';
 
 // @desc    Generate a new report
 // @route   POST /api/reports
@@ -15,22 +16,22 @@ export const generateReport = async (req, res) => {
       return res.status(400).json({ error: 'Invalid survey ID format' });
     }
 
-    // TODO: Add logic here to actually generate the report content
-    // based on the survey responses. For now, we'll just create a
-    // placeholder report document.
-
     const survey = await db.collection('surveys').findOne({ _id: new ObjectId(surveyId) });
     if (!survey) {
       return res.status(404).json({ error: 'Survey not found' });
     }
 
+    const responses = await db.collection('responses').find({ surveyId: new ObjectId(surveyId) }).toArray();
+    const company = await db.collection('companies').findOne({ _id: new ObjectId(req.user.companyId) });
+    const client = await db.collection('users').findOne({ _id: new ObjectId(req.user.id) });
+
     const newReport = {
       title,
       surveyId: new ObjectId(surveyId),
-      companyId: req.user.companyId, // Assuming agent/admin has companyId
+      companyId: req.user.companyId,
       generatedBy: new ObjectId(req.user.id),
       createdAt: new Date(),
-      status: 'completed', // or 'generating'
+      status: 'completed',
       sections: [
         {
           id: 'study-overview',
@@ -75,9 +76,17 @@ export const generateReport = async (req, res) => {
       ],
     };
 
+    const reporting = new Reporting({
+      survey,
+      responses,
+      company,
+      client,
+      sections: newReport.sections,
+      clientName: company.name,
+    });
+    await reporting.generateReport();
     const result = await reportsCollection.insertOne(newReport);
     res.status(201).json({ data: { ...newReport, _id: result.insertedId } });
-
   } catch (err) {
     console.error('Failed to generate report:', err);
     res.status(500).json({ error: 'Failed to generate report' });
@@ -108,11 +117,6 @@ export const getReports = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch reports from database' });
   }
 };
-
-import PDFDocument from 'pdfkit';
-import pptxgen from 'pptxgenjs';
-import Excel from 'exceljs';
-import { createStudyOverviewSlide } from '../templates/study-overview.js';
 
 // @desc    Get a single report by ID
 // @route   GET /api/reports/:id
@@ -148,83 +152,7 @@ export const getReportById = async (req, res) => {
     }
 
     if (format === 'pptx') {
-      const pptx = new pptxgen();
-
-      if (client && client.branding) {
-        if (client.branding.primaryColor) {
-          pptx.defineLayout({
-            name: 'MASTER_SLIDE',
-            width: 10,
-            height: 5.625,
-            background: { color: client.branding.primaryColor },
-          });
-          pptx.layout = 'MASTER_SLIDE';
-        }
-        if (client.branding.logoUrl) {
-          pptx.addSlide().addImage({ path: client.branding.logoUrl, x: 1, y: 1, w: 1, h: 1 });
-        }
-      }
-
-      // --- Study Overview ---
-      createStudyOverviewSlide(pptx, survey);
-
-      // --- Respondent Profile ---
-      const profileSlide = pptx.addSlide();
-      profileSlide.addText('Respondent Profile', { x: 1, y: 1, fontSize: 24, bold: true });
-
-      const demographics = responses.map(r => r.demographics).filter(d => d);
-      const locations = responses.map(r => r.location).filter(l => l);
-
-      const ageGroups = demographics.reduce((acc, d) => {
-        const age = d.age || 'N/A';
-        acc[age] = (acc[age] || 0) + 1;
-        return acc;
-      }, {});
-
-      const genderGroups = demographics.reduce((acc, d) => {
-        const gender = d.gender || 'N/A';
-        acc[gender] = (acc[gender] || 0) + 1;
-        return acc;
-      }, {});
-
-      profileSlide.addText('Age Distribution:', { x: 1, y: 2 });
-      Object.entries(ageGroups).forEach(([age, count], index) => {
-        profileSlide.addText(`${age}: ${count}`, { x: 1.5, y: 2.5 + (index * 0.5) });
-      });
-
-      profileSlide.addText('Gender Distribution:', { x: 1, y: 4 });
-      Object.entries(genderGroups).forEach(([gender, count], index) => {
-        profileSlide.addText(`${gender}: ${count}`, { x: 1.5, y: 4.5 + (index * 0.5) });
-      });
-
-      // --- Executive Summary ---
-      const summarySlide = pptx.addSlide();
-      summarySlide.addText('Executive Summary', { x: 1, y: 1, fontSize: 24, bold: true });
-      summarySlide.addText(report.summary || 'No summary available.', { x: 1, y: 2 });
-
-      // --- Core Insight Areas ---
-      // --- Core Insight Areas ---
-      createBrandAwarenessSlide(pptx, survey, responses);
-      createBrandUsageSlide(pptx, survey, responses);
-      createCustomerSatisfactionSlide(pptx, survey, responses);
-      // ... and so on for the other core insight areas
-
-      // --- Regional and Outlet-Level Findings ---
-      const regionalSlide = pptx.addSlide();
-      regionalSlide.addText('Regional and Outlet-Level Findings', { x: 1, y: 1, fontSize: 24, bold: true });
-      regionalSlide.addText('Comparisons and heatmaps by state or zone will be added in a future update.', { x: 1, y: 2 });
-
-      // --- Recommendations ---
-      const recommendationsSlide = pptx.addSlide();
-      recommendationsSlide.addText('Recommendations', { x: 1, y: 1, fontSize: 24, bold: true });
-      recommendationsSlide.addText('Strategic actions based on key insights will be added in a future update.', { x: 1, y: 2 });
-
-      // --- Historical Trend Comparisons ---
-      const historicalSlide = pptx.addSlide();
-      historicalSlide.addText('Historical Trend Comparisons', { x: 1, y: 1, fontSize: 24, bold: true });
-      historicalSlide.addText('Historical trend comparisons will be added in a future update.', { x: 1, y: 2 });
-
-      const buffer = await pptx.write('buffer');
+      const buffer = Buffer.from(report.pptx, 'base64');
       res.writeHead(200, {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
         'Content-Disposition': `attachment;filename=${report.title}.pptx`,
@@ -343,12 +271,11 @@ export const deleteReport = async (req, res) => {
   }
 };
 
-<<<<<<< HEAD
 export const generateAllReports = async () => {
   console.log('Generating all reports...');
   // This is a placeholder for the actual report generation logic
 };
-=======
+
 function createBrandAwarenessSlide(pptx, survey, responses) {
   const slide = pptx.addSlide();
   slide.addText('Brand Awareness & Perception', { x: 1, y: 1, fontSize: 24, bold: true });
@@ -427,5 +354,3 @@ function createCustomerSatisfactionSlide(pptx, survey, responses) {
   slide.addText('Customer Satisfaction & Loyalty Metrics', { x: 1, y: 1, fontSize: 24, bold: true });
   slide.addText('Data and visualizations for this section will be added in a future update.', { x: 1, y: 2 });
 }
-
->>>>>>> main
