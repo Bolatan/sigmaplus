@@ -356,50 +356,6 @@ const Surveys: React.FC = () => {
     fetchCompanies();
   }, [user]);
 
-  useEffect(() => {
-    const fetchCompanies = async () => {
-
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
-
-      try {
-        const response = await fetch('/api/companies', {
-
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (response.ok) {
-          const { data } = await response.json();
-          setCompanies(data || []);
-        }
-      } catch (error) {
-        console.error("Failed to fetch companies:", error);
-      }
-    };
-
-    fetchCompanies();
-  }, [user]);
-
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
-
-      try {
-        const response = await fetch('/api/companies', {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (response.ok) {
-          const { data } = await response.json();
-          setCompanies(data || []);
-        }
-      } catch (error) {
-        console.error("Failed to fetch companies:", error);
-      }
-    };
-
-    fetchCompanies();
-
-  }, [user]);
 
   useEffect(() => {
     return () => {
@@ -799,7 +755,6 @@ const Surveys: React.FC = () => {
                 <BarChart2 className="h-4 w-4 mr-1" />
                 {survey.responseCount} responses
               </div>
-
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-500">
