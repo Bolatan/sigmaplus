@@ -12,7 +12,41 @@ export const createSurvey = async (req, res, next) => {
     const db = getDb();
 
     const validatedQuestions = (inputQuestions || []).map((q, index) => {
-      // ... (existing question validation logic)
+      if (!q || typeof q !== 'object') {
+        throw new ApiError(400, `Question at index ${index} is not a valid object.`);
+      }
+      if (!q.id || typeof q.id !== 'string') {
+        throw new ApiError(400, `Question at index ${index} is missing a valid 'id'.`);
+      }
+      if (!q.text || typeof q.text !== 'string' || q.text.trim() === '') {
+        throw new ApiError(400, `Question '${q.id}' (index ${index}) must have non-empty 'text'.`);
+      }
+      if (!q.type || typeof q.type !== 'string' || !['text', 'textarea', 'single-choice', 'multiple-choice', 'rating', 'nps', 'ces', 'image-choice', 'file-upload', 'video'].includes(q.type)) {
+        throw new ApiError(400, `Question '${q.id}' (index ${index}) has an invalid 'type'.`);
+      }
+
+      const newQuestion = {
+        id: q.id,
+        text: q.text.trim(),
+        type: q.type,
+        options: q.options && Array.isArray(q.options) ? q.options.map(opt => String(opt)) : [],
+        isRequired: typeof q.isRequired === 'boolean' ? q.isRequired : !!q.isRequired,
+      };
+
+      if (q.type === 'rating') {
+        newQuestion.maxRating = q.maxRating;
+      }
+      if (q.type === 'file-upload') {
+        newQuestion.allowedFileTypes = q.allowedFileTypes;
+      }
+      if (q.type === 'video') {
+        newQuestion.videoUrl = q.videoUrl;
+      }
+      if (q.type === 'image-choice') {
+        newQuestion.options = q.options;
+      }
+
+      return newQuestion;
     });
 
     const newSurveyData = {
@@ -27,9 +61,9 @@ export const createSurvey = async (req, res, next) => {
       companyIds: [],
     };
 
-    if (userRole === 'admin' && bodyCompanyIds && Array.isArray(bodyCompanyIds)) {
+    if (userRole === 'admin' && bodyCompanyIds && Array.isArray(bodyCompanyIds) && bodyCompanyIds.length > 0) {
       newSurveyData.companyIds = bodyCompanyIds.filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id));
-    } else if ((userRole === 'agent' || userRole === 'client') && userCompanyId && ObjectId.isValid(userCompanyId)) {
+    } else if (userCompanyId && ObjectId.isValid(userCompanyId)) {
       newSurveyData.companyIds = [new ObjectId(userCompanyId)];
     }
 
