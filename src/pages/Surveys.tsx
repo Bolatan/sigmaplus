@@ -227,29 +227,6 @@ const SurveyForm: React.FC<{
             Add Question
           </Button>
         </div>
-        {user?.role === 'admin' && (
-          <div>
-            <label htmlFor="companyIds" className="block text-sm font-medium text-gray-700 mb-1">
-              Assign to Companies
-            </label>
-            <select
-              id="companyIds"
-              multiple
-              value={formData.companyIds || []}
-              onChange={(e) => {
-                const selectedIds = Array.from(e.target.selectedOptions, option => option.value);
-                onFormDataChange({ ...formData, companyIds: selectedIds });
-              }}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-            >
-              {companies.map(company => (
-                <option key={company._id} value={company._id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
         <div className="flex justify-end space-x-2 mt-6">
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
