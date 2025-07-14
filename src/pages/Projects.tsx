@@ -18,7 +18,7 @@ interface ProjectFormData {
   questions: SurveyQuestion[];
   agentId?: string;
   companyIds?: string[];
-  // If projects have a specific field not in Survey, add it here
+  projectId?: string; // Added projectId to ProjectFormData
 }
 
 const Projects: React.FC = () => {
@@ -35,7 +35,7 @@ const Projects: React.FC = () => {
   });
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [apiProjects, setApiProjects] = useState<any>(null); // This might be redundant if surveys state is used
+  const [apiProjects, setApiProjects] = useState<any>(null); // This might be redundant if projects state is used
   const [apiError, setApiError] = useState<string | null>(null);
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -45,6 +45,7 @@ const Projects: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
+  const [allProjects, setAllProjects] = useState<any[]>([]); // Renamed to avoid conflict with `projects` state
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [shouldRefetch, setShouldRefetch] = useState(false);
 
@@ -68,7 +69,7 @@ const Projects: React.FC = () => {
         questions: []
       }));
     }
-  }, [formData.questions]); // Added formData.questions to dependency array
+  }, [formData.questions]);
 
   useEffect(() => {
     const fetchAgents = async () => {
@@ -90,7 +91,6 @@ const Projects: React.FC = () => {
     };
 
     const fetchCompanies = async () => {
-      // Assuming non-admin users might also need company data for dropdowns/filters
       const token = localStorage.getItem('authToken');
       if (!token) return;
 
@@ -107,8 +107,26 @@ const Projects: React.FC = () => {
       }
     };
 
+    const fetchAllProjectsForDropdown = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      try {
+        const response = await fetch('/api/projects', { // Assuming a /api/projects endpoint exists for the dropdown
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const { data } = await response.json();
+          setAllProjects(data || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch all projects for dropdown:", error);
+      }
+    };
+
     fetchAgents();
     fetchCompanies();
+    fetchAllProjectsForDropdown();
   }, [user]);
 
 
@@ -132,8 +150,7 @@ const Projects: React.FC = () => {
       }
 
       try {
-        // Assuming projects are fetched from the /api/surveys endpoint
-        const response = await fetch('/api/surveys', {
+        const response = await fetch('/api/surveys', { // Projects are represented as surveys
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -167,7 +184,7 @@ const Projects: React.FC = () => {
     };
 
     fetchApiProjects();
-  }, [user, apiError, shouldRefetch]); // Removed apiError from dependencies to prevent infinite loop if error always changes
+  }, [user, shouldRefetch]); // Removed apiError from dependencies to prevent infinite loop if error always changes
 
   const handleAddProject = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,6 +213,7 @@ const Projects: React.FC = () => {
           questions: formData.questions,
           agentId: formData.agentId,
           companyIds: formData.companyIds,
+          projectId: formData.projectId, // Include projectId in the payload
         }),
       });
 
@@ -218,8 +236,6 @@ const Projects: React.FC = () => {
   }, [formData, resetForm, triggerRefetch]);
 
   const handleDeleteProject = async (projectId: string) => {
-    // Replaced window.confirm with a custom modal or better UI for confirmation
-    // For now, keeping it as is to match the original logic, but note for improvement
     if (!window.confirm("Are you sure you want to delete this project?")) {
       return;
     }
@@ -282,6 +298,7 @@ const Projects: React.FC = () => {
           questions: formData.questions,
           agentId: formData.agentId,
           companyIds: formData.companyIds,
+          projectId: formData.projectId, // Include projectId in the payload
         }),
       });
 
@@ -355,6 +372,7 @@ const Projects: React.FC = () => {
       description: project.description || '',
       questions: project.questions || [],
       companyIds: project.companyIds || [],
+      projectId: project.projectId || '', // Set projectId for editing
     });
     setIsEditModalOpen(true);
   }, []);
@@ -384,6 +402,11 @@ const Projects: React.FC = () => {
     setIsUploadModalOpen(false);
     setUploadTargetProjectId(null);
     setSelectedFile(null);
+  }, []);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedFile(e.target.files ? e.target.files[0] : null);
+    setUploadStatusMessage(null); // Clear previous status message on new file selection
   }, []);
 
   const handleFileUpload = useCallback(async () => {
@@ -649,7 +672,7 @@ const Projects: React.FC = () => {
           buttonText="Create Project"
           agents={agents}
           companies={companies}
-          projects={[]} // Projects are the current context, so pass an empty array or handle differently if needed
+          projects={allProjects} // Pass allProjects to SurveyForm for the dropdown
           user={user}
         />
       </Modal>
@@ -667,7 +690,7 @@ const Projects: React.FC = () => {
           buttonText="Save Changes"
           agents={agents}
           companies={companies}
-          projects={[]} // Projects are the current context, so pass an empty array or handle differently if needed
+          projects={allProjects} // Pass allProjects to SurveyForm for the dropdown
           user={user}
         />
       </Modal>
@@ -688,7 +711,7 @@ const Projects: React.FC = () => {
               id="csvFile"
               type="file"
               accept=".csv"
-              onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)}
+              onChange={handleFileChange} // Use the new handleFileChange
               className="mt-1 block w-full text-sm text-gray-500
                          file:mr-4 file:py-2 file:px-4
                          file:rounded-full file:border-0
