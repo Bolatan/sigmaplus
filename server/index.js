@@ -19,6 +19,7 @@ import reportRoutes from './routes/reports.js'; // Uncommented
 import cronRoutes from './routes/cron.js';
 import scheduleReportGeneration from './services/reportingService.js';
 import multer from 'multer';
+import Reporting from './reporting/index.js';
 
 
 // ES module equivalents for __dirname
@@ -120,6 +121,29 @@ app.get('/api/stats/survey-statuses', verifyToken, async (req, res) => {
 
 // Companies API routes are now handled by server/routes/companies.js
 // The GET /api/companies and GET /api/companies/:id that were here have been moved.
+
+app.get('/api/reports/download/:reportId', verifyToken, async (req, res) => {
+  try {
+    const db = getDb();
+    const { reportId } = req.params;
+    const report = await db.collection('reports').findOne({ _id: new ObjectId(reportId) });
+
+    if (!report) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    const reporting = new Reporting(report);
+    const presentation = await reporting.generateReport();
+    const pptxBuffer = await presentation.write();
+
+    res.setHeader('Content-Disposition', `attachment; filename=${report.clientName}-report.pptx`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+    res.send(pptxBuffer);
+  } catch (err) {
+    console.error("Failed to download report:", err);
+    res.status(500).json({ error: "Failed to download report" });
+  }
+});
 
 
 // --- Frontend Catchall ---

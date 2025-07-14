@@ -51,14 +51,10 @@ export default class Reporting {
     // 3. Create PowerPoint presentation
     const presentation = new Presentation({ sections }).generate();
 
-    // 4. Export to PDF and Excel
-    const exporter = new Exporter(presentation, this.clientData);
-    await exporter.toPdf();
-    exporter.toExcel();
-
     // Save the presentation
     await presentation.writeFile({ fileName: `${this.clientData.clientName}-report.pptx` });
 
     console.log("Report generated successfully.");
+    return presentation;
   }
 }
