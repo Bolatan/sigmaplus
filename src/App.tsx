@@ -15,6 +15,7 @@ import SurveyDetails from './pages/SurveyDetails';
 import ClientDashboard from './pages/ClientDashboard';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Projects from './pages/Projects';
+import EditReportSections from './pages/EditReportSections';
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -47,6 +48,13 @@ const AppRoutes: React.FC = () => {
         <ProtectedRoute>
           <Layout>
             {user?.role === 'client' ? <Navigate to="/client-dashboard" /> : <Dashboard />}
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/reports/:id/edit" element={
+        <ProtectedRoute>
+          <Layout>
+            <EditReportSections />
           </Layout>
         </ProtectedRoute>
       } />

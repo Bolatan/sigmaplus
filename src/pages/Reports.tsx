@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, FileText, Download, AlertTriangle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, Search, Filter, FileText, Download, AlertTriangle, Edit } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent } from '../components/ui/Card';
@@ -363,6 +364,15 @@ const Reports: React.FC = () => {
                 >
                   View Details
                 </Button>
+                <Link to={`/reports/${report.id}/edit`}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<Edit className="h-4 w-4" />}
+                  >
+                    Edit Sections
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
