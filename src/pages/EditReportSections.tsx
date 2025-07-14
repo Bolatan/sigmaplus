@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Report as ReportType, Section } from '@/types';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Report as ReportType, Section } from '../types';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 import { Trash2 } from 'lucide-react';
 
 const EditReportSections: React.FC = () => {

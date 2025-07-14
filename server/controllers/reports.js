@@ -39,28 +39,6 @@ export const generateReport = async (req, res) => {
       status: 'completed', // or 'generating'
       sections: [
         {
-          id: 'study-overview',
-          title: 'Study Overview',
-          order: 1,
-          content: [],
-          projectName: survey.title,
-          background: survey.description,
-          objectives: 'To understand customer feedback',
-          methodology: 'Online survey',
-        },
-        {
-          id: 'respondent-profile',
-          title: 'Respondent Profile',
-          order: 2,
-          content: [],
-        },
-        {
-          id: 'executive-summary',
-          title: 'Executive Summary',
-          order: 3,
-          content: [],
-        },
-        {
           id: 'core-insight-areas',
           title: 'Core Insight Areas',
           order: 4,
@@ -70,12 +48,6 @@ export const generateReport = async (req, res) => {
           id: 'regional-findings',
           title: 'Regional and Outlet-Level Findings',
           order: 5,
-          content: [],
-        },
-        {
-          id: 'recommendations',
-          title: 'Recommendations',
-          order: 6,
           content: [],
         },
       ],
@@ -175,12 +147,10 @@ export const getReportById = async (req, res) => {
       }
 
       // --- Landing Page ---
-      if (logo) {
-        createLandingPageSlide(pptx, survey, logo);
-      }
+
 
       // --- Study Overview ---
-      createStudyOverviewSlide(pptx, survey);
+      // createStudyOverviewSlide(pptx, survey);
 
       // --- Respondent Profile ---
       const profileSlide = pptx.addSlide();
