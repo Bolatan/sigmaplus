@@ -335,7 +335,7 @@ export const getReportById = async (req, res) => {
 
   } catch (err) {
     console.error(`Failed to fetch report ${req.params.id}:`, err);
-    res.status(500).json({ error: 'Failed to fetch report' });
+    return res.status(500).json({ error: 'Failed to fetch report' });
   }
 };
 
