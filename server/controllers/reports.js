@@ -1,10 +1,6 @@
 import { getDb } from '../utils/db.js';
 import { ObjectId } from 'mongodb';
 import Reporting from '../reporting/index.js';
-import PDFDocument from 'pdfkit';
-import pptxgen from 'pptxgenjs';
-import Excel from 'exceljs';
-import { createStudyOverviewSlide } from '../templates/study-overview.js';
 
 // @desc    Generate a new report
 // @route   POST /api/reports
@@ -80,7 +76,6 @@ export const generateReport = async (req, res) => {
       ],
     };
 
-    // Generate report using the reporting framework
     const reporting = new Reporting({
       survey,
       responses,
@@ -89,9 +84,7 @@ export const generateReport = async (req, res) => {
       sections: newReport.sections,
       clientName: company.name,
     });
-    
     await reporting.generateReport();
-    
     const result = await reportsCollection.insertOne(newReport);
     res.status(201).json({ data: { ...newReport, _id: result.insertedId } });
   } catch (err) {
@@ -99,6 +92,7 @@ export const generateReport = async (req, res) => {
     res.status(500).json({ error: 'Failed to generate report' });
   }
 };
+
 
 // @desc    Get all reports
 // @route   GET /api/reports
@@ -158,38 +152,58 @@ export const getReportById = async (req, res) => {
     }
 
     if (format === 'pptx') {
-      // Check if report already has generated PPTX data
-      if (report.pptx) {
-        const buffer = Buffer.from(report.pptx, 'base64');
-        res.writeHead(200, {
-          'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-          'Content-Disposition': `attachment;filename=${report.title}.pptx`,
-        });
-        res.end(buffer);
-      } else {
-        // Generate PPTX on the fly
-        const buffer = await generatePPTX(report, survey, responses, client);
-        res.writeHead(200, {
-          'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-          'Content-Disposition': `attachment;filename=${report.title}.pptx`,
-        });
-        res.end(buffer);
-      }
+      const buffer = Buffer.from(report.pptx, 'base64');
+      res.writeHead(200, {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'Content-Disposition': `attachment;filename=${report.title}.pptx`,
+      });
+      res.end(buffer);
     } else if (format === 'xlsx') {
-      const buffer = await generateExcel(report, survey, responses);
+      const workbook = new Excel.Workbook();
+      const worksheet = workbook.addWorksheet('Report');
+
+      worksheet.columns = [
+        { header: 'ID', key: 'id', width: 30 },
+        { header: 'Title', key: 'title', width: 30 },
+        { header: 'Description', key: 'description', width: 50 },
+      ];
+
+      worksheet.addRow({id: report._id, title: report.title, description: report.description});
+
+      const buffer = await workbook.xlsx.writeBuffer();
       res.writeHead(200, {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'Content-Disposition': `attachment;filename=${report.title}.xlsx`,
       });
       res.end(buffer);
     } else {
-      const pdfBuffer = await generatePDF(report);
-      res.writeHead(200, {
-        'Content-Length': Buffer.byteLength(pdfBuffer),
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment;filename=${report.title}.pdf`,
+      const doc = new PDFDocument();
+      let buffers = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => {
+        let pdfData = Buffer.concat(buffers);
+        res.writeHead(200, {
+          'Content-Length': Buffer.byteLength(pdfData),
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment;filename=${report.title}.pdf`,
+        }).end(pdfData);
       });
-      res.end(pdfBuffer);
+
+      doc.fontSize(25).text(report.title, {
+        align: 'center'
+      });
+
+      doc.moveDown();
+
+      report.sections.forEach(section => {
+        doc.fontSize(20).text(section.type, {
+          underline: true
+        });
+        doc.fontSize(12).text(section.content);
+        doc.moveDown();
+      });
+
+      doc.end();
     }
 
   } catch (err) {
@@ -197,6 +211,7 @@ export const getReportById = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch report' });
   }
 };
+
 
 // @desc    Update a report's metadata (e.g., title)
 // @route   PUT /api/reports/:id
@@ -260,134 +275,6 @@ export const generateAllReports = async () => {
   console.log('Generating all reports...');
   // This is a placeholder for the actual report generation logic
 };
-
-// Helper function to generate PPTX
-async function generatePPTX(report, survey, responses, client) {
-  const pptx = new pptxgen();
-
-  // Apply client branding if available
-  if (client && client.branding) {
-    if (client.branding.primaryColor) {
-      pptx.defineLayout({
-        name: 'MASTER_SLIDE',
-        width: 10,
-        height: 5.625,
-        background: { color: client.branding.primaryColor },
-      });
-      pptx.layout = 'MASTER_SLIDE';
-    }
-    if (client.branding.logoUrl) {
-      pptx.addSlide().addImage({ path: client.branding.logoUrl, x: 1, y: 1, w: 1, h: 1 });
-    }
-  }
-
-  // Study Overview
-  createStudyOverviewSlide(pptx, survey);
-
-  // Respondent Profile
-  createRespondentProfileSlide(pptx, responses);
-
-  // Executive Summary
-  createExecutiveSummarySlide(pptx, report);
-
-  // Core Insight Areas
-  createBrandAwarenessSlide(pptx, survey, responses);
-  createBrandUsageSlide(pptx, survey, responses);
-  createCustomerSatisfactionSlide(pptx, survey, responses);
-
-  // Regional and Outlet-Level Findings
-  createRegionalFindingsSlide(pptx);
-
-  // Recommendations
-  createRecommendationsSlide(pptx);
-
-  // Historical Trend Comparisons
-  createHistoricalTrendsSlide(pptx);
-
-  return await pptx.write('buffer');
-}
-
-// Helper function to generate Excel
-async function generateExcel(report, survey, responses) {
-  const workbook = new Excel.Workbook();
-  const worksheet = workbook.addWorksheet('Report');
-
-  worksheet.columns = [
-    { header: 'ID', key: 'id', width: 30 },
-    { header: 'Title', key: 'title', width: 30 },
-    { header: 'Description', key: 'description', width: 50 },
-  ];
-
-  worksheet.addRow({
-    id: report._id,
-    title: report.title,
-    description: report.description
-  });
-
-  return await workbook.xlsx.writeBuffer();
-}
-
-// Helper function to generate PDF
-async function generatePDF(report) {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument();
-    let buffers = [];
-    
-    doc.on('data', buffers.push.bind(buffers));
-    doc.on('end', () => {
-      resolve(Buffer.concat(buffers));
-    });
-    doc.on('error', reject);
-
-    doc.fontSize(25).text(report.title, { align: 'center' });
-    doc.moveDown();
-
-    report.sections.forEach(section => {
-      doc.fontSize(20).text(section.title, { underline: true });
-      doc.fontSize(12).text(section.content || 'No content available');
-      doc.moveDown();
-    });
-
-    doc.end();
-  });
-}
-
-// Slide creation functions
-function createRespondentProfileSlide(pptx, responses) {
-  const slide = pptx.addSlide();
-  slide.addText('Respondent Profile', { x: 1, y: 1, fontSize: 24, bold: true });
-
-  const demographics = responses.map(r => r.demographics).filter(d => d);
-  const locations = responses.map(r => r.location).filter(l => l);
-
-  const ageGroups = demographics.reduce((acc, d) => {
-    const age = d.age || 'N/A';
-    acc[age] = (acc[age] || 0) + 1;
-    return acc;
-  }, {});
-
-  const genderGroups = demographics.reduce((acc, d) => {
-    const gender = d.gender || 'N/A';
-    acc[gender] = (acc[gender] || 0) + 1;
-    return acc;
-  }, {});
-
-  slide.addText('Age Distribution:', { x: 1, y: 2 });
-  Object.entries(ageGroups).forEach(([age, count], index) => {
-    slide.addText(`${age}: ${count}`, { x: 1.5, y: 2.5 + (index * 0.5) });
-  });
-
-  slide.addText('Gender Distribution:', { x: 1, y: 4 });
-  Object.entries(genderGroups).forEach(([gender, count], index) => {
-    slide.addText(`${gender}: ${count}`, { x: 1.5, y: 4.5 + (index * 0.5) });
-  });
-}
-
-function createExecutiveSummarySlide(pptx, report) {
-  const slide = pptx.addSlide();
-  slide.addText('Executive Summary', { x: 1, y: 1, fontSize: 24, bold: true });
-  slide.addText(report.summary || 'No summary available.', { x: 1, y: 2 });
-}
 
 function createBrandAwarenessSlide(pptx, survey, responses) {
   const slide = pptx.addSlide();
@@ -466,22 +353,4 @@ function createCustomerSatisfactionSlide(pptx, survey, responses) {
   const slide = pptx.addSlide();
   slide.addText('Customer Satisfaction & Loyalty Metrics', { x: 1, y: 1, fontSize: 24, bold: true });
   slide.addText('Data and visualizations for this section will be added in a future update.', { x: 1, y: 2 });
-}
-
-function createRegionalFindingsSlide(pptx) {
-  const slide = pptx.addSlide();
-  slide.addText('Regional and Outlet-Level Findings', { x: 1, y: 1, fontSize: 24, bold: true });
-  slide.addText('Comparisons and heatmaps by state or zone will be added in a future update.', { x: 1, y: 2 });
-}
-
-function createRecommendationsSlide(pptx) {
-  const slide = pptx.addSlide();
-  slide.addText('Recommendations', { x: 1, y: 1, fontSize: 24, bold: true });
-  slide.addText('Strategic actions based on key insights will be added in a future update.', { x: 1, y: 2 });
-}
-
-function createHistoricalTrendsSlide(pptx) {
-  const slide = pptx.addSlide();
-  slide.addText('Historical Trend Comparisons', { x: 1, y: 1, fontSize: 24, bold: true });
-  slide.addText('Historical trend comparisons will be added in a future update.', { x: 1, y: 2 });
 }

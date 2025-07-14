@@ -12,10 +12,9 @@ import { verifyToken, authorizeRole } from './middleware/auth.js';
 import { body, validationResult } from 'express-validator';
 import { logger } from './middleware/logger.js';
 
-import surveyRoutesFunction from './routes/surveys.js'; // Renamed import
+import surveyRoutes from './routes/surveys.js';
 import userRoutes from './routes/users.js';
 import companyRoutes from './routes/companies.js';
-import projectRoutes from './routes/projects.js';
 import reportRoutes from './routes/reports.js'; // Uncommented
 import cronRoutes from './routes/cron.js';
 import scheduleReportGeneration from './services/reportingService.js';
@@ -64,10 +63,9 @@ app.use(express.static(path.join(__dirname, '..', 'dist')));
 app.use('/api/auth', authRoutes); // Mount authentication routes
 
 // --- Application API Routes ---
-app.use('/api/surveys', surveyRoutesFunction(upload)); // Pass multer instance to survey routes
+app.use('/api/surveys', surveyRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/companies', companyRoutes);
-app.use('/api/projects', projectRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/cron', cronRoutes);
 
