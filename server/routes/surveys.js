@@ -10,7 +10,8 @@ import {
   updateSurvey,
   deleteSurvey,
   submitSurveyResponse,
-  bulkUploadSurveyResponses // Import the new controller
+  bulkUploadSurveyResponses, // Import the new controller
+  uploadFile,
 } from '../controllers/surveys.js';
 import multer from 'multer'; // Import multer to check for MulterError instance
 
@@ -98,6 +99,20 @@ export default function(upload) {
     ],
     bulkUploadSurveyResponses
   );
+  router.post('/upload', [
+    verifyToken,
+    (req, res, next) => {
+      const multerUpload = upload.single('file');
+      multerUpload(req, res, function (err) {
+        if (err instanceof multer.MulterError) {
+          return res.status(400).json({ errors: [{ msg: `File upload error: ${err.message}` }] });
+        } else if (err) {
+          return res.status(400).json({ errors: [{ msg: err.message || 'File upload failed.' }] });
+        }
+        next();
+      });
+    }
+  ], uploadFile);
 
   return router;
 }

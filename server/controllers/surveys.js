@@ -452,3 +452,16 @@ export const bulkUploadSurveyResponses = async (req, res, next) => {
     return next(new ApiError(500, error.message || 'Failed to process bulk upload.'));
   }
 };
+
+export const uploadFile = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      throw new ApiError(400, 'No file uploaded.');
+    }
+    const fileUrl = `/uploads/${req.file.filename}`;
+    res.status(200).json({ status: 'success', data: { url: fileUrl } });
+  } catch (error) {
+    console.error("Error in uploadFile controller:", error);
+    next(error);
+  }
+};
