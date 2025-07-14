@@ -4,9 +4,9 @@ import PDFDocument from 'pdfkit';
 import pptxgen from 'pptxgenjs';
 import Excel from 'exceljs';
 import fs from 'fs';
-import { createStudyOverviewSlide, createLandingPageSlide } from '../templates/study-overview.js';
-import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
-import Reporting from '../reporting/index.js';
+// Assuming Exporter is a separate utility file for report generation
+import Exporter from '../utils/Exporter.js'; // Added import for Exporter
+import Reporting from '../reporting/index.js'; // This is the module that was previously reported as not found for studyOverview.js
 
 // @desc    Generate a new report
 // @route   POST /api/reports
@@ -240,6 +240,9 @@ export const generateAllReports = async () => {
   // This is a placeholder for the actual report generation logic
 };
 
+// These functions were part of the old downloadReport logic and are likely
+// now handled within the Exporter class or the Reporting class.
+// Keeping them here as placeholders for now, but they might be redundant.
 function createBrandAwarenessSlide(pptx, survey, responses) {
   const slide = pptx.addSlide();
   slide.addText('Brand Awareness & Perception', { x: 1, y: 1, fontSize: 24, bold: true });
