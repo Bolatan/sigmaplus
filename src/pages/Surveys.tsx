@@ -29,6 +29,10 @@ const SurveyForm: React.FC<{
   companies: any[];
   user: any;
 }> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, companies, user }) => {
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
   if (!formData || !Array.isArray(formData.questions)) {
     return <div>Loading survey form...</div>;
   }
@@ -82,6 +86,26 @@ const SurveyForm: React.FC<{
           onChange={(e) => handleInputChange('title', e.target.value)}
           required
         />
+        {(user?.role === 'admin' || user?.role === 'agent') && (
+          <div>
+            <label htmlFor="customer" className="block text-sm font-medium text-gray-700 mb-1">
+              Assign to Customer
+            </label>
+            <select
+              id="customer"
+              value={formData.customerId}
+              onChange={(e) => handleInputChange('customerId', e.target.value)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+            >
+              <option value="">Select a customer</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div>
           <label htmlFor="surveyDescription" className="block text-sm font-medium text-gray-700 mb-1">
             Description
@@ -119,7 +143,7 @@ const SurveyForm: React.FC<{
                   <option value="textarea">Textarea</option>
                   <option value="single-choice">Single Choice (Radio)</option>
                   <option value="multiple-choice">Multiple Choice (Checkbox)</option>
-                  <option value="rating">Rating (1-5)</option>
+                  <option value="range">Range</option>
                   <option value="nps">Net Promoter Score (NPS)</option>
                   <option value="ces">Customer Effort Score (CES)</option>
                   <option value="image-choice">Image Choice</option>
@@ -138,7 +162,7 @@ const SurveyForm: React.FC<{
                   <span className="text-sm text-gray-700">Required</span>
                 </label>
               </div>
-              {(question.type === 'single-choice' || question.type === 'multiple-choice') && (
+              {(question.type === 'single-choice' || question.type === 'multiple-choice' || question.type === 'image-choice') && (
               <div className="mt-2 space-y-2 pl-4 border-l-2">
                 {(question.options || []).map((opt, optIndex) => (
                   <div key={optIndex} className="flex items-center space-x-2">
@@ -180,6 +204,38 @@ const SurveyForm: React.FC<{
                 </Button>
               </div>
               )}
+              {question.type === 'rating' && (
+                <div className="mt-2">
+                  <Input
+                    label="Max Rating"
+                    type="number"
+                    value={question.maxRating || 5}
+                    onChange={(e) => handleQuestionChange(index, 'maxRating', parseInt(e.target.value, 10))}
+                    min={2}
+                    max={10}
+                  />
+                </div>
+              )}
+              {question.type === 'file-upload' && (
+                <div className="mt-2">
+                  <Input
+                    label="Allowed File Types"
+                    value={question.allowedFileTypes || ''}
+                    onChange={(e) => handleQuestionChange(index, 'allowedFileTypes', e.target.value)}
+                    placeholder="e.g., .pdf,.jpg,.png"
+                  />
+                </div>
+              )}
+              {question.type === 'video' && (
+                <div className="mt-2">
+                  <Input
+                    label="Video URL"
+                    value={question.videoUrl || ''}
+                    onChange={(e) => handleQuestionChange(index, 'videoUrl', e.target.value)}
+                    placeholder="https://example.com/video.mp4"
+                  />
+                </div>
+              )}
               <Button
                 type="button"
                 variant="danger"
@@ -204,10 +260,14 @@ const SurveyForm: React.FC<{
               id="companyIds"
               multiple
               value={formData.companyIds || []}
+<<<<<<< HEAD
               onChange={(e) => {
                 const selectedIds = Array.from(e.target.selectedOptions, option => option.value);
                 onFormDataChange({ ...formData, companyIds: selectedIds });
               }}
+=======
+              onChange={(e) => onFormDataChange({ ...formData, companyIds: Array.from(e.target.selectedOptions, option => option.value) })}
+>>>>>>> main
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
             >
               {companies.map(company => (
@@ -258,6 +318,10 @@ const Surveys: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [shouldRefetch, setShouldRefetch] = useState(false);
 
@@ -322,6 +386,51 @@ const Surveys: React.FC = () => {
 
     fetchAgents();
     fetchCompanies();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchCompanies = async () => {
+
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      try {
+        const response = await fetch('/api/companies', {
+
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const { data } = await response.json();
+          setCompanies(data || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch companies:", error);
+      }
+    };
+
+    fetchCompanies();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      try {
+        const response = await fetch('/api/companies', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const { data } = await response.json();
+          setCompanies(data || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch companies:", error);
+      }
+    };
+
+    fetchCompanies();
+
   }, [user]);
 
   useEffect(() => {
@@ -401,6 +510,10 @@ const Surveys: React.FC = () => {
           questions: formData.questions,
           agentId: formData.agentId,
           companyIds: formData.companyIds,
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
         }),
       });
 
@@ -453,6 +566,10 @@ const Surveys: React.FC = () => {
           questions: formData.questions,
           agentId: formData.agentId,
           companyIds: formData.companyIds,
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
         }),
       });
 
@@ -810,6 +927,10 @@ const Surveys: React.FC = () => {
           buttonText="Create Survey"
           agents={agents}
           companies={companies}
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
           user={user}
         />
       </Modal>
@@ -827,6 +948,10 @@ const Surveys: React.FC = () => {
           buttonText="Save Changes"
           agents={agents}
           companies={companies}
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
           user={user}
         />
       </Modal>
