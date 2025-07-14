@@ -11,29 +11,31 @@ import { v4 as uuidv4 } from 'uuid';
 import { ConditionalLogicModal } from '../surveys/ConditionalLogicModal';
 import { TemplateSelectionModal } from '../surveys/TemplateSelectionModal';
 
-interface ProjectFormData {
+interface SurveyFormData {
   title: string;
   description: string;
   questions: SurveyQuestion[];
   agentId?: string;
   companyIds?: string[];
+  projectId?: string;
 }
 
-const ProjectForm: React.FC<{
-  formData: ProjectFormData;
-  onFormDataChange: (data: ProjectFormData) => void;
+const SurveyForm: React.FC<{
+  formData: SurveyFormData;
+  onFormDataChange: (data: SurveyFormData) => void;
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onCancel: () => void;
   buttonText: string;
   agents: any[];
   companies: any[];
+  projects: any[];
   user: any;
-}> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, companies, user }) => {
+}> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, companies, projects, user }) => {
   if (!formData || !Array.isArray(formData.questions)) {
     return <div>Loading survey form...</div>;
   }
 
-  const handleInputChange = useCallback((field: keyof Omit<ProjectFormData, 'questions'>, value: string | string[]) => {
+  const handleInputChange = useCallback((field: keyof Omit<SurveyFormData, 'questions'>, value: string | string[]) => {
     onFormDataChange({ ...formData, [field]: value });
   }, [formData, onFormDataChange]);
 
@@ -77,11 +79,29 @@ const ProjectForm: React.FC<{
     <>
       <form onSubmit={onSubmit} className="space-y-6">
         <Input
-          label="Project Title"
+          label="Survey Title"
           value={formData.title}
           onChange={(e) => handleInputChange('title', e.target.value)}
           required
         />
+        <div>
+          <label htmlFor="project" className="block text-sm font-medium text-gray-700 mb-1">
+            Project
+          </label>
+          <select
+            id="project"
+            value={formData.projectId || ''}
+            onChange={(e) => handleInputChange('projectId', e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+          >
+            <option value="" disabled>Select a project</option>
+            {projects.map((project) => (
+              <option key={project._id} value={project._id}>
+                {project.title}
+              </option>
+            ))}
+          </select>
+        </div>
         {(user?.role === 'admin' || user?.role === 'agent') && (
           <div>
             <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">
@@ -264,6 +284,6 @@ const ProjectForm: React.FC<{
   );
 });
 
-ProjectForm.displayName = 'ProjectForm';
+SurveyForm.displayName = 'SurveyForm';
 
-export default ProjectForm;
+export default SurveyForm;
