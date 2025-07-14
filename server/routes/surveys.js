@@ -27,7 +27,7 @@ router.post('/', [
   body('description').optional().trim(),
   body('questions').optional().isArray().withMessage('Questions must be an array'),
   body('agentId').optional({ checkFalsy: true }).isMongoId().withMessage('Invalid Agent ID format'),
-  // status and companyId are handled in controller or can be added here if strict validation from client is needed
+  body('companyIds').optional().isArray().withMessage('companyIds must be an array'),
   validateRequest
 ], createSurvey);
 
@@ -46,6 +46,7 @@ router.put('/:id', [
   body('status').optional().isIn(['draft', 'active', 'completed']),
   body('questions').optional().isArray().withMessage('Questions must be an array'),
   body('companyId').optional({ checkFalsy: true }).isMongoId().withMessage('Invalid Company ID format'),
+  body('companyIds').optional().isArray().withMessage('companyIds must be an array'),
   body('agentId').optional({ checkFalsy: true }).isMongoId().withMessage('Invalid Agent ID format'),
   validateRequest
 ], updateSurvey);
