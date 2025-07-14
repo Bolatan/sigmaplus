@@ -43,24 +43,24 @@ const registerValidation = [
     .withMessage('Role must be one of: admin, agent, client'),
     
   // Custom validation for companyId based on role
-  body('companyId').custom((value, { req }) => {
-    const { role } = req.body;
+  // body('companyId').custom((value, { req }) => {
+  //   const { role } = req.body;
     
-    if (role === 'client') {
-      if (!value) {
-        throw new Error('Company ID is required for client roles');
-      }
-      if (!ObjectId.isValid(value)) {
-        throw new Error('Invalid Company ID format for client roles');
-      }
-    } else if ((role === 'admin' || role === 'agent') && value) {
-      if (!ObjectId.isValid(value)) {
-        throw new Error('Invalid Company ID format');
-      }
-    }
+  //   if (role === 'client') {
+  //     if (!value) {
+  //       throw new Error('Company ID is required for client roles');
+  //     }
+  //     if (!ObjectId.isValid(value)) {
+  //       throw new Error('Invalid Company ID format for client roles');
+  //     }
+  //   } else if ((role === 'admin' || role === 'agent') && value) {
+  //     if (!ObjectId.isValid(value)) {
+  //       throw new Error('Invalid Company ID format');
+  //     }
+  //   }
     
-    return true;
-  })
+  //   return true;
+  // })
 ];
 
 const loginValidation = [
