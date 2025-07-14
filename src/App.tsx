@@ -15,6 +15,7 @@ import SurveyDetails from './pages/SurveyDetails';
 import ClientDashboard from './pages/ClientDashboard';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Projects from './pages/Projects'; // This is the component that replaced Surveys.tsx
+
 import EditReportSections from './pages/EditReportSections';
 
 // Protected route component
@@ -80,15 +81,14 @@ const AppRoutes: React.FC = () => {
         </ProtectedRoute>
       } />
       {/*
-        The original Surveys.tsx was likely renamed to Projects.tsx.
-        To resolve the build error, we are now routing /surveys to the Projects component.
-        If you intend to have separate "Surveys" and "Projects" pages, you will need to
-        create a new Surveys.tsx file and component.
+
       */}
       <Route path="/surveys" element={
         <ProtectedRoute>
           <Layout>
             <Projects /> {/* Using Projects component for the /surveys route */}
+
+
           </Layout>
         </ProtectedRoute>
       } />
