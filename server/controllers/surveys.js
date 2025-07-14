@@ -61,7 +61,9 @@ export const createSurvey = async (req, res, next) => {
       companyIds: [],
     };
 
-    if (userCompanyId && ObjectId.isValid(userCompanyId)) {
+    if (bodyCompanyIds && Array.isArray(bodyCompanyIds) && bodyCompanyIds.every(id => ObjectId.isValid(id))) {
+      newSurveyData.companyIds = bodyCompanyIds.map(id => new ObjectId(id));
+    } else if (userCompanyId && ObjectId.isValid(userCompanyId)) {
       newSurveyData.companyIds = [new ObjectId(userCompanyId)];
     }
 
@@ -222,6 +224,10 @@ export const updateSurvey = async (req, res, next) => {
       } else {
         throw new ApiError(400, 'Invalid Agent ID format provided for update by admin.');
       }
+    }
+
+    if (bodyCompanyIds && Array.isArray(bodyCompanyIds) && bodyCompanyIds.every(id => ObjectId.isValid(id))) {
+      updateFields.companyIds = bodyCompanyIds.map(id => new ObjectId(id));
     }
 
     if (customerId !== undefined) {
