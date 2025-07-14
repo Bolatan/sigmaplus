@@ -12,7 +12,7 @@ import { verifyToken, authorizeRole } from './middleware/auth.js';
 import { body, validationResult } from 'express-validator';
 import { logger } from './middleware/logger.js';
 
-import projectRoutesFunction from './routes/projects.js';
+import surveyRoutesFunction from './routes/surveys.js';
 import userRoutes from './routes/users.js';
 import companyRoutes from './routes/companies.js';
 import reportRoutes from './routes/reports.js'; // Uncommented
@@ -64,7 +64,7 @@ app.use(express.static(path.join(__dirname, '..', 'dist')));
 app.use('/api/auth', authRoutes); // Mount authentication routes
 
 // --- Application API Routes ---
-app.use('/api/projects', projectRoutesFunction(upload));
+app.use('/api/surveys', surveyRoutesFunction(upload));
 app.use('/api/users', userRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/reports', reportRoutes);

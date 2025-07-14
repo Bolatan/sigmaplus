@@ -1,21 +1,10 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from '@/context/AuthContext';
-import { Layout } from '@/components/layout/Layout';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { Layout } from './components/layout/Layout';
 import CookieConsent from 'react-cookie-consent';
-import Login from '@/pages/Login';
-import Dashboard from '@/pages/Dashboard';
-import Surveys from '@/pages/Surveys';
-import Reports from '@/pages/Reports';
-import Users from '@/pages/Users';
-import Settings from '@/pages/Settings';
-import Companies from '@/pages/Companies';
-import SurveyResponsePage from '@/pages/SurveyResponsePage'; // Import the new page
-import SurveyDetails from '@/pages/SurveyDetails';
-import ClientDashboard from '@/pages/ClientDashboard';
-import PrivacyPolicy from '@/pages/PrivacyPolicy';
-import Projects from '@/pages/Projects';
-import EditReportSections from '@/pages/EditReportSections';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
 
 import Reports from './pages/Reports';
 import Users from './pages/Users';
@@ -27,7 +16,6 @@ import ClientDashboard from './pages/ClientDashboard';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Projects from './pages/Projects'; // This is the component that replaced Surveys.tsx
 import EditReportSections from './pages/EditReportSections';
-
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
