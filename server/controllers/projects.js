@@ -178,7 +178,7 @@ export const getSurveyById = async (req, res, next) => {
     }
 
     const survey = await db.collection('surveys').findOne({ _id: new ObjectId(surveyId) });
-    
+
     if (!survey) {
       throw new ApiError(404, 'Survey not found');
     }
