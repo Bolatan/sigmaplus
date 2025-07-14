@@ -6,7 +6,7 @@ import { Readable } from 'stream';
 
 export const createSurvey = async (req, res, next) => {
   try {
-    const { title, description, questions: inputQuestions, status, companyIds: bodyCompanyIds, agentId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyIds: bodyCompanyIds, agentId, customerId } = req.body;
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
     const db = getDb();
@@ -63,10 +63,6 @@ export const getSurveys = async (req, res, next) => {
         return res.json({ status: 'success', data: [] });
       }
       query.companyIds = new ObjectId(userCompanyId);
-<<<<<<< HEAD
-=======
-
->>>>>>> main
     } else if (userRole === 'agent') {
       query.agentId = new ObjectId(userId);
     }
@@ -106,11 +102,7 @@ export const getSurveyById = async (req, res, next) => {
     }
 
     if (userRole === 'client') {
-<<<<<<< HEAD
-      if (!userCompanyId || !survey.companyIds.some(id => id.toString() === userCompanyId.toString())) {
-=======
       if (!userCompanyId || !survey.companyIds || !survey.companyIds.some(id => id.toString() === userCompanyId.toString())) {
->>>>>>> main
         throw new ApiError(403, 'Not authorized to access this survey');
       }
     } else if (userRole === 'agent') {
@@ -130,11 +122,7 @@ export const updateSurvey = async (req, res, next) => {
     const db = getDb();
     const { id: surveyId } = req.params;
     const { id: userId, role: userRole } = req.user;
-<<<<<<< HEAD
-    const { title, description, questions: inputQuestions, status, companyIds: bodyCompanyIds, agentId } = req.body;
-=======
-    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId, customerId } = req.body;
->>>>>>> main
+    const { title, description, questions: inputQuestions, status, companyIds: bodyCompanyIds, agentId, customerId } = req.body;
 
     if (!ObjectId.isValid(surveyId)) {
       throw new ApiError(404, 'Survey not found (invalid ID format)');
@@ -155,19 +143,6 @@ export const updateSurvey = async (req, res, next) => {
     if (status !== undefined) updateFields.status = status;
 
     if (inputQuestions !== undefined) {
-<<<<<<< HEAD
-      // ... (existing question validation logic)
-    }
-
-    if (userRole === 'admin' && bodyCompanyIds !== undefined) {
-        if (bodyCompanyIds === null || (Array.isArray(bodyCompanyIds) && bodyCompanyIds.length === 0)) {
-            updateFields.companyIds = [];
-        } else if (Array.isArray(bodyCompanyIds)) {
-            updateFields.companyIds = bodyCompanyIds.filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id));
-        } else {
-            throw new ApiError(400, 'Invalid Company IDs format provided for update by admin.');
-        }
-=======
       updateFields.questions = (inputQuestions || []).map((q, index) => {
         if (!q || typeof q !== 'object') {
           throw new ApiError(400, `Update: Question at index ${index} is not a valid object.`);
@@ -206,15 +181,14 @@ export const updateSurvey = async (req, res, next) => {
       });
     }
 
-    if (userRole === 'admin' && req.body.companyIds !== undefined) {
-      if (Array.isArray(req.body.companyIds)) {
-        updateFields.companyIds = req.body.companyIds
-          .filter(id => ObjectId.isValid(id))
-          .map(id => new ObjectId(id));
-      } else {
-        throw new ApiError(400, 'companyIds must be an array.');
-      }
->>>>>>> main
+    if (userRole === 'admin' && bodyCompanyIds !== undefined) {
+        if (bodyCompanyIds === null || (Array.isArray(bodyCompanyIds) && bodyCompanyIds.length === 0)) {
+            updateFields.companyIds = [];
+        } else if (Array.isArray(bodyCompanyIds)) {
+            updateFields.companyIds = bodyCompanyIds.filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id));
+        } else {
+            throw new ApiError(400, 'Invalid Company IDs format provided for update by admin.');
+        }
     }
 
     if (userRole === 'admin' && agentId !== undefined) {
@@ -276,7 +250,7 @@ export const deleteSurvey = async (req, res, next) => {
     if (userRole === 'agent' && existingSurvey.createdBy.toString() !== userId) {
       throw new ApiError(403, 'Forbidden: You can only delete surveys you created.');
     }
-     if (userRole !== 'admin' && userRole !== 'agent') {
+      if (userRole !== 'admin' && userRole !== 'agent') {
         throw new ApiError(403, 'Forbidden: You are not authorized to delete surveys.');
     }
 
@@ -340,7 +314,7 @@ export const submitSurveyResponse = async (req, res, next) => {
     if (error instanceof ApiError) {
         next(error);
     } else {
-        next(new ApiError(500, error.message || 'Failed to submit survey response.'));
+      next(new ApiError(500, error.message || 'Failed to submit survey response.'));
     }
   }
 };
