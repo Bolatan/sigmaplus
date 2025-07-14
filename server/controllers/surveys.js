@@ -61,9 +61,7 @@ export const createSurvey = async (req, res, next) => {
       companyIds: [],
     };
 
-    if (userRole === 'admin' && bodyCompanyIds && Array.isArray(bodyCompanyIds) && bodyCompanyIds.length > 0) {
-      newSurveyData.companyIds = bodyCompanyIds.filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id));
-    } else if (userCompanyId && ObjectId.isValid(userCompanyId)) {
+    if (userCompanyId && ObjectId.isValid(userCompanyId)) {
       newSurveyData.companyIds = [new ObjectId(userCompanyId)];
     }
 
@@ -215,15 +213,6 @@ export const updateSurvey = async (req, res, next) => {
       });
     }
 
-    if (userRole === 'admin' && bodyCompanyIds !== undefined) {
-      if (Array.isArray(bodyCompanyIds)) {
-        updateFields.companyIds = bodyCompanyIds
-          .filter(id => ObjectId.isValid(id))
-          .map(id => new ObjectId(id));
-      } else {
-        throw new ApiError(400, 'companyIds must be an array.');
-      }
-    }
 
     if (userRole === 'admin' && agentId !== undefined) {
       if (agentId === null || agentId === '') {
