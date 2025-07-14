@@ -224,6 +224,16 @@ export const updateSurvey = async (req, res, next) => {
     }
 
 
+    if (userRole === 'admin' && bodyCompanyIds !== undefined) {
+      if (bodyCompanyIds === null || (Array.isArray(bodyCompanyIds) && bodyCompanyIds.length === 0)) {
+        updateFields.companyIds = [];
+      } else if (Array.isArray(bodyCompanyIds)) {
+        updateFields.companyIds = bodyCompanyIds.filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id));
+      } else {
+        throw new ApiError(400, 'Invalid Company IDs format provided for update by admin.');
+      }
+    }
+
     if (userRole === 'admin' && agentId !== undefined) {
       if (agentId === null || agentId === '') {
         updateFields.agentId = null;
@@ -232,10 +242,6 @@ export const updateSurvey = async (req, res, next) => {
       } else {
         throw new ApiError(400, 'Invalid Agent ID format provided for update by admin.');
       }
-    }
-
-    if (bodyCompanyIds && Array.isArray(bodyCompanyIds) && bodyCompanyIds.every(id => ObjectId.isValid(id))) {
-      updateFields.companyIds = bodyCompanyIds.map(id => new ObjectId(id));
     }
 
     if (customerId !== undefined) {
@@ -291,7 +297,7 @@ export const deleteSurvey = async (req, res, next) => {
     if (userRole === 'agent' && existingSurvey.createdBy.toString() !== userId) {
       throw new ApiError(403, 'Forbidden: You can only delete surveys you created.');
     }
-     if (userRole !== 'admin' && userRole !== 'agent') {
+      if (userRole !== 'admin' && userRole !== 'agent') {
         throw new ApiError(403, 'Forbidden: You are not authorized to delete surveys.');
     }
 
@@ -355,7 +361,7 @@ export const submitSurveyResponse = async (req, res, next) => {
     if (error instanceof ApiError) {
         next(error);
     } else {
-        next(new ApiError(500, error.message || 'Failed to submit survey response.'));
+      next(new ApiError(500, error.message || 'Failed to submit survey response.'));
     }
   }
 };

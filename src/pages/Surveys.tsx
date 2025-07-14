@@ -398,29 +398,6 @@ const Surveys: React.FC = () => {
 
   useEffect(() => {
     const fetchCompanies = async () => {
-
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
-
-      try {
-        const response = await fetch('/api/companies', {
-
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (response.ok) {
-          const { data } = await response.json();
-          setCompanies(data || []);
-        }
-      } catch (error) {
-        console.error("Failed to fetch companies:", error);
-      }
-    };
-
-    fetchCompanies();
-  }, [user]);
-
-  useEffect(() => {
-    const fetchCompanies = async () => {
       const token = localStorage.getItem('authToken');
       if (!token) return;
 
@@ -438,7 +415,6 @@ const Surveys: React.FC = () => {
     };
 
     fetchCompanies();
-
   }, [user]);
 
   useEffect(() => {
@@ -652,6 +628,7 @@ const Surveys: React.FC = () => {
       description: survey.description || '',
       questions: survey.questions || [],
       companyIds: survey.companyIds || [],
+      projectId: survey.projectId || '',
     });
     setIsEditModalOpen(true);
   }, []);
@@ -813,222 +790,4 @@ const Surveys: React.FC = () => {
           />
         </div>
         <select
-          value={selectedProjectId}
-          onChange={(e) => setSelectedProjectId(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-        >
-          <option value="">All Projects</option>
-          {projects.map(project => (
-            <option key={project._id} value={project._id}>
-              {project.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredSurveys.map((survey) => (
-          <Card key={survey.id} className="hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {survey.title}
-                  </h3>
-                  <p className="text-sm text-gray-500 mb-4">
-                    {survey.description}
-                  </p>
-                </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(survey.status)}`}>
-                  {survey.status}
-                </span>
-              </div>
-              
-              <div className="flex items-center text-sm text-gray-500 mt-4">
-                <BarChart2 className="h-4 w-4 mr-1" />
-                {survey.responseCount} responses
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">
-                    Created {formatDate(survey.createdAt)}
-                  </span>
-                  <div className="space-x-2">
-                    {(user?.role === 'admin' || user?.role === 'agent') && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => startEdit(survey)}
-                      >
-                        Edit
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/surveys/${survey.id}`)}
-                    >
-                      View Details
-                    </Button>
-                    {survey.status === 'active' && (
-                        <Button
-                          variant="success"
-                          size="sm"
-                          onClick={() => navigate(`/surveys/${survey.id}/respond`)}
-                        >
-                          Take Survey
-                        </Button>
-                    )}
-                      {(user?.role === 'admin' || user?.role === 'agent') && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openUploadModal(survey.id)}
-                        className="ml-2"
-                      >
-                        Upload Responses
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                
-                {(user?.role === 'admin' || user?.role === 'agent') && (
-                  <div className="mt-3 flex space-x-2">
-                    {survey.status === 'draft' && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleStatusChange(survey.id, 'active')}
-                      >
-                        Activate
-                      </Button>
-                    )}
-                    {survey.status === 'active' && (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handleStatusChange(survey.id, 'completed')}
-                      >
-                        Complete
-                      </Button>
-                    )}
-                    {survey.status === 'completed' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleStatusChange(survey.id, 'active')}
-                      >
-                        Reactivate
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <Modal
-        isOpen={isAddModalOpen}
-        onClose={handleCancelAdd}
-        title="Create New Survey"
-      >
-        <SurveyForm
-          formData={formData}
-          onFormDataChange={handleFormDataChange}
-          onSubmit={handleAddSurvey}
-          onCancel={handleCancelAdd}
-          buttonText="Create Survey"
-          agents={agents}
-          companies={companies}
-          projects={projects}
-          user={user}
-        />
-      </Modal>
-
-      <Modal
-        isOpen={isEditModalOpen}
-        onClose={handleCancelEdit}
-        title="Edit Survey"
-      >
-        <SurveyForm
-          formData={formData}
-          onFormDataChange={handleFormDataChange}
-          onSubmit={handleEditSurvey}
-          onCancel={handleCancelEdit}
-          buttonText="Save Changes"
-          agents={agents}
-          companies={companies}
-          projects={projects}
-          user={user}
-        />
-      </Modal>
-
-      {/* CSV Upload Modal */}
-      <Modal
-        isOpen={isUploadModalOpen}
-        onClose={handleCloseUploadModal}
-        title={`Bulk Upload Responses for Survey`}
-      >
-        <div className="space-y-4">
-          {uploadTargetSurveyId && <p className="text-sm text-gray-600">Target Survey ID: <strong>{uploadTargetSurveyId}</strong></p>}
-          <div>
-            <label htmlFor="csvFile" className="block text-sm font-medium text-gray-700 mb-1">
-              Select CSV File
-            </label>
-            <Input
-              id="csvFile"
-              type="file"
-              accept=".csv"
-              onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)}
-              className="mt-1 block w-full text-sm text-gray-500
-                          file:mr-4 file:py-2 file:px-4
-                          file:rounded-full file:border-0
-                          file:text-sm file:font-semibold
-                          file:bg-primary-50 file:text-primary-700
-                          hover:file:bg-primary-100"
-            />
-          </div>
-
-          {uploadStatusMessage && (
-            <div className={`p-3 rounded-md text-sm ${uploadStatusMessage.startsWith('Error') || uploadStatusMessage.startsWith('Failed') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-              {uploadStatusMessage}
-            </div>
-          )}
-
-          <div className="flex justify-end space-x-2 pt-2">
-            <Button type="button" variant="outline" onClick={handleCloseUploadModal}>
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={handleFileUpload}
-              variant="primary"
-              disabled={!selectedFile || isUploading}
-            >
-              {isUploading ? 'Uploading...' : 'Upload File'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {filteredSurveys.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-gray-400 mb-4">
-            <BarChart2 className="h-12 w-12 mx-auto" />
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No surveys found
-          </h3>
-          <p className="text-gray-500">
-            {searchTerm ? 'Try adjusting your search terms' : 'Create your first survey to get started'}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default Surveys;
+          value={selectedProjectI
