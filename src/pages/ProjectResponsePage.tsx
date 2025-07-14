@@ -24,12 +24,12 @@ interface SurveyWithQuestions extends Survey {
   questions: SurveyQuestion[];
 }
 
-const SurveyResponsePage: React.FC = () => {
-  const { surveyId } = useParams<{ surveyId: string }>();
+const ProjectResponsePage: React.FC = () => {
+  const { projectId } = useParams<{ projectId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [survey, setSurvey] = useState<SurveyWithQuestions | null>(null);
+  const [project, setProject] = useState<SurveyWithQuestions | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [responses, setResponses] = useState<Record<string, string | string[]>>({}); // Allow string array for multi-choice
@@ -38,9 +38,9 @@ const SurveyResponsePage: React.FC = () => {
 
 
   useEffect(() => {
-    const fetchSurveyDetails = async () => {
-      if (!surveyId) {
-        setError("Survey ID not found in URL.");
+    const fetchProjectDetails = async () => {
+      if (!projectId) {
+        setError("Project ID not found in URL.");
         setIsLoading(false);
         return;
       }
@@ -55,7 +55,7 @@ const SurveyResponsePage: React.FC = () => {
       }
 
       try {
-        const response = await fetch(`/api/surveys/${surveyId}`, {
+        const response = await fetch(`/api/projects/${projectId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -63,25 +63,25 @@ const SurveyResponsePage: React.FC = () => {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.msg || errorData.error || `Failed to fetch survey details: ${response.statusText}`);
+          throw new Error(errorData.msg || errorData.error || `Failed to fetch project details: ${response.statusText}`);
         }
 
-        const surveyData = await response.json();
-        const surveyFromApi = surveyData.data || surveyData;
+        const projectData = await response.json();
+        const projectFromApi = projectData.data || projectData;
 
-        if (!surveyFromApi || !surveyFromApi._id) {
-            throw new Error("Fetched survey data is invalid or missing ID.");
+        if (!projectFromApi || !projectFromApi._id) {
+            throw new Error("Fetched project data is invalid or missing ID.");
         }
 
-        const fetchedSurvey = {
-            ...surveyFromApi,
-            id: surveyFromApi._id, // Map _id to id
-            questions: surveyFromApi.questions || [] // Ensure questions is an array, even if empty from backend
+        const fetchedProject = {
+            ...projectFromApi,
+            id: projectFromApi._id, // Map _id to id
+            questions: projectFromApi.questions || [] // Ensure questions is an array, even if empty from backend
         };
-        setSurvey(fetchedSurvey);
+        setProject(fetchedProject);
 
       } catch (err: any) {
-        console.error('Error fetching survey details:', err);
+        console.error('Error fetching project details:', err);
         setError(err.message || 'An unexpected error occurred.');
       } finally {
         setIsLoading(false);
@@ -89,13 +89,13 @@ const SurveyResponsePage: React.FC = () => {
     };
 
     if (user) { // Ensure user context is loaded before trying to fetch
-        fetchSurveyDetails();
+        fetchProjectDetails();
     } else if (!localStorage.getItem('authToken')) {
-        setError("Please login to take the survey.");
+        setError("Please login to take the project.");
         setIsLoading(false);
     }
     // If token exists but user is null, AuthContext is loading, page will show its own loader.
-  }, [surveyId, user]);
+  }, [projectId, user]);
 
   const handleFileUpload = async (questionId: string, file: File) => {
     const token = localStorage.getItem('authToken');
@@ -157,8 +157,8 @@ const SurveyResponsePage: React.FC = () => {
 
   const handleSubmitResponse = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (survey?.status !== 'active') {
-      setError("This survey is not currently active and cannot accept responses.");
+    if (project?.status !== 'active') {
+      setError("This project is not currently active and cannot accept responses.");
       return;
     }
     if (Object.keys(responses).length === 0) {
@@ -178,7 +178,7 @@ const SurveyResponsePage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`/api/surveys/${surveyId}/responses`, {
+      const response = await fetch(`/api/projects/${projectId}/responses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -230,10 +230,10 @@ const SurveyResponsePage: React.FC = () => {
     );
   }
 
-  if (!survey) {
+  if (!project) {
     return (
       <div className="container mx-auto py-8 px-4 text-center">
-        <p>Survey not found or could not be loaded.</p>
+        <p>Project not found or could not be loaded.</p>
          <Button onClick={() => navigate('/')} className="mt-4">Go to Dashboard</Button>
       </div>
     );
@@ -243,12 +243,12 @@ const SurveyResponsePage: React.FC = () => {
     <div className="container mx-auto py-8 px-4">
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>{survey.title}</CardTitle>
-          {survey.description && <CardDescription>{survey.description}</CardDescription>}
+          <CardTitle>{project.title}</CardTitle>
+          {project.description && <CardDescription>{project.description}</CardDescription>}
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-500 mb-4">Survey ID: {survey.id}</p>
-          <p className="text-sm text-gray-500 mb-6">Status: {survey.status}</p>
+          <p className="text-sm text-gray-500 mb-4">Project ID: {project.id}</p>
+          <p className="text-sm text-gray-500 mb-6">Status: {project.status}</p>
 
           {successMessage && (
             <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
@@ -257,18 +257,18 @@ const SurveyResponsePage: React.FC = () => {
             </div>
           )}
 
-          {survey.status !== 'active' && !successMessage && ( // Don't show "not active" if submission was successful
+          {project.status !== 'active' && !successMessage && ( // Don't show "not active" if submission was successful
             <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6" role="alert">
-              <p className="font-bold">Survey Not Active</p>
-              <p>This survey is currently not active and cannot accept responses.</p>
+              <p className="font-bold">Project Not Active</p>
+              <p>This project is currently not active and cannot accept responses.</p>
             </div>
           )}
 
-          {survey.status === 'active' && !successMessage && ( // Hide form after successful submission
+          {project.status === 'active' && !successMessage && ( // Hide form after successful submission
             <form onSubmit={handleSubmitResponse}>
               <h3 className="text-lg font-semibold mb-4 border-t pt-4">Questions</h3>
-              {survey.questions && survey.questions.length > 0 ? (
-                survey.questions.map((q, index) => (
+              {project.questions && project.questions.length > 0 ? (
+                project.questions.map((q, index) => (
                   <div key={q.id || `q-${index}`} className="mb-6">
                     <label htmlFor={q.id || `q-input-${index}`} className="block text-sm font-medium text-gray-700 mb-1">
                       {index + 1}. {q.text}
@@ -434,13 +434,13 @@ const SurveyResponsePage: React.FC = () => {
                   </div>
                 ))
               ) : (
-                <p>No questions found for this survey.</p>
+                <p>No questions found for this project.</p>
               )}
 
               <div className="mt-6 border-t pt-6">
                 <Button
                   type="submit"
-                  disabled={survey.status !== 'active' || isSubmitting || !!successMessage}
+                  disabled={project.status !== 'active' || isSubmitting || !!successMessage}
                   className="w-full"
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Responses'}
@@ -454,4 +454,4 @@ const SurveyResponsePage: React.FC = () => {
   );
 };
 
-export default SurveyResponsePage;
+export default ProjectResponsePage;

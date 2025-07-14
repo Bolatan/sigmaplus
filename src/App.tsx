@@ -5,16 +5,15 @@ import { Layout } from './components/layout/Layout';
 import CookieConsent from 'react-cookie-consent';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import Surveys from './pages/Surveys';
+import Projects from './pages/Projects';
 import Reports from './pages/Reports';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
 import Companies from './pages/Companies';
-import SurveyResponsePage from './pages/SurveyResponsePage'; // Import the new page
-import SurveyDetails from './pages/SurveyDetails';
+import ProjectResponsePage from './pages/ProjectResponsePage';
+import ProjectDetails from './pages/ProjectDetails';
 import ClientDashboard from './pages/ClientDashboard';
 import PrivacyPolicy from './pages/PrivacyPolicy';
-import Projects from './pages/Projects';
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -50,17 +49,10 @@ const AppRoutes: React.FC = () => {
           </Layout>
         </ProtectedRoute>
       } />
-      <Route path="/projects" element={
+      <Route path="/projects/:projectId" element={
         <ProtectedRoute>
           <Layout>
-            <Projects />
-          </Layout>
-        </ProtectedRoute>
-      } />
-      <Route path="/surveys/:surveyId" element={
-        <ProtectedRoute>
-          <Layout>
-            <SurveyDetails />
+            <ProjectDetails />
           </Layout>
         </ProtectedRoute>
       } />
@@ -71,10 +63,10 @@ const AppRoutes: React.FC = () => {
           </Layout>
         </ProtectedRoute>
       } />
-      <Route path="/surveys" element={
+      <Route path="/projects" element={
         <ProtectedRoute>
           <Layout>
-            <Surveys />
+            <Projects />
           </Layout>
         </ProtectedRoute>
       } />
@@ -106,10 +98,10 @@ const AppRoutes: React.FC = () => {
           </Layout>
         </ProtectedRoute>
       } />
-      <Route path="/surveys/:surveyId/respond" element={
+      <Route path="/projects/:projectId/respond" element={
         <ProtectedRoute>
           <Layout>
-            <SurveyResponsePage />
+            <ProjectResponsePage />
           </Layout>
         </ProtectedRoute>
       } />

@@ -5,19 +5,19 @@ import { Survey } from '../types';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
 
-const SurveyDetails: React.FC = () => {
-  const { surveyId } = useParams<{ surveyId: string }>();
+const ProjectDetails: React.FC = () => {
+  const { projectId } = useParams<{ projectId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [survey, setSurvey] = useState<Survey | null>(null);
+  const [project, setProject] = useState<Survey | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchSurveyDetails = async () => {
-      if (!surveyId) {
-        setError("Survey ID not found in URL.");
+    const fetchProjectDetails = async () => {
+      if (!projectId) {
+        setError("Project ID not found in URL.");
         setIsLoading(false);
         return;
       }
@@ -32,7 +32,7 @@ const SurveyDetails: React.FC = () => {
       }
 
       try {
-        const response = await fetch(`/api/surveys/${surveyId}`, {
+        const response = await fetch(`/api/projects/${projectId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -40,25 +40,25 @@ const SurveyDetails: React.FC = () => {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.msg || errorData.error || `Failed to fetch survey details: ${response.statusText}`);
+          throw new Error(errorData.msg || errorData.error || `Failed to fetch project details: ${response.statusText}`);
         }
 
-        const surveyData = await response.json();
-        const surveyFromApi = surveyData.data || surveyData;
+        const projectData = await response.json();
+        const projectFromApi = projectData.data || projectData;
 
-        if (!surveyFromApi || !surveyFromApi._id) {
-            throw new Error("Fetched survey data is invalid or missing ID.");
+        if (!projectFromApi || !projectFromApi._id) {
+            throw new Error("Fetched project data is invalid or missing ID.");
         }
 
-        const fetchedSurvey = {
-            ...surveyFromApi,
-            id: surveyFromApi._id, // Map _id to id
-            questions: surveyFromApi.questions || [] // Ensure questions is an array, even if empty from backend
+        const fetchedProject = {
+            ...projectFromApi,
+            id: projectFromApi._id, // Map _id to id
+            questions: projectFromApi.questions || [] // Ensure questions is an array, even if empty from backend
         };
-        setSurvey(fetchedSurvey);
+        setProject(fetchedProject);
 
       } catch (err: any) {
-        console.error('Error fetching survey details:', err);
+        console.error('Error fetching project details:', err);
         setError(err.message || 'An unexpected error occurred.');
       } finally {
         setIsLoading(false);
@@ -66,13 +66,13 @@ const SurveyDetails: React.FC = () => {
     };
 
     if (user) { // Ensure user context is loaded before trying to fetch
-        fetchSurveyDetails();
+        fetchProjectDetails();
     } else if (!localStorage.getItem('authToken')) {
-        setError("Please login to take the survey.");
+        setError("Please login to take the project.");
         setIsLoading(false);
     }
     // If token exists but user is null, AuthContext is loading, page will show its own loader.
-  }, [surveyId, user]);
+  }, [projectId, user]);
 
   if (isLoading) {
     return (
@@ -98,10 +98,10 @@ const SurveyDetails: React.FC = () => {
     );
   }
 
-  if (!survey) {
+  if (!project) {
     return (
       <div className="container mx-auto py-8 px-4 text-center">
-        <p>Survey not found or could not be loaded.</p>
+        <p>Project not found or could not be loaded.</p>
          <Button onClick={() => navigate('/')} className="mt-4">Go to Dashboard</Button>
       </div>
     );
@@ -111,16 +111,16 @@ const SurveyDetails: React.FC = () => {
     <div className="container mx-auto py-8 px-4">
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>{survey.title}</CardTitle>
-          {survey.description && <CardDescription>{survey.description}</CardDescription>}
+          <CardTitle>{project.title}</CardTitle>
+          {project.description && <CardDescription>{project.description}</CardDescription>}
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-500 mb-4">Survey ID: {survey.id}</p>
-          <p className="text-sm text-gray-500 mb-6">Status: {survey.status}</p>
+          <p className="text-sm text-gray-500 mb-4">Project ID: {project.id}</p>
+          <p className="text-sm text-gray-500 mb-6">Status: {project.status}</p>
 
           <h3 className="text-lg font-semibold mb-4 border-t pt-4">Questions</h3>
-          {survey.questions && survey.questions.length > 0 ? (
-            survey.questions.map((q, index) => (
+          {project.questions && project.questions.length > 0 ? (
+            project.questions.map((q, index) => (
               <div key={q.id || `q-${index}`} className="mb-6">
                 <label htmlFor={q.id || `q-input-${index}`} className="block text-sm font-medium text-gray-700 mb-1">
                   {index + 1}. {q.text}
@@ -136,7 +136,7 @@ const SurveyDetails: React.FC = () => {
               </div>
             ))
           ) : (
-            <p>No questions found for this survey.</p>
+            <p>No questions found for this project.</p>
           )}
         </CardContent>
       </Card>
@@ -144,4 +144,4 @@ const SurveyDetails: React.FC = () => {
   );
 };
 
-export default SurveyDetails;
+export default ProjectDetails;
