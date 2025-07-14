@@ -251,11 +251,9 @@ export const getReportById = async (req, res) => {
       });
 
       const buffer = await pptx.write('buffer');
-      res.writeHead(200, {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'Content-Disposition': `attachment;filename=${report.title}.pptx`,
-      });
-      res.end(buffer);
+      res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pptx`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+      res.send(buffer);
     } else if (format === 'xlsx') {
       const workbook = new Excel.Workbook();
       const worksheet = workbook.addWorksheet('Report');
@@ -269,22 +267,18 @@ export const getReportById = async (req, res) => {
       worksheet.addRow({id: report._id, title: report.title, description: report.description});
 
       const buffer = await workbook.xlsx.writeBuffer();
-      res.writeHead(200, {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment;filename=${report.title}.xlsx`,
-      });
-      res.end(buffer);
-    } else {
+      res.setHeader('Content-Disposition', `attachment; filename=${report.title}.xlsx`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(buffer);
+    } else if (format === 'pdf') {
       const doc = new PDFDocument();
       let buffers = [];
       doc.on('data', buffers.push.bind(buffers));
       doc.on('end', () => {
-        let pdfData = Buffer.concat(buffers);
-        res.writeHead(200, {
-          'Content-Length': Buffer.byteLength(pdfData),
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment;filename=${report.title}.pdf`,
-        }).end(pdfData);
+        const pdfData = Buffer.concat(buffers);
+        res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.send(pdfData);
       });
 
       // --- PDF Landing Page ---
