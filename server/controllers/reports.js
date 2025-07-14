@@ -88,7 +88,6 @@ export const generateReport = async (req, res) => {
   }
 };
 
-
 // @desc    Get all reports
 // @route   GET /api/reports
 // @access  Private (Admins, Agents, Clients)
@@ -205,7 +204,6 @@ export const getReportById = async (req, res) => {
       createBrandAwarenessSlide(pptx, survey, responses);
       createBrandUsageSlide(pptx, survey, responses);
       createCustomerSatisfactionSlide(pptx, survey, responses);
-      // ... and so on for the other core insight areas
 
       // --- Regional and Outlet-Level Findings ---
       const regionalSlide = pptx.addSlide();
@@ -282,7 +280,6 @@ export const getReportById = async (req, res) => {
   }
 };
 
-
 // @desc    Update a report's metadata (e.g., title)
 // @route   PUT /api/reports/:id
 // @access  Private (Admin, Agent)
@@ -340,6 +337,7 @@ export const deleteReport = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete report' });
   }
 };
+
 
 export const generateAllReports = async () => {
   console.log('Generating all reports...');
@@ -413,12 +411,14 @@ function createBrandAwarenessSlide(pptx, survey, responses) {
   }
 }
 
+// Helper function to create brand usage slide
 function createBrandUsageSlide(pptx, survey, responses) {
   const slide = pptx.addSlide();
   slide.addText('Brand Usage & Purchase Behavior', { x: 1, y: 1, fontSize: 24, bold: true });
   slide.addText('Data and visualizations for this section will be added in a future update.', { x: 1, y: 2 });
 }
 
+// Helper function to create customer satisfaction slide
 function createCustomerSatisfactionSlide(pptx, survey, responses) {
   const slide = pptx.addSlide();
   slide.addText('Customer Satisfaction & Loyalty Metrics', { x: 1, y: 1, fontSize: 24, bold: true });
