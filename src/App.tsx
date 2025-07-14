@@ -10,16 +10,15 @@ import Reports from './pages/Reports';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
 import Companies from './pages/Companies';
-import SurveyResponsePage from './pages/SurveyResponsePage';
+import SurveyResponsePage from './pages/SurveyResponsePage'; // Import the new page
 import SurveyDetails from './pages/SurveyDetails';
-import Projects from './pages/Projects';
 import ClientDashboard from './pages/ClientDashboard';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
-  
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -27,23 +26,22 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
       </div>
     );
   }
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
   }
-  
+
   return <>{children}</>;
 };
 
 const AppRoutes: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
-  
+
   return (
     <Routes>
       <Route path="/login" element={
         isAuthenticated ? <Navigate to="/" /> : <Login />
       } />
-      
       <Route path="/" element={
         <ProtectedRoute>
           <Layout>
@@ -51,15 +49,6 @@ const AppRoutes: React.FC = () => {
           </Layout>
         </ProtectedRoute>
       } />
-      
-      <Route path="/projects" element={
-        <ProtectedRoute>
-          <Layout>
-            <Projects />
-          </Layout>
-        </ProtectedRoute>
-      } />
-      
       <Route path="/surveys/:surveyId" element={
         <ProtectedRoute>
           <Layout>
@@ -67,7 +56,6 @@ const AppRoutes: React.FC = () => {
           </Layout>
         </ProtectedRoute>
       } />
-      
       <Route path="/client-dashboard" element={
         <ProtectedRoute>
           <Layout>
@@ -75,7 +63,6 @@ const AppRoutes: React.FC = () => {
           </Layout>
         </ProtectedRoute>
       } />
-      
       <Route path="/surveys" element={
         <ProtectedRoute>
           <Layout>
@@ -83,7 +70,6 @@ const AppRoutes: React.FC = () => {
           </Layout>
         </ProtectedRoute>
       } />
-      
       <Route path="/reports" element={
         <ProtectedRoute>
           <Layout>
@@ -91,7 +77,6 @@ const AppRoutes: React.FC = () => {
           </Layout>
         </ProtectedRoute>
       } />
-      
       <Route path="/users" element={
         <ProtectedRoute>
           <Layout>
@@ -99,7 +84,6 @@ const AppRoutes: React.FC = () => {
           </Layout>
         </ProtectedRoute>
       } />
-      
       <Route path="/settings" element={
         <ProtectedRoute>
           <Layout>
@@ -107,7 +91,6 @@ const AppRoutes: React.FC = () => {
           </Layout>
         </ProtectedRoute>
       } />
-      
       <Route path="/companies" element={
         <ProtectedRoute>
           <Layout>
@@ -115,7 +98,6 @@ const AppRoutes: React.FC = () => {
           </Layout>
         </ProtectedRoute>
       } />
-      
       <Route path="/surveys/:surveyId/respond" element={
         <ProtectedRoute>
           <Layout>
@@ -123,9 +105,7 @@ const AppRoutes: React.FC = () => {
           </Layout>
         </ProtectedRoute>
       } />
-      
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-      
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );

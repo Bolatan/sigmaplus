@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // Middleware to verify JWT token
-const protect = (req, res, next) => {
+const verifyToken = (req, res, next) => {
   const authHeader = req.header('Authorization');
 
   if (!authHeader) {
@@ -44,7 +44,7 @@ const protect = (req, res, next) => {
 const authorizeRole = (rolesArray) => {
   return (req, res, next) => {
     if (!req.user || !req.user.role) {
-      // This should ideally not happen if protect runs first and is successful
+      // This should ideally not happen if verifyToken runs first and is successful
       return res.status(403).json({ msg: 'User role not found, authorization denied' });
     }
 
@@ -57,6 +57,4 @@ const authorizeRole = (rolesArray) => {
   };
 };
 
-const admin = authorizeRole(['admin']);
-
-export { protect, authorizeRole, admin };
+export { verifyToken, authorizeRole };
