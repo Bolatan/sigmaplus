@@ -36,6 +36,12 @@ const Annotations: React.FC<AnnotationsProps> = ({ annotations, onAddAnnotation 
         type="text"
         value={text}
         onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            onAddAnnotation(text, 10, 10);
+            setText('');
+          }
+        }}
         placeholder="Add annotation"
         className="absolute bottom-0 left-0 w-full p-2 border-t border-gray-300"
       />
