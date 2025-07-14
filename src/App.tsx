@@ -14,6 +14,7 @@ import SurveyResponsePage from './pages/SurveyResponsePage'; // Import the new p
 import SurveyDetails from './pages/SurveyDetails';
 import ClientDashboard from './pages/ClientDashboard';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import Projects from './pages/Projects';
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -46,6 +47,13 @@ const AppRoutes: React.FC = () => {
         <ProtectedRoute>
           <Layout>
             {user?.role === 'client' ? <Navigate to="/client-dashboard" /> : <Dashboard />}
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/projects" element={
+        <ProtectedRoute>
+          <Layout>
+            <Projects />
           </Layout>
         </ProtectedRoute>
       } />

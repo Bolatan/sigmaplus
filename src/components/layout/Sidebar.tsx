@@ -7,7 +7,8 @@ import {
   Users,
   Building2,
   Settings,
-  LogOut
+  LogOut,
+  Briefcase
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types';
@@ -51,6 +52,11 @@ export const Sidebar: React.FC = () => {
         icon: <LayoutDashboard />,
         label: 'Dashboard',
         end: true,
+      },
+      {
+        to: '/projects',
+        icon: <Briefcase />,
+        label: 'Projects',
       },
     ];
 
