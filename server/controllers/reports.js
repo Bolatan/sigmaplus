@@ -1,6 +1,12 @@
 import { getDb } from '../utils/db.js';
 import { ObjectId } from 'mongodb';
-import Reporting from '../reporting/index.js';
+import PDFDocument from 'pdfkit';
+import pptxgen from 'pptxgenjs';
+import Excel from 'exceljs';
+import { createStudyOverviewSlide, createLandingPageSlide } from '../templates/study-overview.js';
+// Assuming these functions are defined elsewhere or will be defined below
+// import { createBrandAwarenessSlide, createBrandUsageSlide, createCustomerSatisfactionSlide } from '../templates/brand-insights.js';
+
 
 // @desc    Generate a new report
 // @route   POST /api/reports
@@ -21,27 +27,25 @@ export const generateReport = async (req, res) => {
       return res.status(404).json({ error: 'Survey not found' });
     }
 
-    const responses = await db.collection('responses').find({ surveyId: new ObjectId(surveyId) }).toArray();
-    const company = await db.collection('companies').findOne({ _id: new ObjectId(req.user.companyId) });
-    const client = await db.collection('users').findOne({ _id: new ObjectId(req.user.id) });
-
+    // Responses and other data are fetched in getReportById for on-demand generation
+    // For generateReport, we only create the report metadata
     const newReport = {
       title,
       surveyId: new ObjectId(surveyId),
-      companyId: req.user.companyId,
+      companyId: req.user.companyId, // Assuming req.user.companyId is available
       generatedBy: new ObjectId(req.user.id),
       createdAt: new Date(),
-      status: 'completed',
+      status: 'pending', // Set to pending initially, then completed when generated on demand
       sections: [
         {
           id: 'study-overview',
           title: 'Study Overview',
           order: 1,
-          content: [],
+          content: [], // Content will be generated dynamically
           projectName: survey.title,
           background: survey.description,
-          objectives: 'To understand customer feedback',
-          methodology: 'Online survey',
+          objectives: 'To understand customer feedback', // Placeholder, should come from survey config
+          methodology: 'Online survey', // Placeholder
         },
         {
           id: 'respondent-profile',
@@ -76,15 +80,19 @@ export const generateReport = async (req, res) => {
       ],
     };
 
-    const reporting = new Reporting({
-      survey,
-      responses,
-      company,
-      client,
-      sections: newReport.sections,
-      clientName: company.name,
-    });
-    await reporting.generateReport();
+    // The Reporting class logic (if it populates newReport.sections) would go here
+    // If Reporting class is meant for actual file generation, it should be moved to getReportById
+    // For now, commenting out the Reporting class usage as it conflicts with the new PPTX generation
+    // const reporting = new Reporting({
+    //   survey,
+    //   responses,
+    //   company,
+    //   client,
+    //   sections: newReport.sections,
+    //   clientName: company.name,
+    // });
+    // await reporting.generateReport();
+
     const result = await reportsCollection.insertOne(newReport);
     res.status(201).json({ data: { ...newReport, _id: result.insertedId } });
   } catch (err) {
@@ -140,9 +148,9 @@ export const getReportById = async (req, res) => {
 
     const survey = await db.collection('surveys').findOne({ _id: new ObjectId(report.surveyId) });
     const responses = await db.collection('responses').find({ surveyId: new ObjectId(report.surveyId) }).toArray();
-    const user = await db.collection('users').findOne({ _id: new ObjectId(report.generatedBy) });
+    const user = await db.collection('users').findOne({ _id: new ObjectId(report.generatedBy) }); // user who generated the report
     const company = await db.collection('companies').findOne({ _id: new ObjectId(report.companyId) });
-    const client = await db.collection('users').findOne({ _id: new ObjectId(report.clientId) });
+    const client = await db.collection('users').findOne({ _id: new ObjectId(report.clientId) }); // Assuming clientId exists on report
 
     // Access control: Ensure client can only access their own reports
     if (req.user.role === 'client' && req.user.companyId) {
@@ -152,7 +160,109 @@ export const getReportById = async (req, res) => {
     }
 
     if (format === 'pptx') {
-      const buffer = Buffer.from(report.pptx, 'base64');
+      const pptx = new pptxgen();
+
+      // Define master slide if branding is available
+      if (company && company.branding) {
+        if (company.branding.primaryColor) {
+          pptx.defineLayout({
+            name: 'MASTER_SLIDE',
+            width: 10,
+            height: 5.625,
+            background: { color: company.branding.primaryColor.replace('#', '') }, // pptxgen expects color without #
+          });
+          pptx.layout = 'MASTER_SLIDE';
+        }
+        if (company.branding.logoUrl) {
+          // You might need to fetch the image and convert it to base64 if not directly accessible by URL
+          // For simplicity, assuming a directly usable URL or a placeholder
+          // pptx.addSlide().addImage({ path: company.branding.logoUrl, x: 1, y: 1, w: 1, h: 1 });
+          console.warn('Company logo URL in PPTX generation is a placeholder. Needs actual image fetching/conversion.');
+        }
+      }
+
+      // --- Landing Page ---
+      createLandingPageSlide(pptx, survey, company); // Pass company for branding if needed
+
+      // --- Study Overview ---
+      createStudyOverviewSlide(pptx, survey);
+
+      // --- Respondent Profile ---
+      const profileSlide = pptx.addSlide();
+      profileSlide.addText('Respondent Profile', { x: 1, y: 1, fontSize: 24, bold: true });
+
+      const demographics = responses.map(r => r.demographics).filter(d => d);
+      // const locations = responses.map(r => r.location).filter(l => l); // Not used in this snippet, but available
+
+      const ageGroups = demographics.reduce((acc, d) => {
+        const age = d.age || 'N/A';
+        acc[age] = (acc[age] || 0) + 1;
+        return acc;
+      }, {});
+
+      const genderGroups = demographics.reduce((acc, d) => {
+        const gender = d.gender || 'N/A';
+        acc[gender] = (acc[gender] || 0) + 1;
+        return acc;
+      }, {});
+
+      profileSlide.addText('Age Distribution:', { x: 1, y: 2 });
+      Object.entries(ageGroups).forEach(([age, count], index) => {
+        profileSlide.addText(`${age}: ${count}`, { x: 1.5, y: 2.5 + (index * 0.5) });
+      });
+
+      profileSlide.addText('Gender Distribution:', { x: 1, y: 4 });
+      Object.entries(genderGroups).forEach(([gender, count], index) => {
+        profileSlide.addText(`${gender}: ${count}`, { x: 1.5, y: 4.5 + (index * 0.5) });
+      });
+
+      // --- Executive Summary ---
+      const summarySlide = pptx.addSlide();
+      summarySlide.addText('Executive Summary', { x: 1, y: 1, fontSize: 24, bold: true });
+      summarySlide.addText(report.summary || 'No summary available.', { x: 1, y: 2 });
+
+      // --- Core Insight Areas (Placeholder functions) ---
+      // These functions would need to be defined and imported from a separate file (e.g., brand-insights.js)
+      // For now, they are included as empty functions at the bottom to resolve the conflict.
+      createBrandAwarenessSlide(pptx, survey, responses);
+      createBrandUsageSlide(pptx, survey, responses);
+      createCustomerSatisfactionSlide(pptx, survey, responses);
+      // ... and so on for the other core insight areas
+
+      // --- Regional and Outlet-Level Findings ---
+      const regionalSlide = pptx.addSlide();
+      regionalSlide.addText('Regional and Outlet-Level Findings', { x: 1, y: 1, fontSize: 24, bold: true });
+      regionalSlide.addText('Comparisons and heatmaps by state or zone will be added in a future update.', { x: 1, y: 2 });
+
+      // --- Recommendations ---
+      const recommendationsSlide = pptx.addSlide();
+      recommendationsSlide.addText('Recommendations', { x: 1, y: 1, fontSize: 24, bold: true });
+      recommendationsSlide.addText('Strategic actions based on key insights will be added in a future update.', { x: 1, y: 2 });
+
+      // --- Historical Trend Comparisons ---
+      const historicalSlide = pptx.addSlide();
+      historicalSlide.addText('Historical Trend Comparisons', { x: 1, y: 1, fontSize: 24, bold: true });
+      historicalSlide.addText('Historical trend comparisons will be added in a future update.', { x: 1, y: 2 });
+
+      // --- Add Footers ---
+      // Note: This assumes responses array is not empty and has the required fields
+      const firstRespondent = responses[0] || {};
+      const respondentName = firstRespondent.respondentName || 'N/A';
+      const respondentLocation = firstRespondent.location ? `${firstRespondent.location.city || ''}, ${firstRespondent.location.country || ''}`.trim().replace(/^, |^,$/g, '') || 'N/A' : 'N/A';
+      const respondentResponse = firstRespondent.responseData ? JSON.stringify(firstRespondent.responseData).substring(0, 50) + '...' : 'N/A';
+
+      pptx.slides.forEach((slide, index) => {
+        slide.addText(
+          `Respondent: ${respondentName} | Location: ${respondentLocation} | Response: ${respondentResponse}`,
+          { x: 0.5, y: 5.2, fontSize: 8, color: '666666' }
+        );
+        slide.addText(
+            `Slide ${index + 1}`,
+            { x: 9, y: 5.2, fontSize: 8, color: '666666' }
+        );
+      });
+
+      const buffer = await pptx.write('buffer');
       res.writeHead(200, {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
         'Content-Disposition': `attachment;filename=${report.title}.pptx`,
@@ -176,7 +286,7 @@ export const getReportById = async (req, res) => {
         'Content-Disposition': `attachment;filename=${report.title}.xlsx`,
       });
       res.end(buffer);
-    } else {
+    } else { // Default to PDF
       const doc = new PDFDocument();
       let buffers = [];
       doc.on('data', buffers.push.bind(buffers));
@@ -189,18 +299,45 @@ export const getReportById = async (req, res) => {
         }).end(pdfData);
       });
 
-      doc.fontSize(25).text(report.title, {
+      // --- PDF Landing Page ---
+      // Placeholder for logo. In a real app, you'd fetch/store the logo.
+      // doc.image('logo.png', { // This would require 'logo.png' to be accessible by PDFKit
+      //   fit: [100, 100],
+      //   align: 'center',
+      //   valign: 'center'
+      // });
+      doc.moveDown(2);
+      doc.fontSize(25).text(survey.title, {
         align: 'center'
       });
 
-      doc.moveDown();
-
-      report.sections.forEach(section => {
-        doc.fontSize(20).text(section.type, {
+      // --- PDF Content ---
+      report.sections.forEach((section, pageIndex) => {
+        doc.addPage();
+        doc.fontSize(20).text(section.title, {
           underline: true
         });
-        doc.fontSize(12).text(section.content);
-        doc.moveDown();
+        // Ensure section.content is a string or can be converted to one
+        doc.fontSize(12).text(section.content ? section.content.toString() : 'No content available.');
+
+        // --- PDF Footer ---
+        const firstRespondent = responses[0] || {};
+        const respondentName = firstRespondent.respondentName || 'N/A';
+        const respondentLocation = firstRespondent.location ? `${firstRespondent.location.city || ''}, ${firstRespondent.location.country || ''}`.trim().replace(/^, |^,$/g, '') || 'N/A' : 'N/A';
+        const respondentResponse = firstRespondent.responseData ? JSON.stringify(firstRespondent.responseData).substring(0, 50) + '...' : 'N/A';
+
+        doc.fontSize(8).text(
+          `Respondent: ${respondentName} | Location: ${respondentLocation} | Response: ${respondentResponse}`,
+          50,
+          750, // Y position
+          { align: 'left', width: 500 } // Adjust width as needed
+        );
+        doc.fontSize(8).text(
+          `Page ${pageIndex + 1}`,
+          50,
+          750,
+          { align: 'right', width: 500 }
+        );
       });
 
       doc.end();
@@ -276,6 +413,9 @@ export const generateAllReports = async () => {
   // This is a placeholder for the actual report generation logic
 };
 
+// Placeholder functions for brand insights slides
+// These would typically be in a separate file like '../templates/brand-insights.js'
+// and would contain logic to generate charts/content based on survey and responses data.
 function createBrandAwarenessSlide(pptx, survey, responses) {
   const slide = pptx.addSlide();
   slide.addText('Brand Awareness & Perception', { x: 1, y: 1, fontSize: 24, bold: true });
