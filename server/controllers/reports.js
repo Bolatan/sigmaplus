@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb';
 import PDFDocument from 'pdfkit';
 import pptxgen from 'pptxgenjs';
 import Excel from 'exceljs';
-import { createStudyOverviewSlide } from '../templates/study-overview.js';
+import { createStudyOverviewSlide, createLandingPageSlide } from '../templates/study-overview.js';
 
 // @desc    Generate a new report
 // @route   POST /api/reports
@@ -164,6 +164,9 @@ export const getReportById = async (req, res) => {
         }
       }
 
+      // --- Landing Page ---
+      createLandingPageSlide(pptx, survey);
+
       // --- Study Overview ---
       createStudyOverviewSlide(pptx, survey);
 
@@ -222,6 +225,23 @@ export const getReportById = async (req, res) => {
       historicalSlide.addText('Historical Trend Comparisons', { x: 1, y: 1, fontSize: 24, bold: true });
       historicalSlide.addText('Historical trend comparisons will be added in a future update.', { x: 1, y: 2 });
 
+      // --- Add Footers ---
+      const firstRespondent = responses[0] || {};
+      const respondentName = firstRespondent.respondentName || 'N/A';
+      const respondentLocation = firstRespondent.location ? `${firstRespondent.location.city}, ${firstRespondent.location.country}` : 'N/A';
+      const respondentResponse = firstRespondent.response ? JSON.stringify(firstRespondent.response).substring(0, 50) + '...' : 'N/A';
+
+      pptx.slides.forEach((slide, index) => {
+        slide.addText(
+          `Respondent: ${respondentName} | Location: ${respondentLocation} | Response: ${respondentResponse}`,
+          { x: 0.5, y: 5.2, fontSize: 8, color: '666666' }
+        );
+        slide.addText(
+            `Slide ${index + 1}`,
+            { x: 9, y: 5.2, fontSize: 8, color: '666666' }
+        );
+      });
+
       const buffer = await pptx.write('buffer');
       res.writeHead(200, {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
@@ -259,18 +279,37 @@ export const getReportById = async (req, res) => {
         }).end(pdfData);
       });
 
-      doc.fontSize(25).text(report.title, {
+      // --- PDF Landing Page ---
+      doc.image('logo.png', {
+        fit: [100, 100],
+        align: 'center',
+        valign: 'center'
+      });
+      doc.moveDown(2);
+      doc.fontSize(25).text(survey.title, {
         align: 'center'
       });
 
-      doc.moveDown();
-
-      report.sections.forEach(section => {
-        doc.fontSize(20).text(section.type, {
+      // --- PDF Content ---
+      report.sections.forEach((section, pageIndex) => {
+        doc.addPage();
+        doc.fontSize(20).text(section.title, {
           underline: true
         });
-        doc.fontSize(12).text(section.content);
-        doc.moveDown();
+        doc.fontSize(12).text(section.content.toString());
+
+        // --- PDF Footer ---
+        const firstRespondent = responses[0] || {};
+        const respondentName = firstRespondent.respondentName || 'N/A';
+        const respondentLocation = firstRespondent.location ? `${firstRespondent.location.city}, ${firstRespondent.location.country}` : 'N/A';
+        const respondentResponse = firstRespondent.response ? JSON.stringify(firstRespondent.response).substring(0, 50) + '...' : 'N/A';
+
+        doc.fontSize(8).text(
+          `Respondent: ${respondentName} | Location: ${respondentLocation} | Response: ${respondentResponse}`,
+          50,
+          750,
+          { align: 'center' }
+        );
       });
 
       doc.end();

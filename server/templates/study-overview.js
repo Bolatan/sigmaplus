@@ -6,3 +6,10 @@ export const createStudyOverviewSlide = (pptx, survey) => {
   slide.addText(`Objectives: ${survey.objectives || 'N/A'}`, { x: 1, y: 3 });
   slide.addText(`Methodology: ${survey.methodology || 'N/A'}`, { x: 1, y: 3.5 });
 };
+
+export const createLandingPageSlide = (pptx, survey) => {
+  const slide = pptx.addSlide();
+  // Add Signaplus logo
+  slide.addImage({ path: 'logo.png', x: 1, y: 1, w: 2, h: 1 });
+  slide.addText(survey.title, { x: 1, y: 3, fontSize: 32, bold: true, align: 'center' });
+};
