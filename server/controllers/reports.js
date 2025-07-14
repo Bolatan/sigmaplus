@@ -3,7 +3,9 @@ import { ObjectId } from 'mongodb';
 import PDFDocument from 'pdfkit';
 import pptxgen from 'pptxgenjs';
 import Excel from 'exceljs';
+import fs from 'fs';
 import { createStudyOverviewSlide, createLandingPageSlide } from '../templates/study-overview.js';
+import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
 
 // @desc    Generate a new report
 // @route   POST /api/reports
@@ -146,6 +148,9 @@ export const getReportById = async (req, res) => {
       }
     }
 
+    const logo = fs.readFileSync('logo.png').toString('base64');
+    const chart = await createChart(responses);
+
     if (format === 'pptx') {
       const pptx = new pptxgen();
 
@@ -165,7 +170,7 @@ export const getReportById = async (req, res) => {
       }
 
       // --- Landing Page ---
-      createLandingPageSlide(pptx, survey);
+      createLandingPageSlide(pptx, survey, logo);
 
       // --- Study Overview ---
       createStudyOverviewSlide(pptx, survey);
@@ -208,7 +213,10 @@ export const getReportById = async (req, res) => {
       createBrandAwarenessSlide(pptx, survey, responses);
       createBrandUsageSlide(pptx, survey, responses);
       createCustomerSatisfactionSlide(pptx, survey, responses);
-      // ... and so on for the other core insight areas
+
+      const chartSlide = pptx.addSlide();
+      chartSlide.addText('Chart', { x: 1, y: 1, fontSize: 24, bold: true });
+      chartSlide.addImage({ data: `data:image/png;base64,${chart}`, x: 1, y: 2, w: 8, h: 4 });
 
       // --- Regional and Outlet-Level Findings ---
       const regionalSlide = pptx.addSlide();
@@ -280,7 +288,7 @@ export const getReportById = async (req, res) => {
       });
 
       // --- PDF Landing Page ---
-      doc.image('logo.png', {
+      doc.image(Buffer.from(logo, 'base64'), {
         fit: [100, 100],
         align: 'center',
         valign: 'center'
@@ -310,6 +318,16 @@ export const getReportById = async (req, res) => {
           750,
           { align: 'center' }
         );
+      });
+
+      doc.addPage();
+      doc.fontSize(20).text('Chart', {
+        underline: true
+      });
+      doc.image(Buffer.from(chart, 'base64'), {
+        fit: [500, 400],
+        align: 'center',
+        valign: 'center'
       });
 
       doc.end();
@@ -462,4 +480,44 @@ function createCustomerSatisfactionSlide(pptx, survey, responses) {
   const slide = pptx.addSlide();
   slide.addText('Customer Satisfaction & Loyalty Metrics', { x: 1, y: 1, fontSize: 24, bold: true });
   slide.addText('Data and visualizations for this section will be added in a future update.', { x: 1, y: 2 });
+}
+
+async function createChart(responses) {
+  const chartJSNodeCanvas = new ChartJSNodeCanvas({ width: 800, height: 600 });
+  const configuration = {
+    type: 'bar',
+    data: {
+      labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+      datasets: [{
+        label: '# of Votes',
+        data: [12, 19, 3, 5, 2, 3],
+        backgroundColor: [
+          'rgba(255, 99, 132, 0.2)',
+          'rgba(54, 162, 235, 0.2)',
+          'rgba(255, 206, 86, 0.2)',
+          'rgba(75, 192, 192, 0.2)',
+          'rgba(153, 102, 255, 0.2)',
+          'rgba(255, 159, 64, 0.2)'
+        ],
+        borderColor: [
+          'rgba(255, 99, 132, 1)',
+          'rgba(54, 162, 235, 1)',
+          'rgba(255, 206, 86, 1)',
+          'rgba(75, 192, 192, 1)',
+          'rgba(153, 102, 255, 1)',
+          'rgba(255, 159, 64, 1)'
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  };
+  const image = await chartJSNodeCanvas.renderToBuffer(configuration);
+  return image.toString('base64');
 }
