@@ -29,10 +29,6 @@ const SurveyForm: React.FC<{
   companies: any[];
   user: any;
 }> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, companies, user }) => {
-<<<<<<< HEAD
-=======
-
->>>>>>> main
   if (!formData || !Array.isArray(formData.questions)) {
     return <div>Loading survey form...</div>;
   }
