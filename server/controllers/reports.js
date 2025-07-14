@@ -1,5 +1,9 @@
 import { getDb } from '../utils/db.js';
 import { ObjectId } from 'mongodb';
+import PDFDocument from 'pdfkit';
+import pptxgen from 'pptxgenjs';
+import Excel from 'exceljs';
+import { createStudyOverviewSlide } from '../templates/study-overview.js';
 
 // @desc    Generate a new report
 // @route   POST /api/reports
@@ -84,7 +88,6 @@ export const generateReport = async (req, res) => {
   }
 };
 
-
 // @desc    Get all reports
 // @route   GET /api/reports
 // @access  Private (Admins, Agents, Clients)
@@ -108,11 +111,6 @@ export const getReports = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch reports from database' });
   }
 };
-
-import PDFDocument from 'pdfkit';
-import pptxgen from 'pptxgenjs';
-import Excel from 'exceljs';
-import { createStudyOverviewSlide } from '../templates/study-overview.js';
 
 // @desc    Get a single report by ID
 // @route   GET /api/reports/:id
@@ -203,11 +201,9 @@ export const getReportById = async (req, res) => {
       summarySlide.addText(report.summary || 'No summary available.', { x: 1, y: 2 });
 
       // --- Core Insight Areas ---
-      // --- Core Insight Areas ---
       createBrandAwarenessSlide(pptx, survey, responses);
       createBrandUsageSlide(pptx, survey, responses);
       createCustomerSatisfactionSlide(pptx, survey, responses);
-      // ... and so on for the other core insight areas
 
       // --- Regional and Outlet-Level Findings ---
       const regionalSlide = pptx.addSlide();
@@ -284,7 +280,6 @@ export const getReportById = async (req, res) => {
   }
 };
 
-
 // @desc    Update a report's metadata (e.g., title)
 // @route   PUT /api/reports/:id
 // @access  Private (Admin, Agent)
@@ -343,12 +338,15 @@ export const deleteReport = async (req, res) => {
   }
 };
 
-<<<<<<< HEAD
+// @desc    Generate all reports
+// @route   POST /api/reports/generate-all
+// @access  Private (Admin)
 export const generateAllReports = async () => {
   console.log('Generating all reports...');
   // This is a placeholder for the actual report generation logic
 };
-=======
+
+// Helper function to create brand awareness slide
 function createBrandAwarenessSlide(pptx, survey, responses) {
   const slide = pptx.addSlide();
   slide.addText('Brand Awareness & Perception', { x: 1, y: 1, fontSize: 24, bold: true });
@@ -416,16 +414,16 @@ function createBrandAwarenessSlide(pptx, survey, responses) {
   }
 }
 
+// Helper function to create brand usage slide
 function createBrandUsageSlide(pptx, survey, responses) {
   const slide = pptx.addSlide();
   slide.addText('Brand Usage & Purchase Behavior', { x: 1, y: 1, fontSize: 24, bold: true });
   slide.addText('Data and visualizations for this section will be added in a future update.', { x: 1, y: 2 });
 }
 
+// Helper function to create customer satisfaction slide
 function createCustomerSatisfactionSlide(pptx, survey, responses) {
   const slide = pptx.addSlide();
   slide.addText('Customer Satisfaction & Loyalty Metrics', { x: 1, y: 1, fontSize: 24, bold: true });
   slide.addText('Data and visualizations for this section will be added in a future update.', { x: 1, y: 2 });
 }
-
->>>>>>> main
