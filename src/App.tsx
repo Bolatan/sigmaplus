@@ -12,6 +12,7 @@ import Settings from './pages/Settings';
 import Companies from './pages/Companies';
 import SurveyResponsePage from './pages/SurveyResponsePage'; // Import the new page
 import SurveyDetails from './pages/SurveyDetails';
+import Projects from './pages/Projects';
 import ClientDashboard from './pages/ClientDashboard';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 
@@ -46,6 +47,13 @@ const AppRoutes: React.FC = () => {
         <ProtectedRoute>
           <Layout>
             {user?.role === 'client' ? <Navigate to="/client-dashboard" /> : <Dashboard />}
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/projects" element={
+        <ProtectedRoute>
+          <Layout>
+            <Projects />
           </Layout>
         </ProtectedRoute>
       } />

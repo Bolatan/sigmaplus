@@ -17,6 +17,7 @@ interface SurveyFormData {
   questions: SurveyQuestion[];
   agentId?: string;
   companyIds?: string[];
+  projectId?: string;
 }
 
 const SurveyForm: React.FC<{
@@ -27,8 +28,9 @@ const SurveyForm: React.FC<{
   buttonText: string;
   agents: any[];
   companies: any[];
+  projects: any[];
   user: any;
-}> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, companies, user }) => {
+}> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, companies, projects, user }) => {
   if (!formData || !Array.isArray(formData.questions)) {
     return <div>Loading survey form...</div>;
   }
@@ -82,6 +84,24 @@ const SurveyForm: React.FC<{
           onChange={(e) => handleInputChange('title', e.target.value)}
           required
         />
+        <div>
+          <label htmlFor="projectId" className="block text-sm font-medium text-gray-700 mb-1">
+            Project
+          </label>
+          <select
+            id="projectId"
+            value={formData.projectId || ''}
+            onChange={(e) => handleInputChange('projectId', e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+          >
+            <option value="">Select a project</option>
+            {projects.map(project => (
+              <option key={project._id} value={project._id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <div>
           <label htmlFor="surveyDescription" className="block text-sm font-medium text-gray-700 mb-1">
             Description
@@ -266,8 +286,10 @@ const Surveys: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [shouldRefetch, setShouldRefetch] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
 
   const triggerRefetch = () => {
     setShouldRefetch(prev => !prev);
@@ -328,8 +350,26 @@ const Surveys: React.FC = () => {
       }
     };
 
+    const fetchProjects = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      try {
+        const response = await fetch('/api/projects', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const { data } = await response.json();
+          setProjects(data || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch projects:", error);
+      }
+    };
+
     fetchAgents();
     fetchCompanies();
+    fetchProjects();
   }, [user]);
 
   useEffect(() => {
@@ -397,7 +437,8 @@ const Surveys: React.FC = () => {
       }
 
       try {
-        const response = await fetch('/api/surveys', {
+        const url = selectedProjectId ? `/api/surveys?projectId=${selectedProjectId}` : '/api/surveys';
+        const response = await fetch(url, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -431,7 +472,7 @@ const Surveys: React.FC = () => {
     };
 
     fetchApiSurveys();
-  }, [user, apiError, shouldRefetch]);
+  }, [user, apiError, shouldRefetch, selectedProjectId]);
 
   const handleAddSurvey = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -460,6 +501,7 @@ const Surveys: React.FC = () => {
           questions: formData.questions,
           agentId: formData.agentId,
           companyIds: formData.companyIds,
+          projectId: formData.projectId,
         }),
       });
 
@@ -512,6 +554,7 @@ const Surveys: React.FC = () => {
           questions: formData.questions,
           agentId: formData.agentId,
           companyIds: formData.companyIds,
+          projectId: formData.projectId,
         }),
       });
 
@@ -745,12 +788,18 @@ const Surveys: React.FC = () => {
             leftIcon={<Search className="h-5 w-5 text-gray-400" />}
           />
         </div>
-        <Button
-          variant="outline"
-          leftIcon={<Filter className="h-5 w-5" />}
+        <select
+          value={selectedProjectId}
+          onChange={(e) => setSelectedProjectId(e.target.value)}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
         >
-          Filter
-        </Button>
+          <option value="">All Projects</option>
+          {projects.map(project => (
+            <option key={project._id} value={project._id}>
+              {project.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -870,6 +919,7 @@ const Surveys: React.FC = () => {
           buttonText="Create Survey"
           agents={agents}
           companies={companies}
+          projects={projects}
           user={user}
         />
       </Modal>
@@ -887,6 +937,7 @@ const Surveys: React.FC = () => {
           buttonText="Save Changes"
           agents={agents}
           companies={companies}
+          projects={projects}
           user={user}
         />
       </Modal>
