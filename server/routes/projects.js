@@ -29,11 +29,23 @@ router.post('/', [
   body('questions').optional().isArray().withMessage('Questions must be an array'),
   body('agentId').optional({ checkFalsy: true }).isMongoId().withMessage('Invalid Agent ID format'),
   body('companyIds').optional().isArray().withMessage('companyIds must be an array'),
+  body('projectId').notEmpty().isMongoId(),
   validateRequest
 ], createSurvey);
 
 // Get All Surveys (filtered by role in controller)
 router.get('/', verifyToken, getSurveys); // verifyToken to ensure user is logged in, controller handles role-based filtering
+
+// Create Project
+router.post('/projects', [
+  verifyToken,
+  authorizeRole(['admin', 'agent']),
+  body('title').notEmpty().withMessage('Title is required').trim(),
+  body('description').optional().trim(),
+  validateRequest
+], createProject);
+
+router.get('/projects', verifyToken, getProjects);
 
 // Get Survey By ID (access controlled in controller)
 router.get('/:id', verifyToken, getSurveyById); // verifyToken, controller handles role-based access

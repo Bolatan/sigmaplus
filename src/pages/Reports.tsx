@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Filter, FileText, Download, AlertTriangle, Edit } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Card, CardContent } from '@/components/ui/Card';
-import { Modal } from '@/components/ui/Modal';
-import { useAuth } from '@/context/AuthContext';
-import { Report as ReportType } from '@/types'; // Import the global Report type
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Card, CardContent } from '../components/ui/Card';
+import { Modal } from '../components/ui/Modal';
+import { useAuth } from '../context/AuthContext';
+import { Report as ReportType } from '../types'; // Import the global Report type
 
 // Remove local Report interface if it's now fully covered by global ReportType
 // interface Report {

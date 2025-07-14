@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "server": "node server/index.js",
+    "server": "JWT_SECRET=averysecretkey node server/index.js",
     "build": "tsc && vite build",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
@@ -17,7 +17,7 @@
     "clsx": "^2.1.1",
     "cors": "^2.8.5",
     "csv-parser": "^3.0.0",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.6.1",
     "exceljs": "^4.4.0",
     "express": "^4.18.2",
     "express-validator": "^7.1.0",

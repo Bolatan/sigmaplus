@@ -4,8 +4,9 @@ import PDFDocument from 'pdfkit';
 import pptxgen from 'pptxgenjs';
 import Excel from 'exceljs';
 import fs from 'fs';
-import { createStudyOverviewSlide, createLandingPageSlide } from '../templates/study-overview.js';
-import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
+// Assuming Exporter is a separate utility file for report generation
+import Exporter from '../utils/Exporter.js'; // Added import for Exporter
+import Reporting from '../reporting/index.js'; // This is the module that was previously reported as not found for studyOverview.js
 
 // @desc    Generate a new report
 // @route   POST /api/reports
@@ -13,77 +14,45 @@ import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
 export const generateReport = async (req, res) => {
   try {
     const db = getDb();
-    const { surveyId, title } = req.body;
+    const { surveyId, title, clientId } = req.body;
     const reportsCollection = db.collection('reports');
 
-    // Basic validation
-    if (!ObjectId.isValid(surveyId)) {
-      return res.status(400).json({ error: 'Invalid survey ID format' });
+    if (!ObjectId.isValid(surveyId) || (clientId && !ObjectId.isValid(clientId))) {
+      return res.status(400).json({ error: 'Invalid ID format' });
     }
-
-    // TODO: Add logic here to actually generate the report content
-    // based on the survey responses. For now, we'll just create a
-    // placeholder report document.
 
     const survey = await db.collection('surveys').findOne({ _id: new ObjectId(surveyId) });
-    if (!survey) {
-      return res.status(404).json({ error: 'Survey not found' });
-    }
+    if (!survey) return res.status(404).json({ error: 'Survey not found' });
+
+    const responses = await db.collection('responses').find({ surveyId: new ObjectId(surveyId) }).toArray();
+    const user = await db.collection('users').findOne({ _id: new ObjectId(req.user.id) });
+    const company = await db.collection('companies').findOne({ _id: new ObjectId(req.user.companyId) });
+    const client = clientId ? await db.collection('users').findOne({ _id: new ObjectId(clientId) }) : null;
+
+    const reporting = new Reporting({
+      survey,
+      responses,
+      user,
+      company,
+      client,
+      title
+    });
+
+    const reportData = await reporting.generateReport();
 
     const newReport = {
       title,
       surveyId: new ObjectId(surveyId),
-      companyId: req.user.companyId, // Assuming agent/admin has companyId
+      companyId: req.user.companyId,
       generatedBy: new ObjectId(req.user.id),
+      clientId: client ? new ObjectId(clientId) : null,
       createdAt: new Date(),
-      status: 'completed', // or 'generating'
-      sections: [
-        {
-          id: 'study-overview',
-          title: 'Study Overview',
-          order: 1,
-          content: [],
-          projectName: survey.title,
-          background: survey.description,
-          objectives: 'To understand customer feedback',
-          methodology: 'Online survey',
-        },
-        {
-          id: 'respondent-profile',
-          title: 'Respondent Profile',
-          order: 2,
-          content: [],
-        },
-        {
-          id: 'executive-summary',
-          title: 'Executive Summary',
-          order: 3,
-          content: [],
-        },
-        {
-          id: 'core-insight-areas',
-          title: 'Core Insight Areas',
-          order: 4,
-          content: [],
-        },
-        {
-          id: 'regional-findings',
-          title: 'Regional and Outlet-Level Findings',
-          order: 5,
-          content: [],
-        },
-        {
-          id: 'recommendations',
-          title: 'Recommendations',
-          order: 6,
-          content: [],
-        },
-      ],
+      status: 'completed',
+      ...reportData,
     };
 
     const result = await reportsCollection.insertOne(newReport);
     res.status(201).json({ data: { ...newReport, _id: result.insertedId } });
-
   } catch (err) {
     console.error('Failed to generate report:', err);
     res.status(500).json({ error: 'Failed to generate report' });
@@ -121,32 +90,49 @@ export const getReports = async (req, res) => {
 export const getReportById = async (req, res) => {
   try {
     const db = getDb();
-    const reportsCollection = db.collection('reports');
     const { id } = req.params;
-    const { format } = req.query;
 
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid report ID format' });
     }
 
-    const report = await reportsCollection.findOne({ _id: new ObjectId(id) });
+    const report = await db.collection('reports').findOne({ _id: new ObjectId(id) });
 
     if (!report) {
       return res.status(404).json({ error: 'Report not found' });
     }
 
-    const survey = await db.collection('surveys').findOne({ _id: new ObjectId(report.surveyId) });
-    const responses = await db.collection('responses').find({ surveyId: new ObjectId(report.surveyId) }).toArray();
-    const user = await db.collection('users').findOne({ _id: new ObjectId(report.generatedBy) });
-    const company = await db.collection('companies').findOne({ _id: new ObjectId(report.companyId) });
-    const client = await db.collection('users').findOne({ _id: new ObjectId(report.clientId) });
-
-    // Access control: Ensure client can only access their own reports
-    if (req.user.role === 'client' && req.user.companyId) {
-      if (!report.companyId || report.companyId.toString() !== req.user.companyId.toString()) {
-        return res.status(403).json({ error: 'Access denied to this report' });
-      }
+    // Access control
+    if (req.user.role === 'client' && (!report.companyId || report.companyId.toString() !== req.user.companyId.toString())) {
+      return res.status(403).json({ error: 'Access denied' });
     }
+
+    res.json({ data: report });
+  } catch (err) {
+    console.error(`Failed to fetch report ${req.params.id}:`, err);
+    res.status(500).json({ error: 'Failed to fetch report' });
+  }
+};
+
+// @desc    Download a report by ID
+// @route   GET /api/reports/:id/download
+// @access  Private
+export const downloadReport = async (req, res) => {
+  try {
+    const db = getDb();
+    const { id } = req.params;
+    const { format } = req.query; // pptx, xlsx, pdf
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid report ID format' });
+    }
+
+    const report = await db.collection('reports').findOne({ _id: new ObjectId(id) });
+
+    if (!report) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
 
     const logo = fs.readFileSync('logo.png').toString('base64');
     const chart = await createChart(responses);
@@ -297,39 +283,18 @@ export const getReportById = async (req, res) => {
         doc.addPage();
         doc.fontSize(20).text(section.title, {
           underline: true
+
         });
-        doc.fontSize(12).text(section.content.toString());
-
-        // --- PDF Footer ---
-        const firstRespondent = responses[0] || {};
-        const respondentName = firstRespondent.respondentName || 'N/A';
-        const respondentLocation = firstRespondent.location ? `${firstRespondent.location.city}, ${firstRespondent.location.country}` : 'N/A';
-        const respondentResponse = firstRespondent.response ? JSON.stringify(firstRespondent.response).substring(0, 50) + '...' : 'N/A';
-
-        doc.fontSize(8).text(
-          `Respondent: ${respondentName} | Location: ${respondentLocation} | Response: ${respondentResponse}`,
-          50,
-          750,
-          { align: 'center' }
-        );
-      });
-
-      doc.addPage();
-      doc.fontSize(20).text('Chart', {
-        underline: true
-      });
-      doc.image(Buffer.from(chart, 'base64'), {
-        fit: [500, 400],
-        align: 'center',
-        valign: 'center'
-      });
-
-      doc.end();
+        break;
+      default:
+        return res.status(400).json({ error: 'Invalid format specified' });
     }
 
+    res.end(file);
+
   } catch (err) {
-    console.error(`Failed to fetch report ${req.params.id}:`, err);
-    return res.status(500).json({ error: 'Failed to fetch report' });
+    console.error(`Failed to download report ${req.params.id}:`, err);
+    res.status(500).json({ error: 'Failed to download report' });
   }
 };
 
@@ -398,121 +363,3 @@ export const generateAllReports = async () => {
   // This is a placeholder for the actual report generation logic
 };
 
-function createBrandAwarenessSlide(pptx, survey, responses) {
-  const slide = pptx.addSlide();
-  slide.addText('Brand Awareness & Perception', { x: 1, y: 1, fontSize: 24, bold: true });
-
-  const awarenessKeywords = ['aware', 'familiar', 'heard of'];
-  const perceptionKeywords = ['opinion', 'perception', 'impression', 'view'];
-
-  const awarenessQuestions = survey.questions.filter(q =>
-    awarenessKeywords.some(keyword => q.text.toLowerCase().includes(keyword))
-  );
-
-  const perceptionQuestions = survey.questions.filter(q =>
-    perceptionKeywords.some(keyword => q.text.toLowerCase().includes(keyword))
-  );
-
-  let y = 2;
-
-  if (awarenessQuestions.length > 0) {
-    slide.addText('Brand Awareness', { x: 1, y: y, fontSize: 18, bold: true });
-    y += 0.5;
-
-    awarenessQuestions.forEach(q => {
-      slide.addText(q.text, { x: 1, y: y, fontSize: 14 });
-      y += 0.5;
-
-      const questionResponses = responses.map(r => r.responseData[q.id]).filter(Boolean);
-      const responseCounts = questionResponses.reduce((acc, response) => {
-        acc[response] = (acc[response] || 0) + 1;
-        return acc;
-      }, {});
-
-      Object.entries(responseCounts).forEach(([option, count]) => {
-        slide.addText(`${option}: ${count}`, { x: 1.5, y: y });
-        y += 0.5;
-      });
-    });
-  }
-
-  if (perceptionQuestions.length > 0) {
-    slide.addText('Brand Perception', { x: 1, y: y, fontSize: 18, bold: true });
-    y += 0.5;
-
-    perceptionQuestions.forEach(q => {
-      slide.addText(q.text, { x: 1, y: y, fontSize: 14 });
-      y += 0.5;
-
-      if (q.type === 'rating') {
-        const ratings = responses.map(r => r.responseData[q.id]).filter(Boolean).map(Number);
-        const averageRating = ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
-        slide.addText(`Average Rating: ${averageRating.toFixed(2)}`, { x: 1.5, y: y });
-        y += 0.5;
-      } else {
-        const questionResponses = responses.map(r => r.responseData[q.id]).filter(Boolean);
-        const responseCounts = questionResponses.reduce((acc, response) => {
-          acc[response] = (acc[response] || 0) + 1;
-          return acc;
-        }, {});
-
-        Object.entries(responseCounts).forEach(([option, count]) => {
-          slide.addText(`${option}: ${count}`, { x: 1.5, y: y });
-          y += 0.5;
-        });
-      }
-    });
-  }
-}
-
-function createBrandUsageSlide(pptx, survey, responses) {
-  const slide = pptx.addSlide();
-  slide.addText('Brand Usage & Purchase Behavior', { x: 1, y: 1, fontSize: 24, bold: true });
-  slide.addText('Data and visualizations for this section will be added in a future update.', { x: 1, y: 2 });
-}
-
-function createCustomerSatisfactionSlide(pptx, survey, responses) {
-  const slide = pptx.addSlide();
-  slide.addText('Customer Satisfaction & Loyalty Metrics', { x: 1, y: 1, fontSize: 24, bold: true });
-  slide.addText('Data and visualizations for this section will be added in a future update.', { x: 1, y: 2 });
-}
-
-async function createChart(responses) {
-  const chartJSNodeCanvas = new ChartJSNodeCanvas({ width: 800, height: 600 });
-  const configuration = {
-    type: 'bar',
-    data: {
-      labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
-      datasets: [{
-        label: '# of Votes',
-        data: [12, 19, 3, 5, 2, 3],
-        backgroundColor: [
-          'rgba(255, 99, 132, 0.2)',
-          'rgba(54, 162, 235, 0.2)',
-          'rgba(255, 206, 86, 0.2)',
-          'rgba(75, 192, 192, 0.2)',
-          'rgba(153, 102, 255, 0.2)',
-          'rgba(255, 159, 64, 0.2)'
-        ],
-        borderColor: [
-          'rgba(255, 99, 132, 1)',
-          'rgba(54, 162, 235, 1)',
-          'rgba(255, 206, 86, 1)',
-          'rgba(75, 192, 192, 1)',
-          'rgba(153, 102, 255, 1)',
-          'rgba(255, 159, 64, 1)'
-        ],
-        borderWidth: 1
-      }]
-    },
-    options: {
-      scales: {
-        y: {
-          beginAtZero: true
-        }
-      }
-    }
-  };
-  const image = await chartJSNodeCanvas.renderToBuffer(configuration);
-  return image.toString('base64');
-}

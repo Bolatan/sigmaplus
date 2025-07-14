@@ -1,15 +1,55 @@
 import { ApiError } from '../utils/ApiError.js';
 import { getDb } from '../utils/db.js';
+
+export const createProject = async (req, res, next) => {
+  try {
+    const { title, description } = req.body;
+    const { id: userId } = req.user;
+
+    const db = getDb();
+
+    const newProjectData = {
+      title,
+      description: description || '',
+      createdBy: new ObjectId(userId),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const result = await db.collection('projects').insertOne(newProjectData);
+    const createdProject = await db.collection('projects').findOne({ _id: result.insertedId });
+
+    res.status(201).json({ status: 'success', data: createdProject });
+  } catch (error) {
+    console.error("Error in createProject controller:", error);
+    next(error);
+  }
+};
+
+export const getProjects = async (req, res, next) => {
+  try {
+    const db = getDb();
+    const projects = await db.collection('projects').find({}).toArray();
+    res.json({ status: 'success', data: projects });
+  } catch (error) {
+    console.error("Error in getProjects controller:", error);
+    next(error);
+  }
+};
 import { ObjectId } from 'mongodb';
 import csv from 'csv-parser';
 import { Readable } from 'stream';
 
 export const createSurvey = async (req, res, next) => {
   try {
-    const { title, description, questions: inputQuestions, status, companyIds: bodyCompanyIds, agentId, customerId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyIds: bodyCompanyIds, agentId, customerId, projectId } = req.body;
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
     const db = getDb();
+
+    if (!ObjectId.isValid(projectId)) {
+      throw new ApiError(400, 'Invalid Project ID format');
+    }
 
     const validatedQuestions = (inputQuestions || []).map((q, index) => {
       if (!q || typeof q !== 'object') {
@@ -50,6 +90,7 @@ export const createSurvey = async (req, res, next) => {
     });
 
     const newSurveyData = {
+      projectId: new ObjectId(projectId),
       title,
       description: description || '',
       questions: validatedQuestions,
@@ -88,9 +129,16 @@ export const createSurvey = async (req, res, next) => {
 export const getSurveys = async (req, res, next) => {
   try {
     const db = getDb();
-    const { region, demographics, outletType } = req.query;
+    const { region, demographics, outletType, projectId } = req.query;
     const query = {};
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
+
+    if (projectId) {
+      if (!ObjectId.isValid(projectId)) {
+        throw new ApiError(400, 'Invalid Project ID format');
+      }
+      query.projectId = new ObjectId(projectId);
+    }
 
     if (userRole === 'client') {
       if (!userCompanyId) {

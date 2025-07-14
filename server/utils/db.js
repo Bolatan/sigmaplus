@@ -15,6 +15,11 @@ const connectToServer = async () => {
     // If your connection string already specifies the database, client.db() without args might be sufficient.
     // e.g., mongodb+srv://user:pass@host/yourDbName?retryWrites=true
     db = client.db("survey_app");
+    await db.createCollection("projects").catch(err => {
+      if (err.codeName !== 'NamespaceExists') {
+        throw err;
+      }
+    });
     console.log("Successfully connected to MongoDB database: survey_app");
     return db;
   } catch (err) {
