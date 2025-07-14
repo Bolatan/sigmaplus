@@ -33,7 +33,7 @@ const SurveyForm: React.FC<{
     return <div>Loading survey form...</div>;
   }
 
-  const handleInputChange = useCallback((field: keyof Omit<SurveyFormData, 'questions'>, value: string) => {
+  const handleInputChange = useCallback((field: keyof Omit<SurveyFormData, 'questions'>, value: string | string[]) => {
     onFormDataChange({ ...formData, [field]: value });
   }, [formData, onFormDataChange]);
 
@@ -89,11 +89,15 @@ const SurveyForm: React.FC<{
             </label>
             <select
               id="company"
-              value={formData.companyId}
-              onChange={(e) => handleInputChange('companyId', e.target.value)}
+              multiple
+              value={formData.companyIds || []}
+              onChange={(e) => {
+                const selectedIds = Array.from(e.target.selectedOptions, (option) => option.value);
+                handleInputChange('companyIds', selectedIds);
+              }}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
             >
-              <option value="">Select a company</option>
+              <option value="" disabled>Select companies</option>
               {companies.map((company) => (
                 <option key={company._id} value={company._id}>
                   {company.name}
