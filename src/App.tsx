@@ -5,8 +5,7 @@ import { Layout } from './components/layout/Layout';
 import CookieConsent from 'react-cookie-consent';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-// Removed the import for Surveys.tsx as it's causing the "module not found" error.
-// import Surveys from './pages/Surveys.tsx'; // This line caused the error
+
 import Reports from './pages/Reports';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
