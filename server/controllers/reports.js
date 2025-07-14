@@ -340,14 +340,14 @@ export const getReportById = async (req, res) => {
 };
 
 
-// @desc    Update a report's metadata (e.g., title)
+// @desc    Update a report's metadata (e.g., title, sections)
 // @route   PUT /api/reports/:id
 // @access  Private (Admin, Agent)
 export const updateReport = async (req, res) => {
   try {
     const db = getDb();
     const { id } = req.params;
-    const { title } = req.body;
+    const { title, sections } = req.body;
 
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid report ID format' });
@@ -356,6 +356,7 @@ export const updateReport = async (req, res) => {
     const updateDoc = {
       $set: {
         ...(title && { title }),
+        ...(sections && { sections }),
         updatedAt: new Date(),
       },
     };
