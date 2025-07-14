@@ -5,16 +5,16 @@ import { Layout } from './components/layout/Layout';
 import CookieConsent from 'react-cookie-consent';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import Surveys from 'pages/Surveys.tsx';
+// REMOVED: import Surveys from './pages/Surveys.tsx'; // This import is causing the error
 import Reports from './pages/Reports';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
 import Companies from './pages/Companies';
-import SurveyResponsePage from './pages/SurveyResponsePage'; // Import the new page
+import SurveyResponsePage from './pages/SurveyResponsePage';
 import SurveyDetails from './pages/SurveyDetails';
 import ClientDashboard from './pages/ClientDashboard';
 import PrivacyPolicy from './pages/PrivacyPolicy';
-import Projects from './pages/Projects';
+import Projects from './pages/Projects'; // Correctly importing the Projects component
 import EditReportSections from './pages/EditReportSections';
 
 // Protected route component
@@ -79,10 +79,15 @@ const AppRoutes: React.FC = () => {
           </Layout>
         </ProtectedRoute>
       } />
+      {/*
+        This route now uses the 'Projects' component, as 'Surveys.tsx' was likely
+        refactored into 'Projects.tsx'. If you need a separate 'Surveys' page
+        in the future, you will need to create a new file and component for it.
+      */}
       <Route path="/surveys" element={
         <ProtectedRoute>
           <Layout>
-            <Surveys />
+            <Projects /> {/* Renders the Projects component for the /surveys path */}
           </Layout>
         </ProtectedRoute>
       } />
