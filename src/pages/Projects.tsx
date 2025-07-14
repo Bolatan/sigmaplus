@@ -10,7 +10,7 @@ import { Survey, SurveyQuestion, QuestionType } from '../types'; // Assuming Sur
 import { v4 as uuidv4 } from 'uuid';
 import { ConditionalLogicModal } from '../components/surveys/ConditionalLogicModal'; // Re-using survey modals
 import { TemplateSelectionModal } from '../components/surveys/TemplateSelectionModal'; // Re-using survey templates
-import SurveyForm from '../components/surveys/SurveyForm'; // Assuming ProjectForm was meant to be SurveyForm based on usage
+import ProjectForm from '../components/projects/ProjectForm'; // Corrected import
 
 interface ProjectFormData {
   title: string;
@@ -61,12 +61,6 @@ const Projects: React.FC = () => {
     });
     setEditingProject(null);
   }, []);
-
-  useEffect(() => {
-    if (!formData.questions) {
-      onFormDataChange({ ...formData, questions: [] }); // Call onFormDataChange to update parent state
-    }
-  }, [formData, onFormDataChange]); // Added onFormDataChange to dependency array
 
   useEffect(() => {
     const fetchAgents = async () => {
@@ -596,7 +590,7 @@ const Projects: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/surveys/${project.id}`)} {/* Navigating to survey details */}
+                      onClick={() => navigate(`/surveys/${project.id}`)}
                     >
                       View Details
                     </Button>
@@ -604,7 +598,7 @@ const Projects: React.FC = () => {
                         <Button
                           variant="success"
                           size="sm"
-                          onClick={() => navigate(`/surveys/${project.id}/respond`)} {/* Navigating to survey response */}
+                          onClick={() => navigate(`/surveys/${project.id}/respond`)}
                         >
                           Take Survey
                         </Button>
@@ -664,7 +658,7 @@ const Projects: React.FC = () => {
         onClose={handleCancelAdd}
         title="Create New Project"
       >
-        <SurveyForm // Using SurveyForm for Project creation
+        <ProjectForm
           formData={formData}
           onFormDataChange={handleFormDataChange}
           onSubmit={handleAddProject}
@@ -682,7 +676,7 @@ const Projects: React.FC = () => {
         onClose={handleCancelEdit}
         title="Edit Project"
       >
-        <SurveyForm // Using SurveyForm for Project editing
+        <ProjectForm
           formData={formData}
           onFormDataChange={handleFormDataChange}
           onSubmit={handleEditProject}
