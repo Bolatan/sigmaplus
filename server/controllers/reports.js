@@ -315,3 +315,8 @@ export const deleteReport = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete report' });
   }
 };
+
+export const generateAllReports = async () => {
+  console.log('Generating all reports...');
+  // This is a placeholder for the actual report generation logic
+};
