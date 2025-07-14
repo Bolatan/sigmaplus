@@ -402,6 +402,12 @@ const Surveys: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
+    return () => {
+      setApiError(null);
+    };
+  }, []);
+
+  useEffect(() => {
     const fetchApiSurveys = async () => {
       setIsLoading(true);
       setApiError(null);
