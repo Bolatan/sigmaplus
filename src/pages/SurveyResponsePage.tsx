@@ -6,12 +6,18 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input'; // For basic text input
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
 
+import { QuestionType } from '../types';
+
 // Define a simple question structure for now
 interface SurveyQuestion {
   id: string; // Or use index if questions don't have unique IDs from backend yet
   text: string;
-  type: 'text' | 'textarea' | 'choice'; // Add more types as needed
+  type: QuestionType; // Add more types as needed
   options?: string[]; // For 'choice' type
+  isRequired?: boolean;
+  maxRating?: number;
+  allowedFileTypes?: string;
+  videoUrl?: string;
 }
 
 interface SurveyWithQuestions extends Survey {
@@ -282,6 +288,100 @@ const SurveyResponsePage: React.FC = () => {
                             <span>{option}</span>
                           </label>
                         ))}
+                      </div>
+                    )}
+                    {q.type === 'range' && (
+                      <input
+                        type="range"
+                        id={q.id || `q-input-${index}`}
+                        min="1"
+                        max={q.maxRating || 5}
+                        value={(responses[q.id || `q-${index}`] as string) || ''}
+                        onChange={(e) => handleInputChange(q.id || `q-${index}`, e.target.value, q.type)}
+                        className="mt-1"
+                        disabled={isSubmitting || !!successMessage}
+                        required={q.isRequired}
+                      />
+                    )}
+                    {q.type === 'nps' && (
+                      <div className="flex justify-between">
+                        {[...Array(11)].map((_, i) => (
+                          <label key={i} className="flex flex-col items-center space-y-1 cursor-pointer">
+                            <input
+                              type="radio"
+                              name={q.id || `q-radio-${index}`}
+                              value={i}
+                              checked={(responses[q.id || `q-${index}`] as string) === String(i)}
+                              onChange={(e) => handleInputChange(q.id || `q-${index}`, e.target.value, q.type)}
+                              className="text-primary-600 focus:ring-primary-500"
+                              disabled={isSubmitting || !!successMessage}
+                              required={q.isRequired}
+                            />
+                            <span>{i}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    {q.type === 'ces' && (
+                      <div className="flex justify-between">
+                        {[...Array(5)].map((_, i) => (
+                          <label key={i} className="flex flex-col items-center space-y-1 cursor-pointer">
+                            <input
+                              type="radio"
+                              name={q.id || `q-radio-${index}`}
+                              value={i + 1}
+                              checked={(responses[q.id || `q-${index}`] as string) === String(i + 1)}
+                              onChange={(e) => handleInputChange(q.id || `q-${index}`, e.target.value, q.type)}
+                              className="text-primary-600 focus:ring-primary-500"
+                              disabled={isSubmitting || !!successMessage}
+                              required={q.isRequired}
+                            />
+                            <span>{i + 1}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    {q.type === 'image-choice' && q.options && q.options.length > 0 && (
+                      <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {q.options.map((option, optIndex) => (
+                          <label key={optIndex} className="flex flex-col items-center space-y-2 cursor-pointer">
+                            <img src={option} alt={`Option ${optIndex + 1}`} className="w-32 h-32 object-cover rounded-md" />
+                            <input
+                              type="checkbox"
+                              name={`${q.id || `q-check-${index}`}-${optIndex}`}
+                              value={option}
+                              checked={((responses[q.id || `q-${index}`] || []) as string[]).includes(option)}
+                              onChange={(e) => handleInputChange(q.id || `q-${index}`, e.target.value, q.type)}
+                              className="rounded text-primary-600 focus:ring-primary-500"
+                              disabled={isSubmitting || !!successMessage}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    {q.type === 'file-upload' && (
+                      <Input
+                        id={q.id || `q-input-${index}`}
+                        type="file"
+                        accept={q.allowedFileTypes}
+                        onChange={(e) => handleInputChange(q.id || `q-${index}`, e.target.files ? e.target.files[0].name : '', q.type)}
+                        className="mt-1"
+                        disabled={isSubmitting || !!successMessage}
+                        required={q.isRequired}
+                      />
+                    )}
+                    {q.type === 'video' && (
+                      <div>
+                        <video src={q.videoUrl} controls className="w-full rounded-md" />
+                        <Input
+                          id={q.id || `q-input-${index}`}
+                          placeholder="Your response"
+                          value={(responses[q.id || `q-${index}`] as string) || ''}
+                          onChange={(e) => handleInputChange(q.id || `q-${index}`, e.target.value, q.type)}
+                          className="mt-2"
+                          disabled={isSubmitting || !!successMessage}
+                          required={q.isRequired}
+                        />
                       </div>
                     )}
                     {/* Add other question types here later */}
