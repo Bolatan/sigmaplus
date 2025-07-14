@@ -12,13 +12,14 @@ import { verifyToken, authorizeRole } from './middleware/auth.js';
 import { body, validationResult } from 'express-validator';
 import { logger } from './middleware/logger.js';
 
-import surveyRoutesFunction from './routes/surveys.js'; // Renamed import
+import projectRoutesFunction from './routes/projects.js';
 import userRoutes from './routes/users.js';
 import companyRoutes from './routes/companies.js';
 import reportRoutes from './routes/reports.js'; // Uncommented
 import cronRoutes from './routes/cron.js';
 import scheduleReportGeneration from './services/reportingService.js';
 import multer from 'multer';
+import Reporting from './reporting/index.js';
 
 
 // ES module equivalents for __dirname
@@ -63,7 +64,7 @@ app.use(express.static(path.join(__dirname, '..', 'dist')));
 app.use('/api/auth', authRoutes); // Mount authentication routes
 
 // --- Application API Routes ---
-app.use('/api/surveys', surveyRoutesFunction(upload)); // Pass multer instance to survey routes
+app.use('/api/projects', projectRoutesFunction(upload));
 app.use('/api/users', userRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/reports', reportRoutes);
@@ -120,6 +121,29 @@ app.get('/api/stats/survey-statuses', verifyToken, async (req, res) => {
 
 // Companies API routes are now handled by server/routes/companies.js
 // The GET /api/companies and GET /api/companies/:id that were here have been moved.
+
+app.get('/api/reports/download/:reportId', verifyToken, async (req, res) => {
+  try {
+    const db = getDb();
+    const { reportId } = req.params;
+    const report = await db.collection('reports').findOne({ _id: new ObjectId(reportId) });
+
+    if (!report) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    const reporting = new Reporting(report);
+    const presentation = await reporting.generateReport();
+    const pptxBuffer = await presentation.write();
+
+    res.setHeader('Content-Disposition', `attachment; filename=${report.clientName}-report.pptx`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+    res.send(pptxBuffer);
+  } catch (err) {
+    console.error("Failed to download report:", err);
+    res.status(500).json({ error: "Failed to download report" });
+  }
+});
 
 
 // --- Frontend Catchall ---

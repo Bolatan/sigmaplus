@@ -97,21 +97,62 @@ const SurveyResponsePage: React.FC = () => {
     // If token exists but user is null, AuthContext is loading, page will show its own loader.
   }, [surveyId, user]);
 
-  const handleInputChange = (questionId: string, value: string, questionType: SurveyQuestion['type']) => {
-    setResponses(prev => {
-      const newResponses = { ...prev };
-      if (questionType === 'multiple-choice') {
-        const currentAnswers = (newResponses[questionId] || []) as string[];
-        if (currentAnswers.includes(value)) {
-          newResponses[questionId] = currentAnswers.filter(ans => ans !== value);
-        } else {
-          newResponses[questionId] = [...currentAnswers, value];
-        }
-      } else {
-        newResponses[questionId] = value;
+  const handleFileUpload = async (questionId: string, file: File) => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setError("Authentication required. Please login again.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/surveys/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.msg || errorData.error || `Failed to upload file: ${response.statusText}`);
       }
-      return newResponses;
-    });
+
+      const result = await response.json();
+      const fileUrl = result.data.url;
+
+      setResponses(prev => ({
+        ...prev,
+        [questionId]: fileUrl,
+      }));
+    } catch (err: any) {
+      console.error('Error uploading file:', err);
+      setError(err.message || 'An unexpected error occurred while uploading the file.');
+    }
+  };
+
+  const handleInputChange = (questionId: string, value: string | File, questionType: SurveyQuestion['type']) => {
+    if (questionType === 'file-upload' && value instanceof File) {
+      handleFileUpload(questionId, value);
+    } else {
+      setResponses(prev => {
+        const newResponses = { ...prev };
+        if (questionType === 'multiple-choice') {
+          const currentAnswers = (newResponses[questionId] || []) as string[];
+          if (currentAnswers.includes(value as string)) {
+            newResponses[questionId] = currentAnswers.filter(ans => ans !== value);
+          } else {
+            newResponses[questionId] = [...currentAnswers, value as string];
+          }
+        } else {
+          newResponses[questionId] = value as string;
+        }
+        return newResponses;
+      });
+    }
   };
 
   const handleSubmitResponse = async (e: React.FormEvent) => {
@@ -364,7 +405,11 @@ const SurveyResponsePage: React.FC = () => {
                         id={q.id || `q-input-${index}`}
                         type="file"
                         accept={q.allowedFileTypes}
-                        onChange={(e) => handleInputChange(q.id || `q-${index}`, e.target.files ? e.target.files[0].name : '', q.type)}
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files.length > 0) {
+                            handleFileUpload(q.id || `q-${index}`, e.target.files[0]);
+                          }
+                        }}
                         className="mt-1"
                         disabled={isSubmitting || !!successMessage}
                         required={q.isRequired}
