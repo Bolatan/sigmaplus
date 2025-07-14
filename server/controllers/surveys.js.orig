@@ -6,7 +6,12 @@ import { Readable } from 'stream';
 
 export const createSurvey = async (req, res, next) => {
   try {
+<<<<<<< HEAD
     const { title, description, questions: inputQuestions, status, companyIds: bodyCompanyIds, agentId } = req.body;
+=======
+    const { title, description, questions: inputQuestions, status, companyIds, agentId } = req.body;
+
+>>>>>>> main
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
     const db = getDb();
@@ -27,9 +32,15 @@ export const createSurvey = async (req, res, next) => {
       companyIds: [],
     };
 
+<<<<<<< HEAD
     if (userRole === 'admin' && bodyCompanyIds && Array.isArray(bodyCompanyIds)) {
       newSurveyData.companyIds = bodyCompanyIds.filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id));
     } else if ((userRole === 'agent' || userRole === 'client') && userCompanyId && ObjectId.isValid(userCompanyId)) {
+=======
+    if (userRole === 'admin' && companyIds && Array.isArray(companyIds)) {
+      newSurveyData.companyIds = companyIds.filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id));
+    } else if (userRole === 'agent' && userCompanyId && ObjectId.isValid(userCompanyId)) {
+>>>>>>> main
       newSurveyData.companyIds = [new ObjectId(userCompanyId)];
     }
 
