@@ -1,13 +1,14 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
-  ClipboardList, 
-  BarChart3, 
-  Users, 
-  Building2, 
-  Settings, 
-  LogOut 
+  LayoutDashboard,
+  ClipboardList,
+  BarChart3,
+  Users,
+  Building2,
+  Settings,
+  LogOut,
+  FolderKanban,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types';
@@ -58,6 +59,11 @@ export const Sidebar: React.FC = () => {
     if (user?.role === UserRole.ADMIN) {
       items.push(
         {
+          to: '/projects',
+          icon: <FolderKanban />,
+          label: 'Projects',
+        },
+        {
           to: '/surveys',
           icon: <ClipboardList />,
           label: 'Surveys',
@@ -85,6 +91,11 @@ export const Sidebar: React.FC = () => {
       );
     } else if (user?.role === UserRole.AGENT) {
       items.push(
+        {
+          to: '/projects',
+          icon: <FolderKanban />,
+          label: 'Projects',
+        },
         {
           to: '/surveys',
           icon: <ClipboardList />,
