@@ -338,15 +338,12 @@ export const deleteReport = async (req, res) => {
   }
 };
 
-// @desc    Generate all reports
-// @route   POST /api/reports/generate-all
-// @access  Private (Admin)
+
 export const generateAllReports = async () => {
   console.log('Generating all reports...');
   // This is a placeholder for the actual report generation logic
 };
 
-// Helper function to create brand awareness slide
 function createBrandAwarenessSlide(pptx, survey, responses) {
   const slide = pptx.addSlide();
   slide.addText('Brand Awareness & Perception', { x: 1, y: 1, fontSize: 24, bold: true });
