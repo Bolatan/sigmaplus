@@ -428,27 +428,27 @@ export const submitSurveyResponse = async (req, res, next) => {
 };
 
 export const bulkUploadSurveyResponses = async (req, res, next) => {
-  const { surveyId: surveyIdParam } = req.params;
-  const { id: uploaderUserId } = req.user;
-
-  if (!req.file) {
-    return next(new ApiError(400, 'No CSV file uploaded.'));
-  }
-
-  if (!ObjectId.isValid(surveyIdParam)) {
-    return next(new ApiError(400, 'Invalid Survey ID format.'));
-  }
-  const surveyObjectId = new ObjectId(surveyIdParam);
-
-  const db = getDb();
-
   try {
+    const { surveyId: surveyIdParam } = req.params;
+    const { id: uploaderUserId } = req.user;
+
+    if (!req.file) {
+      throw new ApiError(400, 'No CSV file uploaded.');
+    }
+
+    if (!ObjectId.isValid(surveyIdParam)) {
+      throw new ApiError(400, 'Invalid Survey ID format.');
+    }
+    const surveyObjectId = new ObjectId(surveyIdParam);
+
+    const db = getDb();
     const survey = await db.collection('surveys').findOne({ _id: surveyObjectId });
+
     if (!survey) {
-      return next(new ApiError(404, 'Survey not found.'));
+      throw new ApiError(404, 'Survey not found.');
     }
     if (survey.status !== 'active') {
-      return next(new ApiError(400, `Survey is not active. Current status: ${survey.status}. Cannot upload responses.`));
+      throw new ApiError(400, `Survey is not active. Current status: ${survey.status}. Cannot upload responses.`);
     }
 
     const responsesToInsert = [];
@@ -527,8 +527,7 @@ export const bulkUploadSurveyResponses = async (req, res, next) => {
 
   } catch (error) {
     console.error("Error in bulkUploadSurveyResponses controller:", error);
-    if (error instanceof ApiError) return next(error);
-    return next(new ApiError(500, error.message || 'Failed to process bulk upload.'));
+    next(error);
   }
 };
 
