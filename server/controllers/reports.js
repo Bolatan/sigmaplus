@@ -120,7 +120,12 @@ export const getReportById = async (req, res) => {
       }
     }
 
-    const logo = fs.readFileSync('logo.png').toString('base64');
+    let logo = null;
+    try {
+      logo = fs.readFileSync('logo.png').toString('base64');
+    } catch (error) {
+      console.warn('Could not load logo.png, continuing without it.');
+    }
     const chart = await createChart(responses);
 
     if (format === 'pptx') {
@@ -142,7 +147,7 @@ export const getReportById = async (req, res) => {
       }
 
       // --- Landing Page ---
-      // createLandingPageSlide(pptx, survey, logo);
+
 
       // --- Study Overview ---
       // createStudyOverviewSlide(pptx, survey);
@@ -260,11 +265,13 @@ export const getReportById = async (req, res) => {
       });
 
       // --- PDF Landing Page ---
-      doc.image(Buffer.from(logo, 'base64'), {
-        fit: [100, 100],
-        align: 'center',
-        valign: 'center'
-      });
+      if (logo) {
+        doc.image(Buffer.from(logo, 'base64'), {
+          fit: [100, 100],
+          align: 'center',
+          valign: 'center'
+        });
+      }
       doc.moveDown(2);
       doc.fontSize(25).text(survey.title, {
         align: 'center'
@@ -307,7 +314,7 @@ export const getReportById = async (req, res) => {
 
   } catch (err) {
     console.error(`Failed to fetch report ${req.params.id}:`, err);
-    res.status(500).json({ error: 'Failed to fetch report' });
+    return res.status(500).json({ error: 'Failed to fetch report' });
   }
 };
 
