@@ -19,6 +19,11 @@ export const generateReport = async (req, res) => {
     // based on the survey responses. For now, we'll just create a
     // placeholder report document.
 
+    const survey = await db.collection('surveys').findOne({ _id: new ObjectId(surveyId) });
+    if (!survey) {
+      return res.status(404).json({ error: 'Survey not found' });
+    }
+
     const newReport = {
       title,
       surveyId: new ObjectId(surveyId),
@@ -26,11 +31,48 @@ export const generateReport = async (req, res) => {
       generatedBy: new ObjectId(req.user.id),
       createdAt: new Date(),
       status: 'completed', // or 'generating'
-      // a 'sections' field would contain the actual report data
       sections: [
-        { type: 'summary', content: 'This is an auto-generated summary.' },
-        { type: 'charts', data: [] }
-      ]
+        {
+          id: 'study-overview',
+          title: 'Study Overview',
+          order: 1,
+          content: [],
+          projectName: survey.title,
+          background: survey.description,
+          objectives: 'To understand customer feedback',
+          methodology: 'Online survey',
+        },
+        {
+          id: 'respondent-profile',
+          title: 'Respondent Profile',
+          order: 2,
+          content: [],
+        },
+        {
+          id: 'executive-summary',
+          title: 'Executive Summary',
+          order: 3,
+          content: [],
+        },
+        {
+          id: 'core-insight-areas',
+          title: 'Core Insight Areas',
+          order: 4,
+          content: [],
+        },
+        {
+          id: 'regional-findings',
+          title: 'Regional and Outlet-Level Findings',
+          order: 5,
+          content: [],
+        },
+        {
+          id: 'recommendations',
+          title: 'Recommendations',
+          order: 6,
+          content: [],
+        },
+      ],
     };
 
     const result = await reportsCollection.insertOne(newReport);
@@ -96,6 +138,7 @@ export const getReportById = async (req, res) => {
     const responses = await db.collection('responses').find({ surveyId: new ObjectId(report.surveyId) }).toArray();
     const user = await db.collection('users').findOne({ _id: new ObjectId(report.generatedBy) });
     const company = await db.collection('companies').findOne({ _id: new ObjectId(report.companyId) });
+    const client = await db.collection('users').findOne({ _id: new ObjectId(report.clientId) });
 
     // Access control: Ensure client can only access their own reports
     if (req.user.role === 'client' && req.user.companyId) {
@@ -107,19 +150,18 @@ export const getReportById = async (req, res) => {
     if (format === 'pptx') {
       const pptx = new pptxgen();
 
-      if (company && company.branding) {
-        if (company.branding.color) {
+      if (client && client.branding) {
+        if (client.branding.primaryColor) {
           pptx.defineLayout({
             name: 'MASTER_SLIDE',
             width: 10,
             height: 5.625,
-            background: { color: company.branding.color },
+            background: { color: client.branding.primaryColor },
           });
           pptx.layout = 'MASTER_SLIDE';
         }
-        if (company.branding.logo) {
-          // Assuming the logo is a base64 string, prepend the necessary data URI scheme
-          pptx.addSlide().addImage({ data: `data:image/png;base64,${company.branding.logo}`, x: 1, y: 1, w: 1, h: 1 });
+        if (client.branding.logoUrl) {
+          pptx.addSlide().addImage({ path: client.branding.logoUrl, x: 1, y: 1, w: 1, h: 1 });
         }
       }
 
@@ -161,26 +203,11 @@ export const getReportById = async (req, res) => {
       summarySlide.addText(report.summary || 'No summary available.', { x: 1, y: 2 });
 
       // --- Core Insight Areas ---
-      const coreInsightAreas = [
-        'Brand Awareness & Perception',
-        'Brand Usage & Purchase Behavior',
-        'Customer Satisfaction & Loyalty Metrics',
-        'Challenges and Improvement Opportunities',
-        'Outlet Dynamics',
-        'Product Stocking, Restocking Behavior',
-        'Supply Methods and Barriers',
-        'Trade Margins & Pricing',
-        'Trade Customer Lifecycle & Support',
-        'Drivers of Purchase',
-        'Marketing Channels and Awareness Sources',
-        'CSAT, NPS, CES (Customer Effort Score)',
-      ];
-
-      coreInsightAreas.forEach(area => {
-        const slide = pptx.addSlide();
-        slide.addText(area, { x: 1, y: 1, fontSize: 24, bold: true });
-        slide.addText('Data and visualizations for this section will be added in a future update.', { x: 1, y: 2 });
-      });
+      // --- Core Insight Areas ---
+      createBrandAwarenessSlide(pptx, survey, responses);
+      createBrandUsageSlide(pptx, survey, responses);
+      createCustomerSatisfactionSlide(pptx, survey, responses);
+      // ... and so on for the other core insight areas
 
       // --- Regional and Outlet-Level Findings ---
       const regionalSlide = pptx.addSlide();
@@ -315,3 +342,83 @@ export const deleteReport = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete report' });
   }
 };
+
+function createBrandAwarenessSlide(pptx, survey, responses) {
+  const slide = pptx.addSlide();
+  slide.addText('Brand Awareness & Perception', { x: 1, y: 1, fontSize: 24, bold: true });
+
+  const awarenessKeywords = ['aware', 'familiar', 'heard of'];
+  const perceptionKeywords = ['opinion', 'perception', 'impression', 'view'];
+
+  const awarenessQuestions = survey.questions.filter(q =>
+    awarenessKeywords.some(keyword => q.text.toLowerCase().includes(keyword))
+  );
+
+  const perceptionQuestions = survey.questions.filter(q =>
+    perceptionKeywords.some(keyword => q.text.toLowerCase().includes(keyword))
+  );
+
+  let y = 2;
+
+  if (awarenessQuestions.length > 0) {
+    slide.addText('Brand Awareness', { x: 1, y: y, fontSize: 18, bold: true });
+    y += 0.5;
+
+    awarenessQuestions.forEach(q => {
+      slide.addText(q.text, { x: 1, y: y, fontSize: 14 });
+      y += 0.5;
+
+      const questionResponses = responses.map(r => r.responseData[q.id]).filter(Boolean);
+      const responseCounts = questionResponses.reduce((acc, response) => {
+        acc[response] = (acc[response] || 0) + 1;
+        return acc;
+      }, {});
+
+      Object.entries(responseCounts).forEach(([option, count]) => {
+        slide.addText(`${option}: ${count}`, { x: 1.5, y: y });
+        y += 0.5;
+      });
+    });
+  }
+
+  if (perceptionQuestions.length > 0) {
+    slide.addText('Brand Perception', { x: 1, y: y, fontSize: 18, bold: true });
+    y += 0.5;
+
+    perceptionQuestions.forEach(q => {
+      slide.addText(q.text, { x: 1, y: y, fontSize: 14 });
+      y += 0.5;
+
+      if (q.type === 'rating') {
+        const ratings = responses.map(r => r.responseData[q.id]).filter(Boolean).map(Number);
+        const averageRating = ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
+        slide.addText(`Average Rating: ${averageRating.toFixed(2)}`, { x: 1.5, y: y });
+        y += 0.5;
+      } else {
+        const questionResponses = responses.map(r => r.responseData[q.id]).filter(Boolean);
+        const responseCounts = questionResponses.reduce((acc, response) => {
+          acc[response] = (acc[response] || 0) + 1;
+          return acc;
+        }, {});
+
+        Object.entries(responseCounts).forEach(([option, count]) => {
+          slide.addText(`${option}: ${count}`, { x: 1.5, y: y });
+          y += 0.5;
+        });
+      }
+    });
+  }
+}
+
+function createBrandUsageSlide(pptx, survey, responses) {
+  const slide = pptx.addSlide();
+  slide.addText('Brand Usage & Purchase Behavior', { x: 1, y: 1, fontSize: 24, bold: true });
+  slide.addText('Data and visualizations for this section will be added in a future update.', { x: 1, y: 2 });
+}
+
+function createCustomerSatisfactionSlide(pptx, survey, responses) {
+  const slide = pptx.addSlide();
+  slide.addText('Customer Satisfaction & Loyalty Metrics', { x: 1, y: 1, fontSize: 24, bold: true });
+  slide.addText('Data and visualizations for this section will be added in a future update.', { x: 1, y: 2 });
+}
+

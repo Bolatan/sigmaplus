@@ -7,6 +7,7 @@ import { Readable } from 'stream';
 export const createSurvey = async (req, res, next) => {
   try {
     const { title, description, questions: inputQuestions, status, companyIds, agentId } = req.body;
+
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
     const db = getDb();
@@ -69,6 +70,10 @@ export const createSurvey = async (req, res, next) => {
       newSurveyData.agentId = new ObjectId(agentId);
     }
 
+    if (customerId && ObjectId.isValid(customerId)) {
+      newSurveyData.customerId = new ObjectId(customerId);
+    }
+
     const result = await db.collection('surveys').insertOne(newSurveyData);
     const createdSurvey = await db.collection('surveys').findOne({ _id: result.insertedId });
 
@@ -82,6 +87,7 @@ export const createSurvey = async (req, res, next) => {
 export const getSurveys = async (req, res, next) => {
   try {
     const db = getDb();
+    const { region, demographics, outletType } = req.query;
     const query = {};
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
@@ -90,8 +96,19 @@ export const getSurveys = async (req, res, next) => {
         return res.json({ status: 'success', data: [] });
       }
       query.companyIds = new ObjectId(userCompanyId);
+
     } else if (userRole === 'agent') {
       query.agentId = new ObjectId(userId);
+    }
+
+    if (region && region !== 'all') {
+      query['location.region'] = region;
+    }
+    if (demographics && demographics !== 'all') {
+      query[`demographics.${demographics}`] = { $exists: true };
+    }
+    if (outletType && outletType !== 'all') {
+      query.outletType = outletType;
     }
 
     const surveysData = await db.collection('surveys').find(query).toArray();
@@ -139,7 +156,7 @@ export const updateSurvey = async (req, res, next) => {
     const db = getDb();
     const { id: surveyId } = req.params;
     const { id: userId, role: userRole } = req.user;
-    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId, customerId } = req.body;
 
     if (!ObjectId.isValid(surveyId)) {
       throw new ApiError(404, 'Survey not found (invalid ID format)');
@@ -173,13 +190,28 @@ export const updateSurvey = async (req, res, next) => {
         if (!q.type || typeof q.type !== 'string' || !['text', 'textarea', 'single-choice', 'multiple-choice', 'rating', 'nps', 'ces', 'image-choice', 'file-upload', 'video'].includes(q.type)) {
           throw new ApiError(400, `Update: Question '${q.id}' (index ${index}) has an invalid 'type'.`);
         }
-        return {
+        const updatedQuestion = {
           id: q.id,
           text: q.text.trim(),
           type: q.type,
           options: q.options && Array.isArray(q.options) ? q.options.map(opt => String(opt)) : [],
           isRequired: typeof q.isRequired === 'boolean' ? q.isRequired : !!q.isRequired,
         };
+
+        if (q.type === 'rating') {
+          updatedQuestion.maxRating = q.maxRating;
+        }
+        if (q.type === 'file-upload') {
+          updatedQuestion.allowedFileTypes = q.allowedFileTypes;
+        }
+        if (q.type === 'video') {
+          updatedQuestion.videoUrl = q.videoUrl;
+        }
+        if (q.type === 'image-choice') {
+          updatedQuestion.options = q.options;
+        }
+
+        return updatedQuestion;
       });
     }
 
@@ -200,6 +232,16 @@ export const updateSurvey = async (req, res, next) => {
         updateFields.agentId = new ObjectId(agentId);
       } else {
         throw new ApiError(400, 'Invalid Agent ID format provided for update by admin.');
+      }
+    }
+
+    if (customerId !== undefined) {
+      if (customerId === null || customerId === '') {
+        updateFields.customerId = null;
+      } else if (ObjectId.isValid(customerId)) {
+        updateFields.customerId = new ObjectId(customerId);
+      } else {
+        throw new ApiError(400, 'Invalid Customer ID format provided for update.');
       }
     }
 
@@ -278,14 +320,6 @@ export const submitSurveyResponse = async (req, res, next) => {
       throw new ApiError(400, `Survey is not active. Current status: ${survey.status}.`);
     }
 
-    const existingResponse = await db.collection('responses').findOne({
-      surveyId: surveyObjectId,
-      userId: new ObjectId(userId),
-    });
-
-    if (existingResponse) {
-      throw new ApiError(400, 'You have already submitted a response for this survey.');
-    }
 
     const newResponse = {
       surveyId: surveyObjectId,

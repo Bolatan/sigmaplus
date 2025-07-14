@@ -4,6 +4,12 @@ export enum UserRole {
   CLIENT = 'client',
 }
 
+export interface Branding {
+  logoUrl?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -11,6 +17,7 @@ export interface User {
   role: UserRole;
   companyId?: string;
   avatar?: string;
+  branding?: Branding;
 }
 
 export interface Company {
@@ -26,7 +33,7 @@ export type QuestionType =
   | 'textarea'
   | 'single-choice'
   | 'multiple-choice'
-  | 'rating'
+  | 'range'
   | 'nps'
   | 'ces'
   | 'image-choice'
@@ -49,6 +56,7 @@ export interface Survey {
   title: string;
   description: string;
   companyId?: string; // Made optional, or ensure it's always set by backend
+  customerId?: string;
   createdAt: string;
   updatedAt: string;
   status: 'draft' | 'active' | 'completed';
@@ -105,7 +113,7 @@ export interface Report {
   title: string;
   description: string;
   surveyId: string;
-  surveyName?: string; // Added for better display
+  surveyName?: string;
   companyId: string;
   createdAt: string;
   updatedAt: string;
@@ -118,6 +126,38 @@ export interface ReportSection {
   title: string;
   order: number;
   content: ReportContent[];
+  // Adding fields for the new sections
+  projectName?: string;
+  background?: string;
+  objectives?: string;
+  methodology?: string;
+  respondentProfile?: {
+    location?: string;
+    gender?: string;
+    age?: string;
+    occupation?: string;
+    income?: string;
+    outletType?: string;
+  };
+  executiveSummary?: string;
+  coreInsightAreas?: {
+    brandAwareness?: string;
+    brandUsage?: string;
+    customerSatisfaction?: string;
+    challenges?: string;
+    outletDynamics?: string;
+    productStocking?: string;
+    supplyMethods?: string;
+    tradeMargins?: string;
+    tradeCustomerLifecycle?: string;
+    driversOfPurchase?: string;
+    marketingChannels?: string;
+    csat?: number;
+    nps?: number;
+    ces?: number;
+  };
+  regionalFindings?: string;
+  recommendations?: string;
 }
 
 export type ReportContent = 

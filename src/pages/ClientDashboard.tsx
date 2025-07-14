@@ -4,35 +4,36 @@ import { Survey } from '../types';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import ShareModal from '../components/dashboard/ShareModal';
+import Heatmap from '../components/dashboard/Heatmap';
+import Scorecard from '../components/dashboard/Scorecard';
+import Annotations from '../components/dashboard/Annotations';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 const ClientDashboard: React.FC = () => {
+  // ✅ ALL useState hooks moved to the top
+  const [annotations, setAnnotations] = useState([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [filteredSurveys, setFilteredSurveys] = useState<Survey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
   const [chartType, setChartType] = useState('bar');
   const [region, setRegion] = useState('all');
   const [timePeriod, setTimePeriod] = useState('all');
-  const [isShareModalOpen, setShareModalOpen] = useState(false);
+  const [demographics, setDemographics] = useState('all');
+  const [outletType, setOutletType] = useState('all');
+  const [isEditingHeaders, setIsEditingHeaders] = useState(false);
+  const [headers, setHeaders] = useState({
+    title: 'Title',
+    status: 'Status',
+    responses: 'Responses',
+  });
+  const [dashboardItems, setDashboardItems] = useState(['surveys', 'chart']);
 
-  const handleShareByEmail = (email: string) => {
-    console.log(`Sharing dashboard with ${email}`);
-  };
-
-  const handleShareByLink = () => {
-    const link = window.location.href;
-    navigator.clipboard.writeText(link).then(() => {
-      alert('Link copied to clipboard!');
-    });
-  };
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchSurveys = async () => {
-      if (!user) return;
       setIsLoading(true);
       setError(null);
       const token = localStorage.getItem('authToken');
@@ -59,7 +60,9 @@ const ClientDashboard: React.FC = () => {
       }
     };
 
-    fetchSurveys();
+    if (user) {
+      fetchSurveys();
+    }
   }, [user]);
 
   useEffect(() => {
@@ -84,22 +87,7 @@ const ClientDashboard: React.FC = () => {
     }
 
     setFilteredSurveys(newFilteredSurveys);
-  }, [surveys, region, timePeriod]);
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
-  }
-
-  const [isEditingHeaders, setIsEditingHeaders] = useState(false);
-  const [headers, setHeaders] = useState({
-    title: 'Title',
-    status: 'Status',
-    responses: 'Responses',
-  });
+  }, [surveys, region, timePeriod, demographics, outletType]);
 
   const handleHeaderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -113,8 +101,6 @@ const ClientDashboard: React.FC = () => {
     setIsEditingHeaders(false);
   };
 
-  const [dashboardItems, setDashboardItems] = useState(['surveys', 'chart']);
-
   const onDragEnd = (result: any) => {
     if (!result.destination) {
       return;
@@ -127,30 +113,42 @@ const ClientDashboard: React.FC = () => {
     setDashboardItems(items);
   };
 
+  const brandStyles = {
+    primaryColor: user?.branding?.primaryColor || '#000000',
+    secondaryColor: user?.branding?.secondaryColor || '#FFFFFF',
+  };
+
+  // ✅ Conditional returns AFTER all hooks
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
+  }
+
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <Droppable droppableId="dashboard">
         {(provided) => (
-          <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-6">
-            <h1 className="text-2xl font-bold text-gray-900">Client Dashboard</h1>
-            <p>Welcome to your dedicated client portal.</p>
-            <div className="flex justify-end">
+          <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-6" style={{ backgroundColor: brandStyles.secondaryColor, color: brandStyles.primaryColor }}>
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-bold">{user?.branding?.logoUrl ? <img src={user.branding.logoUrl} alt="Client Logo" className="h-10" /> : 'Client Dashboard'}</h1>
+              <p>Welcome to your dedicated client portal.</p>
               <button
-                onClick={() => setShareModalOpen(true)}
-                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+                onClick={() => {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('filters', JSON.stringify({ region, timePeriod, demographics, outletType }));
+                  navigator.clipboard.writeText(url.toString());
+                }}
+                className="bg-blue-500 text-white px-4 py-2 rounded"
               >
                 Share
               </button>
             </div>
-            <ShareModal
-              isOpen={isShareModalOpen}
-              onClose={() => setShareModalOpen(false)}
-              onShareByEmail={handleShareByEmail}
-              onShareByLink={handleShareByLink}
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label htmlFor="region" className="block text-sm font-medium text-gray-700">Region</label>
+                <label htmlFor="region" className="block text-sm font-medium">Region</label>
                 <select id="region" name="region" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
                   <option>All</option>
                   <option>North</option>
@@ -160,12 +158,31 @@ const ClientDashboard: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label htmlFor="timePeriod" className="block text-sm font-medium text-gray-700">Time Period</label>
+                <label htmlFor="timePeriod" className="block text-sm font-medium">Time Period</label>
                 <select id="timePeriod" name="timePeriod" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
                   <option>All Time</option>
                   <option>Last 30 Days</option>
                   <option>Last 90 Days</option>
                   <option>Last Year</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="demographics" className="block text-sm font-medium">Demographics</label>
+                <select id="demographics" name="demographics" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+                  <option>All</option>
+                  <option>Age</option>
+                  <option>Gender</option>
+                  <option>Occupation</option>
+                  <option>Income</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="outletType" className="block text-sm font-medium">Outlet Type</label>
+                <select id="outletType" name="outletType" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+                  <option>All</option>
+                  <option>Retail</option>
+                  <option>Food Service</option>
+                  <option>Other</option>
                 </select>
               </div>
             </div>
@@ -230,10 +247,12 @@ const ClientDashboard: React.FC = () => {
                           >
                             <option value="bar">Bar Chart</option>
                             <option value="pie">Pie Chart</option>
+                            <option value="heatmap">Heatmap</option>
+                            <option value="scorecard">Scorecard</option>
                           </select>
                         </div>
                         <div className="mt-4">
-                          {chartType === 'bar' ? (
+                          {chartType === 'bar' && (
                             <Bar
                               data={{
                                 labels: surveys.map((s) => s.title),
@@ -246,7 +265,8 @@ const ClientDashboard: React.FC = () => {
                                 ],
                               }}
                             />
-                          ) : (
+                          )}
+                          {chartType === 'pie' && (
                             <Pie
                               data={{
                                 labels: surveys.map((s) => s.title),
@@ -266,6 +286,26 @@ const ClientDashboard: React.FC = () => {
                               }}
                             />
                           )}
+                          {chartType === 'heatmap' && (
+                            <Heatmap
+                              data={{
+                                labels: surveys.map((s) => s.title),
+                                datasets: [
+                                  {
+                                    label: 'Number of Responses',
+                                    data: surveys.map((s) => s.responseCount),
+                                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                                  },
+                                ],
+                              }}
+                            />
+                          )}
+                          {chartType === 'scorecard' && (
+                            <Scorecard
+                              title="Total Responses"
+                              value={surveys.reduce((acc, s) => acc + s.responseCount, 0).toString()}
+                            />
+                          )}
                         </div>
                       </div>
                     )}
@@ -277,6 +317,12 @@ const ClientDashboard: React.FC = () => {
           </div>
         )}
       </Droppable>
+      <Annotations
+        annotations={annotations}
+        onAddAnnotation={(text, x, y) => {
+          setAnnotations([...annotations, { id: Date.now().toString(), text, x, y }]);
+        }}
+      />
     </DragDropContext>
   );
 };
