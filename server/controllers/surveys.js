@@ -315,11 +315,42 @@ export const submitSurveyResponse = async (req, res, next) => {
       throw new ApiError(400, `Survey is not active. Current status: ${survey.status}.`);
     }
 
+    const validatedResponseData = {};
+    for (const question of survey.questions) {
+      const response = responseData[question.id];
+      if (question.isRequired && !response) {
+        throw new ApiError(400, `Question "${question.text}" is required.`);
+      }
+
+      if (response) {
+        switch (question.type) {
+          case 'text':
+          case 'textarea':
+            if (typeof response !== 'string') {
+              throw new ApiError(400, `Invalid response type for question "${question.text}". Expected a string.`);
+            }
+            validatedResponseData[question.id] = response;
+            break;
+          case 'range':
+            const numberResponse = Number(response);
+            if (isNaN(numberResponse)) {
+              throw new ApiError(400, `Invalid response type for question "${question.text}". Expected a number.`);
+            }
+            if (question.maxRating && numberResponse > question.maxRating) {
+              throw new ApiError(400, `Response for question "${question.text}" exceeds the maximum rating of ${question.maxRating}.`);
+            }
+            validatedResponseData[question.id] = numberResponse;
+            break;
+          default:
+            validatedResponseData[question.id] = response;
+        }
+      }
+    }
 
     const newResponse = {
       surveyId: surveyObjectId,
       userId: new ObjectId(userId),
-      responseData: responseData,
+      responseData: validatedResponseData,
       submittedAt: new Date(),
       submissionTime: submissionTime || null,
       isFlagged: submissionTime && submissionTime < 5000, // Flag if submission time is less than 5 seconds
