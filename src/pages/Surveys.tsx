@@ -819,6 +819,7 @@ const Surveys: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => navigate(`/surveys/${survey.id}`)}
                     >
                       View Details
                     </Button>
