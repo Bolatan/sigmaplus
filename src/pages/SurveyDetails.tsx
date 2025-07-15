@@ -74,6 +74,38 @@ const SurveyDetails: React.FC = () => {
     // If token exists but user is null, AuthContext is loading, page will show its own loader.
   }, [surveyId, user]);
 
+  const handleDelete = async (surveyId: string) => {
+    if (!window.confirm('Are you sure you want to delete this survey?')) {
+      return;
+    }
+
+    setError(null);
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setError("Authentication required. Please login.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/surveys/${surveyId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.msg || errorData.error || `Failed to delete survey: ${response.statusText}`);
+      }
+
+      navigate('/surveys');
+    } catch (err: any) {
+      console.error('Error deleting survey:', err);
+      setError(err.message || 'An unexpected error occurred.');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -111,7 +143,18 @@ const SurveyDetails: React.FC = () => {
     <div className="container mx-auto py-8 px-4">
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>{survey.title}</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle>{survey.title}</CardTitle>
+            {(user?.role === 'admin' || user?.role === 'agent') && (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => handleDelete(survey.id)}
+              >
+                Delete
+              </Button>
+            )}
+          </div>
           {survey.description && <CardDescription>{survey.description}</CardDescription>}
         </CardHeader>
         <CardContent>
@@ -125,6 +168,14 @@ const SurveyDetails: React.FC = () => {
                 <label htmlFor={q.id || `q-input-${index}`} className="block text-sm font-medium text-gray-700 mb-1">
                   {index + 1}. {q.text}
                 </label>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => navigate(`/surveys/take/${survey.id}`)}
+                  className="mt-4"
+                >
+                  Take Survey
+                </Button>
                 <p className="text-sm text-gray-500">Type: {q.type}</p>
                 {q.options && q.options.length > 0 && (
                   <div className="mt-2 space-y-2">
