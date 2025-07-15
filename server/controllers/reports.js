@@ -1,6 +1,6 @@
 import { getDb } from '../utils/db.js';
 import { ObjectId } from 'mongodb';
-import PDFDocument from 'pdfkit';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import pptxgen from 'pptxgenjs';
 import Excel from 'exceljs';
 import fs from 'fs';
@@ -121,7 +121,7 @@ export const downloadReport = async (req, res) => {
   console.log('Download report request received');
   try {
     const db = getDb();
-    const { id } = req.params;
+    const { id }_ = req.params;
     const { format } = req.query; // pptx, xlsx, pdf
 
     if (!ObjectId.isValid(id)) {
@@ -151,16 +151,10 @@ export const downloadReport = async (req, res) => {
           console.log('Generating PPTX report');
           const presentation = new Presentation({ sections: report.sections || [] });
           const pptx = presentation.generate();
-          tmp.file({ postfix: '.pptx' }, async (err, path, fd, cleanupCallback) => {
-            if (err) throw err;
-            await pptx.writeFile({ fileName: path });
-            res.download(path, `${report.title}.pptx`, (err) => {
-              if (err) {
-                console.error('Error sending pptx file:', err);
-              }
-              cleanupCallback();
-            });
-          });
+          const buffer = await pptx.write();
+          res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pptx`);
+          res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+          res.send(buffer);
           console.log('PPTX report sent');
         } catch (e) {
           console.error('Error generating pptx file:', e);
@@ -189,44 +183,46 @@ export const downloadReport = async (req, res) => {
       case 'pdf': {
         try {
           console.log('Generating PDF report');
-          const doc = new PDFDocument();
-          const tmpFile = tmp.fileSync({ postfix: '.pdf' });
-          const stream = fs.createWriteStream(tmpFile.name);
-          doc.pipe(stream);
+          const pdfDoc = await PDFDocument.create();
+          const page = pdfDoc.addPage();
+          const { width, height } = page.getSize();
+          const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+          const fontSize = 25;
 
-          // --- PDF Landing Page ---
-          doc.image(Buffer.from(logo, 'base64'), {
-            fit: [100, 100],
-            align: 'center',
-            valign: 'center'
-          });
-          doc.moveDown(2);
-          doc.fontSize(25).text(survey.title, {
-            align: 'center'
+          page.drawText(survey.title || 'No Title', {
+            x: 50,
+            y: height - 4 * fontSize,
+            font,
+            size: fontSize,
+            color: rgb(0, 0, 0),
           });
 
-          // --- PDF Content ---
-          if (report.sections) {
+          if (report.sections && Array.isArray(report.sections)) {
             report.sections.forEach((section) => {
-              doc.addPage();
-              doc.fontSize(20).text(section.title, {
-                underline: true,
+              const newPage = pdfDoc.addPage();
+              newPage.drawText(section.title || 'No Section Title', {
+                x: 50,
+                y: height - 2 * 20,
+                font,
+                size: 20,
+                color: rgb(0, 0, 0),
               });
               if (section.content) {
-                doc.fontSize(12).text(section.content);
+                newPage.drawText(String(section.content), {
+                  x: 50,
+                  y: height - 2 * 20 - 20,
+                  font,
+                  size: 12,
+                  color: rgb(0, 0, 0),
+                });
               }
             });
           }
-          doc.end();
 
-          stream.on('finish', () => {
-            res.download(tmpFile.name, `${report.title}.pdf`, (err) => {
-              if (err) {
-                console.error('Error sending pdf file:', err);
-              }
-              tmpFile.removeCallback();
-            });
-          });
+          const pdfBytes = await pdfDoc.save();
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
+          res.send(Buffer.from(pdfBytes));
           console.log('PDF report sent');
         } catch (e) {
           console.error('Error generating pdf file:', e);
@@ -307,4 +303,3 @@ export const generateAllReports = async () => {
   console.log('Generating all reports...');
   // This is a placeholder for the actual report generation logic
 };
-
