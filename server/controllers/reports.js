@@ -151,14 +151,10 @@ export const downloadReport = async (req, res) => {
           console.log('Generating PPTX report');
           const presentation = new Presentation({ sections: report.sections || [] });
           const pptx = presentation.generate();
-          const tmpFile = tmp.fileSync({ postfix: '.pptx' });
-          await pptx.writeFile({ fileName: tmpFile.name });
-          res.download(tmpFile.name, `${report.title}.pptx`, (err) => {
-            if (err) {
-              console.error('Error sending pptx file:', err);
-            }
-            tmpFile.removeCallback();
-          });
+          const buffer = await pptx.write('buffer');
+          res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pptx`);
+          res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+          res.send(buffer);
           console.log('PPTX report sent');
         } catch (e) {
           console.error('Error generating pptx file:', e);
@@ -188,17 +184,8 @@ export const downloadReport = async (req, res) => {
         try {
           console.log('Generating PDF report');
           const doc = new PDFDocument();
-          const buffers = [];
-          doc.on('data', buffers.push.bind(buffers));
-          doc.on('end', () => {
-            const pdfData = Buffer.concat(buffers);
-            res.writeHead(200, {
-              'Content-Type': 'application/pdf',
-              'Content-Disposition': `attachment; filename=${report.title}.pdf`,
-              'Content-Length': pdfData.length,
-            });
-            res.end(pdfData);
-          });
+          res.attachment(`${report.title}.pdf`);
+          doc.pipe(res);
 
           // --- PDF Landing Page ---
           doc.moveDown(2);
