@@ -345,7 +345,7 @@ const ProjectDetails: React.FC = () => {
           buttonText="Add Survey"
           agents={agents}
           companies={companies}
-          projects={[]}
+          surveys={surveys}
           user={user}
         />
       </Modal>
