@@ -151,10 +151,16 @@ export const downloadReport = async (req, res) => {
           console.log('Generating PPTX report');
           const presentation = new Presentation({ sections: report.sections || [] });
           const pptx = presentation.generate();
-          const buffer = await pptx.write('buffer');
-          res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pptx`);
-          res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
-          res.send(buffer);
+          tmp.file({ postfix: '.pptx' }, async (err, path, fd, cleanupCallback) => {
+            if (err) throw err;
+            await pptx.writeFile({ fileName: path });
+            res.download(path, `${report.title}.pptx`, (err) => {
+              if (err) {
+                console.error('Error sending pptx file:', err);
+              }
+              cleanupCallback();
+            });
+          });
           console.log('PPTX report sent');
         } catch (e) {
           console.error('Error generating pptx file:', e);
@@ -196,7 +202,13 @@ export const downloadReport = async (req, res) => {
             res.end(pdfData);
           });
 
+
           // --- PDF Landing Page ---
+          doc.image(Buffer.from(logo, 'base64'), {
+            fit: [100, 100],
+            align: 'center',
+            valign: 'center'
+          });
           doc.moveDown(2);
           doc.fontSize(25).text(survey.title || 'No Title', {
             align: 'center'
@@ -215,6 +227,15 @@ export const downloadReport = async (req, res) => {
             });
           }
           doc.end();
+
+          stream.on('finish', () => {
+            res.download(tmpFile.name, `${report.title}.pdf`, (err) => {
+              if (err) {
+                console.error('Error sending pdf file:', err);
+              }
+              tmpFile.removeCallback();
+            });
+          });
           console.log('PDF report sent');
         } catch (e) {
           console.error('Error generating pdf file:', e);

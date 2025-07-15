@@ -5,23 +5,19 @@ import csv from 'csv-parser';
 import { Readable } from 'stream';
 
 export const createSurvey = async (req, res, next) => {
-  console.log('createSurvey: Received request');
+  console.log('Creating a new survey...');
   try {
     const { title, description, questions: inputQuestions, status, companyIds, agentId, customerId, projectId } = req.body;
-    console.log('createSurvey: Request body:', req.body);
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
-    console.log('createSurvey: User:', req.user);
 
     const db = getDb();
 
     if (!projectId || !ObjectId.isValid(projectId)) {
-      console.log('createSurvey: Invalid projectId');
       throw new ApiError(400, 'A valid project ID is required.');
     }
 
     const project = await db.collection('projects').findOne({ _id: new ObjectId(projectId) });
     if (!project) {
-      console.log('createSurvey: Project not found');
       throw new ApiError(404, 'Project not found.');
     }
 
@@ -33,7 +29,7 @@ export const createSurvey = async (req, res, next) => {
       title,
       description: description || '',
       questions: validatedQuestions,
-      status: 'active', // Always set status to active
+      status: status || 'active',
       createdBy: new ObjectId(userId),
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -41,7 +37,6 @@ export const createSurvey = async (req, res, next) => {
       companyIds: [],
       projectId: new ObjectId(projectId),
     };
-    console.log('createSurvey: New survey data:', newSurveyData);
 
     if (userRole === 'admin' && companyIds && Array.isArray(companyIds)) {
       newSurveyData.companyIds = companyIds.filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id));
@@ -59,7 +54,6 @@ export const createSurvey = async (req, res, next) => {
 
     const result = await db.collection('surveys').insertOne(newSurveyData);
     const createdSurvey = await db.collection('surveys').findOne({ _id: result.insertedId });
-    console.log('createSurvey: Survey created successfully:', createdSurvey);
 
     res.status(201).json({ status: 'success', data: createdSurvey });
   } catch (error) {
@@ -138,31 +132,22 @@ export const getSurveyById = async (req, res, next) => {
 };
 
 export const updateSurvey = async (req, res, next) => {
-  console.log('updateSurvey: Received request');
+  console.log(`Updating survey ${req.params.id}...`);
   try {
     const db = getDb();
     const { id: surveyId } = req.params;
-    console.log('updateSurvey: Survey ID:', surveyId);
     const { id: userId, role: userRole } = req.user;
-    console.log('updateSurvey: User:', req.user);
     const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId, customerId, projectId } = req.body;
-    console.log('updateSurvey: Request body:', req.body);
 
     if (!ObjectId.isValid(surveyId)) {
-      console.log('updateSurvey: Invalid survey ID format');
       throw new ApiError(404, 'Survey not found (invalid ID format)');
     }
 
     const existingSurvey = await db.collection('surveys').findOne({ _id: new ObjectId(surveyId) });
     if (!existingSurvey) {
-      console.log('updateSurvey: Survey not found');
       throw new ApiError(404, 'Survey not found');
     }
 
-    if (userRole !== 'admin' && userRole !== 'agent') {
-      console.log('updateSurvey: User not authorized');
-      throw new ApiError(403, 'Forbidden: You are not authorized to edit surveys.');
-    }
 
     const updateFields = {};
     if (title !== undefined) updateFields.title = title.trim();
@@ -253,7 +238,6 @@ export const updateSurvey = async (req, res, next) => {
       return res.status(400).json({ status: 'fail', message: "No valid fields provided for update." });
     }
     updateFields.updatedAt = new Date();
-    console.log('updateSurvey: Update fields:', updateFields);
 
     const result = await db.collection('surveys').findOneAndUpdate(
       { _id: new ObjectId(surveyId) },
@@ -262,10 +246,8 @@ export const updateSurvey = async (req, res, next) => {
     );
 
     if (!result) {
-        console.log('updateSurvey: Survey not found or failed to update');
         throw new ApiError(404, 'Survey not found or failed to update');
     }
-    console.log('updateSurvey: Survey updated successfully:', result);
     res.json({ status: 'success', data: result });
   } catch (error) {
     console.error("Error in updateSurvey controller:", error);
@@ -274,37 +256,34 @@ export const updateSurvey = async (req, res, next) => {
 };
 
 export const deleteSurvey = async (req, res, next) => {
-  console.log('deleteSurvey: Received request');
+  console.log(`Deleting survey ${req.params.id}...`);
   try {
     const db = getDb();
     const { id: surveyId } = req.params;
-    console.log('deleteSurvey: Survey ID:', surveyId);
     const { id: userId, role: userRole } = req.user;
-    console.log('deleteSurvey: User:', req.user);
 
     if (!ObjectId.isValid(surveyId)) {
-      console.log('deleteSurvey: Invalid survey ID format');
       throw new ApiError(404, 'Survey not found (invalid ID format)');
     }
 
     const existingSurvey = await db.collection('surveys').findOne({ _id: new ObjectId(surveyId) });
     if (!existingSurvey) {
-      console.log('deleteSurvey: Survey not found');
       throw new ApiError(404, 'Survey not found');
     }
 
-    if (userRole !== 'admin' && userRole !== 'agent') {
-      console.log('deleteSurvey: User not authorized');
-      throw new ApiError(403, 'Forbidden: You are not authorized to delete surveys.');
+     if (userRole !== 'admin' && userRole !== 'agent') {
+        throw new ApiError(403, 'Forbidden: You are not authorized to delete surveys.');
+    }
+
+    if (userRole === 'agent') {
+      // Agents can delete any survey
     }
 
     const result = await db.collection('surveys').deleteOne({ _id: new ObjectId(surveyId) });
 
     if (result.deletedCount === 0) {
-      console.log('deleteSurvey: Survey not found or already deleted');
       throw new ApiError(404, 'Survey not found or already deleted');
     }
-    console.log('deleteSurvey: Survey deleted successfully');
     res.status(200).json({ status: 'success', message: 'Survey deleted successfully' });
   } catch (error) {
     console.error("Error in deleteSurvey controller:", error);
@@ -313,6 +292,7 @@ export const deleteSurvey = async (req, res, next) => {
 };
 
 export const submitSurveyResponse = async (req, res, next) => {
+  console.log(`Submitting response for survey ${req.params.id}...`);
   try {
     const db = getDb();
     const { id: surveyIdParam } = req.params;
