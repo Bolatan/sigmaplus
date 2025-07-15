@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart2 } from 'lucide-react';
+import { BarChart2, Plus } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
+import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
-import { Survey } from '../types';
+import { Survey, SurveyQuestion } from '../types';
+import SurveyForm from '../components/surveys/SurveyForm';
 
 const AllSurveys: React.FC = () => {
   const [surveys, setSurveys] = useState<Survey[]>([]);
@@ -12,6 +14,58 @@ const AllSurveys: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [apiError, setApiError] = useState<string | null>(null);
+  const [isAddSurveyModalOpen, setIsAddSurveyModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    questions: [],
+  });
+  const [agents, setAgents] = useState<any[]>([]);
+  const [companies, setCompanies] = useState<any[]>([]);
+
+  const fetchAllSurveys = async () => {
+    setIsLoading(true);
+    setApiError(null);
+    const token = localStorage.getItem('authToken');
+
+    if (!token) {
+      setApiError("No authentication token found. Please login.");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const surveyResponse = await fetch(`/api/surveys`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!surveyResponse.ok) {
+        const errorData = await surveyResponse.json().catch(() => ({}));
+        setApiError(errorData.msg || errorData.error || `HTTP error! status: ${surveyResponse.status}`);
+      } else {
+        const surveyResult = await surveyResponse.json();
+        const fetchedSurveys = (surveyResult.data || []).map((s: any) => ({
+          ...s,
+          id: s._id,
+          createdAt: s.createdAt || new Date().toISOString(),
+          responseCount: s.responseCount || 0,
+          status: s.status || 'draft',
+          questions: s.questions || [],
+        }));
+        setSurveys(fetchedSurveys);
+      }
+    } catch (error) {
+      if (!apiError) setApiError(error.message || 'Failed to fetch surveys from API.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllSurveys();
+  }, [user]);
 
   useEffect(() => {
     const fetchAllSurveys = async () => {
@@ -86,6 +140,83 @@ const AllSurveys: React.FC = () => {
     );
   }
 
+  const resetForm = useCallback(() => {
+    setFormData({
+      title: '',
+      description: '',
+      questions: [],
+    });
+  }, []);
+
+  const handleAddSurvey = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    setApiError(null);
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setApiError("Authentication required. Please login.");
+      return;
+    }
+
+    if (!formData.title.trim()) {
+      setApiError("Survey title is required.");
+      return;
+    }
+
+    try {
+      const surveyResponse = await fetch('/api/surveys', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!surveyResponse.ok) {
+        const errorData = await surveyResponse.json().catch(() => ({}));
+        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to create survey: ${surveyResponse.statusText}`);
+      }
+
+      setIsAddSurveyModalOpen(false);
+      resetForm();
+      fetchAllSurveys();
+    } catch (error: any) {
+      setApiError(error.message || 'An unexpected error occurred while adding the survey.');
+    }
+  }, [formData, resetForm]);
+
+  const handleDelete = async (surveyId: string) => {
+    if (!window.confirm('Are you sure you want to delete this survey?')) {
+      return;
+    }
+
+    setApiError(null);
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setApiError("Authentication required. Please login.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/surveys/${surveyId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.msg || errorData.error || `Failed to delete survey: ${response.statusText}`);
+      }
+
+      fetchAllSurveys();
+    } catch (err: any) {
+      console.error('Error deleting survey:', err);
+      setApiError(err.message || 'An unexpected error occurred.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {apiError && (
@@ -99,6 +230,15 @@ const AllSurveys: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">All Surveys</h1>
           <p className="text-sm text-gray-500 mt-1">Browse all surveys from all projects</p>
         </div>
+        {(user?.role === 'admin' || user?.role === 'agent') && (
+          <Button
+            variant="primary"
+            leftIcon={<Plus className="h-5 w-5" />}
+            onClick={() => setIsAddSurveyModalOpen(true)}
+          >
+            Create Survey
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -132,9 +272,23 @@ const AllSurveys: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/surveys/${survey.id}`)}
+                      onClick={() => navigate(`/surveys/edit/${survey.id}`)}
                     >
-                      View Details
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/surveys/take/${survey.id}`)}
+                    >
+                      Take Survey
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleDelete(survey.id)}
+                    >
+                      Delete
                     </Button>
                   </div>
                 </div>
@@ -143,6 +297,24 @@ const AllSurveys: React.FC = () => {
           </Card>
         ))}
       </div>
+
+      <Modal
+        isOpen={isAddSurveyModalOpen}
+        onClose={() => setIsAddSurveyModalOpen(false)}
+        title="Create New Survey"
+      >
+        <SurveyForm
+          formData={formData}
+          onFormDataChange={setFormData}
+          onSubmit={handleAddSurvey}
+          onCancel={() => setIsAddSurveyModalOpen(false)}
+          buttonText="Create Survey"
+          agents={agents}
+          companies={companies}
+          surveys={[]}
+          user={user}
+        />
+      </Modal>
 
       {surveys.length === 0 && !isLoading && (
         <div className="text-center py-12">
