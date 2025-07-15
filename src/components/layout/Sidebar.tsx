@@ -64,11 +64,6 @@ export const Sidebar: React.FC = () => {
     if (user?.role === UserRole.ADMIN) {
       items.push(
         {
-          to: '/surveys',
-          icon: <ClipboardList />,
-          label: 'Surveys',
-        },
-        {
           to: '/reports',
           icon: <BarChart3 />,
           label: 'Reports',
@@ -91,11 +86,6 @@ export const Sidebar: React.FC = () => {
       );
     } else if (user?.role === UserRole.AGENT) {
       items.push(
-        {
-          to: '/surveys',
-          icon: <ClipboardList />,
-          label: 'Surveys',
-        },
         {
           to: '/reports',
           icon: <BarChart3 />,
