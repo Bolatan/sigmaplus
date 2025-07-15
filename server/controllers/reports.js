@@ -151,15 +151,13 @@ export const downloadReport = async (req, res) => {
           console.log('Generating PPTX report');
           const presentation = new Presentation({ sections: report.sections || [] });
           const pptx = presentation.generate();
-          tmp.file({ postfix: '.pptx' }, async (err, path, fd, cleanupCallback) => {
-            if (err) throw err;
-            await pptx.writeFile({ fileName: path });
-            res.download(path, `${report.title}.pptx`, (err) => {
-              if (err) {
-                console.error('Error sending pptx file:', err);
-              }
-              cleanupCallback();
-            });
+          const tmpFile = tmp.fileSync({ postfix: '.pptx' });
+          await pptx.writeFile({ fileName: tmpFile.name });
+          res.download(tmpFile.name, `${report.title}.pptx`, (err) => {
+            if (err) {
+              console.error('Error sending pptx file:', err);
+            }
+            tmpFile.removeCallback();
           });
           console.log('PPTX report sent');
         } catch (e) {
@@ -219,14 +217,18 @@ export const downloadReport = async (req, res) => {
           }
           doc.end();
 
-          stream.on('finish', () => {
-            res.download(tmpFile.name, `${report.title}.pdf`, (err) => {
-              if (err) {
-                console.error('Error sending pdf file:', err);
-              }
-              tmpFile.removeCallback();
-            });
+          await new Promise((resolve, reject) => {
+            stream.on('finish', resolve);
+            stream.on('error', reject);
           });
+
+          res.download(tmpFile.name, `${report.title}.pdf`, (err) => {
+            if (err) {
+              console.error('Error sending pdf file:', err);
+            }
+            tmpFile.removeCallback();
+          });
+
           console.log('PDF report sent');
         } catch (e) {
           console.error('Error generating pdf file:', e);
