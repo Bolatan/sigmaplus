@@ -119,6 +119,37 @@ const Projects: React.FC = () => {
     }
   }, [formData, resetForm]);
 
+  const handleDelete = async (projectId: string) => {
+    if (!window.confirm('Are you sure you want to delete this project and all its surveys?')) {
+      return;
+    }
+
+    setApiError(null);
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setApiError("Authentication required. Please login.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.msg || errorData.error || `Failed to delete project: ${response.statusText}`);
+      }
+
+      triggerRefetch();
+    } catch (error: any) {
+      setApiError(error.message || 'An unexpected error occurred while deleting the project.');
+    }
+  };
+
   const filteredProjects = projects.filter(project =>
     (project.title && project.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (project.description && project.description.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -205,6 +236,15 @@ const Projects: React.FC = () => {
                     >
                       View Details
                     </Button>
+                    {(user?.role === 'admin' || user?.role === 'agent') && (
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleDelete(project.id)}
+                      >
+                        Delete
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
