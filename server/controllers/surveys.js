@@ -351,7 +351,7 @@ export const bulkUploadSurveyResponses = async (req, res, next) => {
     const stream = Readable.from(req.file.buffer);
     stream
       .pipe(csv())
-      .on('data', (row). => {
+      .on('data', (row) => {
         processedRows++;
         try {
           const responseData = { ...row };
