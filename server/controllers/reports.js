@@ -188,9 +188,17 @@ export const downloadReport = async (req, res) => {
         try {
           console.log('Generating PDF report');
           const doc = new PDFDocument();
-          const tmpFile = tmp.fileSync({ postfix: '.pdf' });
-          const stream = fs.createWriteStream(tmpFile.name);
-          doc.pipe(stream);
+          const buffers = [];
+          doc.on('data', buffers.push.bind(buffers));
+          doc.on('end', () => {
+            const pdfData = Buffer.concat(buffers);
+            res.writeHead(200, {
+              'Content-Type': 'application/pdf',
+              'Content-Disposition': `attachment; filename=${report.title}.pdf`,
+              'Content-Length': pdfData.length,
+            });
+            res.end(pdfData);
+          });
 
           // --- PDF Landing Page ---
           doc.image(Buffer.from(logo, 'base64'), {
@@ -216,19 +224,6 @@ export const downloadReport = async (req, res) => {
             });
           }
           doc.end();
-
-          await new Promise((resolve, reject) => {
-            stream.on('finish', resolve);
-            stream.on('error', reject);
-          });
-
-          res.download(tmpFile.name, `${report.title}.pdf`, (err) => {
-            if (err) {
-              console.error('Error sending pdf file:', err);
-            }
-            tmpFile.removeCallback();
-          });
-
           console.log('PDF report sent');
         } catch (e) {
           console.error('Error generating pdf file:', e);
