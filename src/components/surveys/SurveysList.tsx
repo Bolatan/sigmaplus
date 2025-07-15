@@ -12,25 +12,16 @@ interface Survey {
   title: string;
   description: string;
   createdAt: string;
-  projectId: string;
-  projectTitle?: string;
-}
-
-interface Project {
-  _id: string;
-  title: string;
 }
 
 const SurveysList: React.FC = () => {
   const [surveys, setSurveys] = useState<Survey[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    projectId: '',
   });
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -44,11 +35,10 @@ const SurveysList: React.FC = () => {
     setFormData({
       title: '',
       description: '',
-      projectId: '',
     });
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     setApiError(null);
     const token = localStorage.getItem('authToken');
@@ -61,50 +51,34 @@ const SurveysList: React.FC = () => {
     }
 
     try {
-      const [surveysResponse, projectsResponse] = await Promise.all([
-        fetch('/api/surveys', {
-          headers: { 'Authorization': `Bearer ${token}` },
-        }),
-        fetch('/api/projects', {
-          headers: { 'Authorization': `Bearer ${token}` },
-        }),
-      ]);
+      const surveysResponse = await fetch('/api/surveys', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
 
       if (!surveysResponse.ok) {
         const errorData = await surveysResponse.json().catch(() => ({}));
         throw new Error(errorData.msg || errorData.error || `HTTP error! status: ${surveysResponse.status}`);
       }
-      if (!projectsResponse.ok) {
-        const errorData = await projectsResponse.json().catch(() => ({}));
-        throw new Error(errorData.msg || errorData.error || `HTTP error! status: ${projectsResponse.status}`);
-      }
 
       const surveysResult = await surveysResponse.json();
-      const projectsResult = await projectsResponse.json();
-      const fetchedProjects = projectsResult.data || [];
-      setProjects(fetchedProjects);
-
-      const projectMap = new Map(fetchedProjects.map((p: Project) => [p._id, p.title]));
-
-      const fetchedSurveys = (surveysResult.data || []).map((s: any) => ({
+      const fetchedSurveys = (surveysResult.data || []).map((s: Record<string, unknown>) => ({
         ...s,
         id: s._id,
         createdAt: s.createdAt || new Date().toISOString(),
-        projectTitle: projectMap.get(s.projectId) || 'N/A',
       }));
-      setSurveys(fetchedSurveys);
+      setSurveys(fetchedSurveys as Survey[]);
 
-    } catch (error: any) {
-      if (!apiError) setApiError(error.message || 'Failed to fetch data from API.');
+    } catch (error) {
+      if (!apiError) setApiError((error as Error).message || 'Failed to fetch data from API.');
       setSurveys([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [apiError]);
 
   useEffect(() => {
     fetchData();
-  }, [user]);
+  }, [user, fetchData]);
 
   const handleAddSurvey = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,10 +91,6 @@ const SurveysList: React.FC = () => {
 
     if (!formData.title.trim()) {
       setApiError("Survey title is required.");
-      return;
-    }
-    if (!formData.projectId) {
-      setApiError("Project is required.");
       return;
     }
 
@@ -142,10 +112,10 @@ const SurveysList: React.FC = () => {
       setIsAddModalOpen(false);
       resetForm();
       triggerRefetch();
-    } catch (error: any) {
-      setApiError(error.message || 'An unexpected error occurred while adding the survey.');
+    } catch (error) {
+      setApiError((error as Error).message || 'An unexpected error occurred while adding the survey.');
     }
-  }, [formData, resetForm]);
+  }, [formData, resetForm, triggerRefetch]);
 
   const handleDelete = async (surveyId: string) => {
     if (!window.confirm('Are you sure you want to delete this survey?')) {
@@ -173,8 +143,8 @@ const SurveysList: React.FC = () => {
       }
 
       triggerRefetch();
-    } catch (error: any) {
-      setApiError(error.message || 'An unexpected error occurred while deleting the survey.');
+    } catch (error) {
+      setApiError((error as Error).message || 'An unexpected error occurred while deleting the survey.');
     }
   };
 
@@ -250,7 +220,7 @@ const SurveysList: React.FC = () => {
                     {survey.description}
                   </p>
                   <p className="text-sm text-gray-500 mb-4">
-                    Project: {survey.projectTitle}
+                    {survey.description}
                   </p>
                 </div>
               </div>
@@ -314,22 +284,6 @@ const SurveysList: React.FC = () => {
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
-          </div>
-          <div>
-            <label htmlFor="project" className="block text-sm font-medium text-gray-700">Project</label>
-            <select
-              id="project"
-              value={formData.projectId}
-              onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
-              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
-            >
-              <option value="">Select a project</option>
-              {projects.map((project) => (
-                <option key={project._id} value={project._id}>
-                  {project.title}
-                </option>
-              ))}
-            </select>
           </div>
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>

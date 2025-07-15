@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Survey, SurveyQuestion } from '../types';
+import { SurveyQuestion } from '../types';
 import SurveyForm from '../components/surveys/SurveyForm';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 
@@ -11,7 +11,7 @@ interface SurveyFormData {
   questions: SurveyQuestion[];
   agentId?: string;
   companyIds?: string[];
-  projectId?: string;
+  surveyIds?: string[];
 }
 
 const EditSurvey: React.FC = () => {
@@ -21,9 +21,9 @@ const EditSurvey: React.FC = () => {
   const [apiError, setApiError] = useState<string | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [agents, setAgents] = useState<any[]>([]);
-  const [companies, setCompanies] = useState<any[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
+  const [agents, setAgents] = useState<Record<string, unknown>[]>([]);
+  const [companies, setCompanies] = useState<Record<string, unknown>[]>([]);
+  const [surveys, setSurveys] = useState<Record<string, unknown>[]>([]);
 
   useEffect(() => {
     const fetchSurvey = async () => {
@@ -51,10 +51,10 @@ const EditSurvey: React.FC = () => {
           questions: data.questions || [],
           agentId: data.agentId,
           companyIds: data.companyIds,
-          projectId: data.projectId,
+          surveyIds: data.surveyIds,
         });
-      } catch (error: any) {
-        setApiError(error.message);
+      } catch (error) {
+        setApiError((error as Error).message);
       } finally {
         setIsLoading(false);
       }
@@ -69,15 +69,15 @@ const EditSurvey: React.FC = () => {
       if (!token) return;
 
       try {
-        const [agentsRes, companiesRes, projectsRes] = await Promise.all([
+        const [agentsRes, companiesRes, surveysRes] = await Promise.all([
           fetch('/api/users?role=agent', { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch('/api/companies', { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch('/api/projects', { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch('/api/surveys', { headers: { 'Authorization': `Bearer ${token}` } }),
         ]);
 
         if (agentsRes.ok) setAgents((await agentsRes.json()).data || []);
         if (companiesRes.ok) setCompanies((await companiesRes.json()).data || []);
-        if (projectsRes.ok) setProjects((await projectsRes.json()).data || []);
+        if (surveysRes.ok) setSurveys((await surveysRes.json()).data || []);
       } catch (error) {
         console.error("Failed to fetch related data:", error);
       }
@@ -113,8 +113,8 @@ const EditSurvey: React.FC = () => {
       }
 
       navigate(`/surveys/${surveyId}`);
-    } catch (error: any) {
-      setApiError(error.message);
+    } catch (error) {
+      setApiError((error as Error).message);
     }
   }, [formData, surveyId, navigate]);
 
@@ -136,7 +136,7 @@ const EditSurvey: React.FC = () => {
           buttonText="Save Changes"
           agents={agents}
           companies={companies}
-          projects={projects}
+          surveys={surveys}
           user={user}
         />
       </CardContent>

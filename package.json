@@ -7,7 +7,7 @@
     "dev": "vite",
     "server": "JWT_SECRET=averysecretkey node server/index.js",
     "build": "tsc && vite build",
-    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "eslint src --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -41,6 +41,7 @@
     "sqlite3": "^5.1.7",
     "tailwind-merge": "^3.3.0",
     "tmp": "^0.2.3",
+    "typescript-eslint": "^8.37.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

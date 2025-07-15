@@ -1,15 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Filter, BarChart2, AlertTriangle } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { Plus } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { Card, CardContent } from '../ui/Card';
-import { Modal } from '../ui/Modal';
-import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { Survey, SurveyQuestion, QuestionType } from '../../types';
+import { SurveyQuestion, QuestionType } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 import { ConditionalLogicModal } from '../surveys/ConditionalLogicModal';
-import { TemplateSelectionModal } from '../surveys/TemplateSelectionModal';
 
 interface SurveyFormData {
   title: string;
@@ -17,7 +12,7 @@ interface SurveyFormData {
   questions: SurveyQuestion[];
   agentId?: string;
   companyIds?: string[];
-  projectId?: string;
+  surveyIds?: string[];
 }
 
 const SurveyForm: React.FC<{
@@ -26,11 +21,11 @@ const SurveyForm: React.FC<{
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onCancel: () => void;
   buttonText: string;
-  agents: any[];
-  companies: any[];
-  projects: any[];
-  user: any;
-}> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, companies, projects, user }) => {
+  agents: Record<string, unknown>[];
+  companies: Record<string, unknown>[];
+  surveys: Record<string, unknown>[];
+  user: Record<string, unknown>;
+}> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, companies, surveys, user }) => {
   if (!formData || !Array.isArray(formData.questions)) {
     return <div>Loading survey form...</div>;
   }
@@ -39,9 +34,9 @@ const SurveyForm: React.FC<{
     onFormDataChange({ ...formData, [field]: value });
   }, [formData, onFormDataChange]);
 
-  const handleQuestionChange = useCallback((index: number, field: keyof SurveyQuestion, value: any) => {
+  const handleQuestionChange = useCallback((index: number, field: keyof SurveyQuestion, value: string | boolean | string[]) => {
     const newQuestions = [...formData.questions];
-    // @ts-ignore
+    // @ts-expect-error
     newQuestions[index] = { ...newQuestions[index], [field]: value };
     onFormDataChange({ ...formData, questions: newQuestions });
   }, [formData, onFormDataChange]);
@@ -85,19 +80,23 @@ const SurveyForm: React.FC<{
           required
         />
         <div>
-          <label htmlFor="project" className="block text-sm font-medium text-gray-700 mb-1">
-            Project
+          <label htmlFor="surveys" className="block text-sm font-medium text-gray-700 mb-1">
+            Surveys
           </label>
           <select
-            id="project"
-            value={formData.projectId || ''}
-            onChange={(e) => handleInputChange('projectId', e.target.value)}
+            id="surveys"
+            multiple
+            value={formData.surveyIds || []}
+            onChange={(e) => {
+              const selectedIds = Array.from(e.target.selectedOptions, (option) => option.value);
+              handleInputChange('surveyIds', selectedIds);
+            }}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
           >
-            <option value="" disabled>Select a project</option>
-            {projects.map((project) => (
-              <option key={project._id} value={project._id}>
-                {project.title}
+            <option value="" disabled>Select surveys</option>
+            {surveys.map((survey) => (
+              <option key={survey._id} value={survey._id}>
+                {survey.title}
               </option>
             ))}
           </select>
@@ -264,6 +263,15 @@ const SurveyForm: React.FC<{
               >
                 Remove Question
               </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => openLogicModal(index)}
+                className="mt-2"
+              >
+                Conditional Logic
+              </Button>
             </div>
           ))}
           <Button type="button" variant="outline" onClick={addQuestion} leftIcon={<Plus className="h-4 w-4" />} className="mt-2">
@@ -279,7 +287,9 @@ const SurveyForm: React.FC<{
           </Button>
         </div>
       </form>
-      <ConditionalLogicModal isOpen={isLogicModalOpen} onClose={closeLogicModal} />
+      {selectedQuestionIndex !== null && (
+        <ConditionalLogicModal isOpen={isLogicModalOpen} onClose={closeLogicModal} />
+      )}
     </>
   );
 });
