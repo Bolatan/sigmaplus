@@ -188,7 +188,10 @@ export const downloadReport = async (req, res) => {
           res.setHeader('Content-Type', 'application/pdf');
           res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
 
-          doc.pipe(res);
+          doc.pipe(res).on('error', (err) => {
+            console.error('Error piping PDF to response:', err);
+            res.status(500).json({ error: 'Failed to generate PDF report' });
+          });
 
           // --- PDF Landing Page ---
           doc.moveDown(2);
@@ -208,7 +211,6 @@ export const downloadReport = async (req, res) => {
               }
             });
           }
-          doc.end();
           console.log('PDF report sent');
         } catch (e) {
           console.error('Error generating pdf file:', e);

@@ -23,6 +23,7 @@ import cronRoutes from './routes/cron.js';
 import scheduleReportGeneration from './services/reportingService.js';
 import multer from 'multer';
 import Reporting from './reporting/index.js';
+import PDFDocument from 'pdfkit';
 
 
 // ES module equivalents for __dirname
@@ -125,6 +126,15 @@ app.get('/api/stats/survey-statuses', verifyToken, async (req, res) => {
 
 // Companies API routes are now handled by server/routes/companies.js
 // The GET /api/companies and GET /api/companies/:id that were here have been moved.
+
+app.get('/api/test-pdf', (req, res) => {
+  const doc = new PDFDocument();
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', 'attachment; filename=test.pdf');
+  doc.pipe(res);
+  doc.text('Hello World');
+  doc.end();
+});
 
 app.get('/api/test-report', async (req, res) => {
   const { format } = req.query;
