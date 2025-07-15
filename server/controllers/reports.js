@@ -121,7 +121,7 @@ export const downloadReport = async (req, res) => {
   console.log('Download report request received');
   try {
     const db = getDb();
-    const { id }_ = req.params;
+    const { id } = req.params;
     const { format } = req.query; // pptx, xlsx, pdf
 
     if (!ObjectId.isValid(id)) {
@@ -220,9 +220,19 @@ export const downloadReport = async (req, res) => {
           }
 
           const pdfBytes = await pdfDoc.save();
+
+          const tmpFile = tmp.fileSync({ postfix: '.pdf' });
+          fs.writeFileSync(tmpFile.name, pdfBytes);
+
           res.setHeader('Content-Type', 'application/pdf');
           res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
-          res.send(Buffer.from(pdfBytes));
+          res.sendFile(tmpFile.name, (err) => {
+            if (err) {
+              console.error('Error sending PDF file:', err);
+              res.status(500).json({ error: 'Failed to send PDF file' });
+            }
+            tmpFile.removeCallback();
+          });
           console.log('PDF report sent');
         } catch (e) {
           console.error('Error generating pdf file:', e);
