@@ -75,19 +75,12 @@ const SurveyForm: React.FC<{
           <label htmlFor="surveyName" className="block text-sm font-medium text-gray-700 mb-1">
             Survey Name
           </label>
-          <select
+          <Input
             id="surveyName"
             value={formData.title}
             onChange={(e) => handleInputChange('title', e.target.value)}
             required
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-          >
-            {/* TODO: Replace with an API call to fetch surveys */}
-            <option value="">Select a survey</option>
-            <option value="Survey 1">Survey 1</option>
-            <option value="Survey 2">Survey 2</option>
-            <option value="Survey 3">Survey 3</option>
-          </select>
+          />
         </div>
         {(user?.role === 'admin' || user?.role === 'agent') && (
           <div>
