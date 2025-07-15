@@ -281,7 +281,10 @@ const ProjectDetails: React.FC = () => {
             <Button
               variant="primary"
               leftIcon={<Plus className="h-5 w-5" />}
-              onClick={() => setIsAddSurveyModalOpen(true)}
+              onClick={() => {
+                console.log('Add Survey button clicked');
+                setIsAddSurveyModalOpen(true);
+              }}
             >
               Add Survey
             </Button>
