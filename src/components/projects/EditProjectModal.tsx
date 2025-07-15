@@ -49,7 +49,7 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
           <Input
             id="title"
             value={formData?.title || ''}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value, id: project.id, createdAt: project.createdAt })}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value, id: project.id, description: formData?.description || '',  createdAt: project.createdAt })}
           />
         </div>
         <div>
@@ -59,7 +59,7 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
           <Input
             id="description"
             value={formData?.description || ''}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value, id: project.id, createdAt: project.createdAt })}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value, id: project.id, title: formData?.title || '', createdAt: project.createdAt })}
           />
         </div>
         <div className="flex justify-end space-x-2">
