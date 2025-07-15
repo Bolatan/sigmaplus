@@ -14,7 +14,8 @@ import SurveyResponsePage from './pages/SurveyResponsePage';
 import SurveyDetails from './pages/SurveyDetails';
 import ClientDashboard from './pages/ClientDashboard';
 import PrivacyPolicy from './pages/PrivacyPolicy';
-import Projects from './pages/Projects'; // This is the component that replaced Surveys.tsx
+import Projects from './pages/Projects';
+import ProjectDetails from './pages/ProjectDetails';
 import EditReportSections from './pages/EditReportSections';
 
 // Protected route component
@@ -65,6 +66,13 @@ const AppRoutes: React.FC = () => {
           </Layout>
         </ProtectedRoute>
       } />
+      <Route path="/projects/:projectId" element={
+        <ProtectedRoute>
+          <Layout>
+            <ProjectDetails />
+          </Layout>
+        </ProtectedRoute>
+      } />
       <Route path="/surveys/:surveyId" element={
         <ProtectedRoute>
           <Layout>
@@ -85,13 +93,6 @@ const AppRoutes: React.FC = () => {
         If you intend to have separate "Surveys" and "Projects" pages, you will need to
         create a new Surveys.tsx file and component.
       */}
-      <Route path="/surveys" element={
-        <ProtectedRoute>
-          <Layout>
-            <Projects /> {/* Using Projects component for the /surveys route */}
-          </Layout>
-        </ProtectedRoute>
-      } />
       <Route path="/reports" element={
         <ProtectedRoute>
           <Layout>
