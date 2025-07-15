@@ -126,6 +126,30 @@ app.get('/api/stats/survey-statuses', verifyToken, async (req, res) => {
 // Companies API routes are now handled by server/routes/companies.js
 // The GET /api/companies and GET /api/companies/:id that were here have been moved.
 
+app.get('/api/test-report', async (req, res) => {
+  const { format } = req.query;
+  if (format === 'pdf') {
+    const PDFDocument = await import('pdfkit');
+    const doc = new PDFDocument.default();
+    res.setHeader('Content-Disposition', `attachment; filename=test.pdf`);
+    res.setHeader('Content-Type', 'application/pdf');
+    doc.pipe(res);
+    doc.text('Hello World');
+    doc.end();
+  } else if (format === 'pptx') {
+    const pptxgen = await import('pptxgenjs');
+    const pptx = new pptxgen.default();
+    const slide = pptx.addSlide();
+    slide.addText('Hello World', { x: 1, y: 1, fontSize: 18 });
+    res.setHeader('Content-Disposition', `attachment; filename=test.pptx`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+    const stream = await pptx.stream();
+    stream.pipe(res);
+  } else {
+    res.status(400).send('Invalid format');
+  }
+});
+
 // --- Frontend Catchall ---
 // The "catchall" handler: for any request that doesn't
 // match an API route or a static file, send back React's index.html file.
