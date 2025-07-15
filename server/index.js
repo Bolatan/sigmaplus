@@ -18,6 +18,7 @@ import surveyRoutesFunction from './routes/surveys.js';
 import userRoutes from './routes/users.js';
 import companyRoutes from './routes/companies.js';
 import reportRoutes from './routes/reports.js'; // Uncommented
+import projectRoutes from './routes/projects.js';
 import cronRoutes from './routes/cron.js';
 import scheduleReportGeneration from './services/reportingService.js';
 import multer from 'multer';
@@ -67,6 +68,7 @@ app.use('/api/auth', authRoutes); // Mount authentication routes
 
 // --- Application API Routes ---
 app.use('/api/surveys', surveyRoutesFunction(upload));
+app.use('/api/projects', projectRoutes(upload));
 app.use('/api/users', userRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/reports', reportRoutes);
