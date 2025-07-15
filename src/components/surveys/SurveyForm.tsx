@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { SurveyQuestion, QuestionType } from '../../types';
+import { Survey, SurveyQuestion, QuestionType } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 import { ConditionalLogicModal } from '../surveys/ConditionalLogicModal';
 
@@ -22,6 +22,8 @@ const SurveyForm: React.FC<{
   buttonText: string;
   agents: Record<string, unknown>[];
   companies: Record<string, unknown>[];
+  surveys: Survey[];
+
   user: Record<string, unknown>;
 }> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, companies, user }) => {
   if (!formData || !Array.isArray(formData.questions)) {
