@@ -1,6 +1,6 @@
 import { getDb } from '../utils/db.js';
 import { ObjectId } from 'mongodb';
-import PDFDocument from 'pdfkit';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import pptxgen from 'pptxgenjs';
 import Excel from 'exceljs';
 import fs from 'fs';
@@ -121,7 +121,7 @@ export const downloadReport = async (req, res) => {
   console.log('Download report request received');
   try {
     const db = getDb();
-    const { id } = req.params;
+    const { id }_ = req.params;
     const { format } = req.query; // pptx, xlsx, pdf
 
     if (!ObjectId.isValid(id)) {
@@ -183,34 +183,46 @@ export const downloadReport = async (req, res) => {
       case 'pdf': {
         try {
           console.log('Generating PDF report');
-          const doc = new PDFDocument();
+          const pdfDoc = await PDFDocument.create();
+          const page = pdfDoc.addPage();
+          const { width, height } = page.getSize();
+          const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+          const fontSize = 25;
 
-          res.setHeader('Content-Type', 'application/pdf');
-          res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
-
-          doc.pipe(res).on('error', (err) => {
-            console.error('Error piping PDF to response:', err);
-            res.status(500).json({ error: 'Failed to generate PDF report' });
+          page.drawText(survey.title || 'No Title', {
+            x: 50,
+            y: height - 4 * fontSize,
+            font,
+            size: fontSize,
+            color: rgb(0, 0, 0),
           });
 
-          // --- PDF Landing Page ---
-          doc.moveDown(2);
-          doc.fontSize(25).text(survey.title || 'No Title', {
-            align: 'center'
-          });
-
-          // --- PDF Content ---
           if (report.sections && Array.isArray(report.sections)) {
             report.sections.forEach((section) => {
-              doc.addPage();
-              doc.fontSize(20).text(section.title || 'No Section Title', {
-                underline: true,
+              const newPage = pdfDoc.addPage();
+              newPage.drawText(section.title || 'No Section Title', {
+                x: 50,
+                y: height - 2 * 20,
+                font,
+                size: 20,
+                color: rgb(0, 0, 0),
               });
               if (section.content) {
-                doc.fontSize(12).text(String(section.content));
+                newPage.drawText(String(section.content), {
+                  x: 50,
+                  y: height - 2 * 20 - 20,
+                  font,
+                  size: 12,
+                  color: rgb(0, 0, 0),
+                });
               }
             });
           }
+
+          const pdfBytes = await pdfDoc.save();
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
+          res.send(Buffer.from(pdfBytes));
           console.log('PDF report sent');
         } catch (e) {
           console.error('Error generating pdf file:', e);
@@ -291,4 +303,3 @@ export const generateAllReports = async () => {
   console.log('Generating all reports...');
   // This is a placeholder for the actual report generation logic
 };
-

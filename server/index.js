@@ -23,7 +23,7 @@ import cronRoutes from './routes/cron.js';
 import scheduleReportGeneration from './services/reportingService.js';
 import multer from 'multer';
 import Reporting from './reporting/index.js';
-import PDFDocument from 'pdfkit';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 
 // ES module equivalents for __dirname
@@ -127,25 +127,44 @@ app.get('/api/stats/survey-statuses', verifyToken, async (req, res) => {
 // Companies API routes are now handled by server/routes/companies.js
 // The GET /api/companies and GET /api/companies/:id that were here have been moved.
 
-app.get('/api/test-pdf', (req, res) => {
-  const doc = new PDFDocument();
+app.get('/api/test-pdf', async (req, res) => {
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage();
+  const { width, height } = page.getSize();
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontSize = 30;
+  page.drawText('Hello World!', {
+    x: 50,
+    y: height - 4 * fontSize,
+    font,
+    size: fontSize,
+    color: rgb(0, 0, 0),
+  });
+  const pdfBytes = await pdfDoc.save();
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', 'attachment; filename=test.pdf');
-  doc.pipe(res);
-  doc.text('Hello World');
-  doc.end();
+  res.send(Buffer.from(pdfBytes));
 });
 
 app.get('/api/test-report', async (req, res) => {
   const { format } = req.query;
   if (format === 'pdf') {
-    const PDFDocument = await import('pdfkit');
-    const doc = new PDFDocument.default();
-    res.setHeader('Content-Disposition', `attachment; filename=test.pdf`);
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage();
+    const { width, height } = page.getSize();
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontSize = 30;
+    page.drawText('Hello World!', {
+      x: 50,
+      y: height - 4 * fontSize,
+      font,
+      size: fontSize,
+      color: rgb(0, 0, 0),
+    });
+    const pdfBytes = await pdfDoc.save();
     res.setHeader('Content-Type', 'application/pdf');
-    doc.pipe(res);
-    doc.text('Hello World');
-    doc.end();
+    res.setHeader('Content-Disposition', 'attachment; filename=test.pdf');
+    res.send(Buffer.from(pdfBytes));
   } else if (format === 'pptx') {
     const pptxgen = await import('pptxgenjs');
     const pptx = new pptxgen.default();
