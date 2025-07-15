@@ -161,6 +161,7 @@ export const downloadReport = async (req, res) => {
               cleanupCallback();
             });
           });
+
           console.log('PPTX report sent');
         } catch (e) {
           console.error('Error generating pptx file:', e);
@@ -193,6 +194,7 @@ export const downloadReport = async (req, res) => {
           const tmpFile = tmp.fileSync({ postfix: '.pdf' });
           const stream = fs.createWriteStream(tmpFile.name);
           doc.pipe(stream);
+
 
           // --- PDF Landing Page ---
           doc.image(Buffer.from(logo, 'base64'), {
