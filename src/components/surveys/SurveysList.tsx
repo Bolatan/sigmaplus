@@ -119,6 +119,37 @@ const SurveysList: React.FC = () => {
     }
   }, [formData, resetForm]);
 
+  const handleDelete = async (surveyId: string) => {
+    if (!window.confirm('Are you sure you want to delete this survey?')) {
+      return;
+    }
+
+    setApiError(null);
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setApiError("Authentication required. Please login.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/surveys/${surveyId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.msg || errorData.error || `Failed to delete survey: ${response.statusText}`);
+      }
+
+      triggerRefetch();
+    } catch (error: any) {
+      setApiError(error.message || 'An unexpected error occurred while deleting the survey.');
+    }
+  };
+
   const filteredSurveys = surveys.filter(survey =>
     (survey.title && survey.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (survey.description && survey.description.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -205,6 +236,24 @@ const SurveysList: React.FC = () => {
                     >
                       View Details
                     </Button>
+                    {(user?.role === 'admin' || user?.role === 'agent') && (
+                      <>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => navigate(`/surveys/${survey.id}/edit`)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => handleDelete(survey.id)}
+                        >
+                          Delete
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
