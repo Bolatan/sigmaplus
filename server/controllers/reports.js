@@ -133,15 +133,17 @@ export const downloadReport = async (req, res) => {
       return res.status(404).json({ error: 'Report not found' });
     }
 
+    const survey = await db.collection('surveys').findOne({ _id: new ObjectId(report.surveyId) });
+    const responses = await db.collection('responses').find({ surveyId: new ObjectId(report.surveyId) }).toArray();
+    const client = report.clientId ? await db.collection('users').findOne({ _id: new ObjectId(report.clientId) }) : null;
 
     const logo = fs.readFileSync('logo.png').toString('base64');
-    // const chart = await createChart(responses);
     const chart = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // Placeholder chart
 
     switch (format) {
       case 'pptx': {
         console.log('Generating PPTX report');
-        const presentation = new Presentation({ survey, responses, client, report, logo, chart });
+        const presentation = new Presentation({ sections: report.sections });
         const pptx = presentation.generate();
         const buffer = await pptx.write('buffer');
         res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pptx`);
@@ -193,12 +195,14 @@ export const downloadReport = async (req, res) => {
         });
 
         // --- PDF Content ---
-        report.sections.forEach((section, pageIndex) => {
-          doc.addPage();
-          doc.fontSize(20).text(section.title, {
-            underline: true
+        if (report.sections) {
+          report.sections.forEach((section, pageIndex) => {
+            doc.addPage();
+            doc.fontSize(20).text(section.title, {
+              underline: true
+            });
           });
-        });
+        }
         doc.end();
         break;
       }
