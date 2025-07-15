@@ -8,7 +8,8 @@
     "server": "JWT_SECRET=averysecretkey node server/index.js",
     "build": "tsc && vite build",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "apt-get update && apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -40,6 +41,7 @@
     "react-router-dom": "^7.6.2",
     "sqlite3": "^5.1.7",
     "tailwind-merge": "^3.3.0",
+    "tmp": "^0.2.3",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
