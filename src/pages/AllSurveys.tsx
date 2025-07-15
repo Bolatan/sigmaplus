@@ -47,7 +47,7 @@ const AllSurveys: React.FC = () => {
           }));
           setSurveys(fetchedSurveys);
         }
-      } catch (error: any) {
+      } catch (error) {
         if (!apiError) setApiError(error.message || 'Failed to fetch surveys from API.');
       } finally {
         setIsLoading(false);
