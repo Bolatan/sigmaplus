@@ -190,9 +190,18 @@ export const downloadReport = async (req, res) => {
         try {
           console.log('Generating PDF report');
           const doc = new PDFDocument();
-          const tmpFile = tmp.fileSync({ postfix: '.pdf' });
-          const stream = fs.createWriteStream(tmpFile.name);
-          doc.pipe(stream);
+          const buffers = [];
+          doc.on('data', buffers.push.bind(buffers));
+          doc.on('end', () => {
+            const pdfData = Buffer.concat(buffers);
+            res.writeHead(200, {
+              'Content-Type': 'application/pdf',
+              'Content-Disposition': `attachment; filename=${report.title}.pdf`,
+              'Content-Length': pdfData.length,
+            });
+            res.end(pdfData);
+          });
+
 
           // --- PDF Landing Page ---
           doc.image(Buffer.from(logo, 'base64'), {
@@ -201,15 +210,15 @@ export const downloadReport = async (req, res) => {
             valign: 'center'
           });
           doc.moveDown(2);
-          doc.fontSize(25).text(survey.title, {
+          doc.fontSize(25).text(survey.title || 'No Title', {
             align: 'center'
           });
 
           // --- PDF Content ---
-          if (report.sections) {
+          if (report.sections && Array.isArray(report.sections)) {
             report.sections.forEach((section) => {
               doc.addPage();
-              doc.fontSize(20).text(section.title, {
+              doc.fontSize(20).text(section.title || 'No Section Title', {
                 underline: true,
               });
               if (section.content) {
