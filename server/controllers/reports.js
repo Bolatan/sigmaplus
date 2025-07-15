@@ -151,7 +151,7 @@ export const downloadReport = async (req, res) => {
           console.log('Generating PPTX report');
           const presentation = new Presentation({ sections: report.sections || [] });
           const pptx = presentation.generate();
-          const buffer = await pptx.write('buffer');
+          const buffer = await pptx.write();
           res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pptx`);
           res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
           res.send(buffer);
@@ -184,17 +184,11 @@ export const downloadReport = async (req, res) => {
         try {
           console.log('Generating PDF report');
           const doc = new PDFDocument();
-          const buffers = [];
-          doc.on('data', buffers.push.bind(buffers));
-          doc.on('end', () => {
-            const pdfData = Buffer.concat(buffers);
-            res.writeHead(200, {
-              'Content-Type': 'application/pdf',
-              'Content-Disposition': `attachment; filename=${report.title}.pdf`,
-              'Content-Length': pdfData.length,
-            });
-            res.end(pdfData);
-          });
+
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
+
+          doc.pipe(res);
 
           // --- PDF Landing Page ---
           doc.moveDown(2);
