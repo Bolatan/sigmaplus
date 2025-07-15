@@ -4,9 +4,8 @@ import PDFDocument from 'pdfkit';
 import pptxgen from 'pptxgenjs';
 import Excel from 'exceljs';
 import fs from 'fs';
-// Assuming Exporter is a separate utility file for report generation
-import Exporter from '../utils/Exporter.js'; // Added import for Exporter
-import Reporting from '../reporting/index.js'; // This is the module that was previously reported as not found for studyOverview.js
+import Reporting from '../reporting/index.js';
+import Presentation from '../reporting/presentation.js';
 
 // @desc    Generate a new report
 // @route   POST /api/reports
@@ -118,6 +117,7 @@ export const getReportById = async (req, res) => {
 // @route   GET /api/reports/:id/download
 // @access  Private
 export const downloadReport = async (req, res) => {
+  console.log('Download report request received');
   try {
     const db = getDb();
     const { id } = req.params;
@@ -135,112 +135,19 @@ export const downloadReport = async (req, res) => {
 
 
     const logo = fs.readFileSync('logo.png').toString('base64');
-    const chart = await createChart(responses);
+    // const chart = await createChart(responses);
+    const chart = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // Placeholder chart
 
     switch (format) {
       case 'pptx': {
-        const pptx = new pptxgen();
-
-        if (client && client.branding) {
-          if (client.branding.primaryColor) {
-            pptx.defineLayout({
-              name: 'MASTER_SLIDE',
-              width: 10,
-              height: 5.625,
-              background: { color: client.branding.primaryColor },
-            });
-            pptx.layout = 'MASTER_SLIDE';
-          }
-          if (client.branding.logoUrl) {
-            pptx.addSlide().addImage({ path: client.branding.logoUrl, x: 1, y: 1, w: 1, h: 1 });
-          }
-        }
-
-        // --- Landing Page ---
-        createLandingPageSlide(pptx, survey, logo);
-
-        // --- Study Overview ---
-        createStudyOverviewSlide(pptx, survey);
-
-        // --- Respondent Profile ---
-        const profileSlide = pptx.addSlide();
-        profileSlide.addText('Respondent Profile', { x: 1, y: 1, fontSize: 24, bold: true });
-
-        const demographics = responses.map(r => r.demographics).filter(d => d);
-        const locations = responses.map(r => r.location).filter(l => l);
-
-        const ageGroups = demographics.reduce((acc, d) => {
-          const age = d.age || 'N/A';
-          acc[age] = (acc[age] || 0) + 1;
-          return acc;
-        }, {});
-
-        const genderGroups = demographics.reduce((acc, d) => {
-          const gender = d.gender || 'N/A';
-          acc[gender] = (acc[gender] || 0) + 1;
-          return acc;
-        }, {});
-
-        profileSlide.addText('Age Distribution:', { x: 1, y: 2 });
-        Object.entries(ageGroups).forEach(([age, count], index) => {
-          profileSlide.addText(`${age}: ${count}`, { x: 1.5, y: 2.5 + (index * 0.5) });
-        });
-
-        profileSlide.addText('Gender Distribution:', { x: 1, y: 4 });
-        Object.entries(genderGroups).forEach(([gender, count], index) => {
-          profileSlide.addText(`${gender}: ${count}`, { x: 1.5, y: 4.5 + (index * 0.5) });
-        });
-
-        // --- Executive Summary ---
-        const summarySlide = pptx.addSlide();
-        summarySlide.addText('Executive Summary', { x: 1, y: 1, fontSize: 24, bold: true });
-        summarySlide.addText(report.summary || 'No summary available.', { x: 1, y: 2 });
-
-        // --- Core Insight Areas ---
-        createBrandAwarenessSlide(pptx, survey, responses);
-        createBrandUsageSlide(pptx, survey, responses);
-        createCustomerSatisfactionSlide(pptx, survey, responses);
-
-        const chartSlide = pptx.addSlide();
-        chartSlide.addText('Chart', { x: 1, y: 1, fontSize: 24, bold: true });
-        chartSlide.addImage({ data: `data:image/png;base64,${chart}`, x: 1, y: 2, w: 8, h: 4 });
-
-        // --- Regional and Outlet-Level Findings ---
-        const regionalSlide = pptx.addSlide();
-        regionalSlide.addText('Regional and Outlet-Level Findings', { x: 1, y: 1, fontSize: 24, bold: true });
-        regionalSlide.addText('Comparisons and heatmaps by state or zone will be added in a future update.', { x: 1, y: 2 });
-
-        // --- Recommendations ---
-        const recommendationsSlide = pptx.addSlide();
-        recommendationsSlide.addText('Recommendations', { x: 1, y: 1, fontSize: 24, bold: true });
-        recommendationsSlide.addText('Strategic actions based on key insights will be added in a future update.', { x: 1, y: 2 });
-
-        // --- Historical Trend Comparisons ---
-        const historicalSlide = pptx.addSlide();
-        historicalSlide.addText('Historical Trend Comparisons', { x: 1, y: 1, fontSize: 24, bold: true });
-        historicalSlide.addText('Historical trend comparisons will be added in a future update.', { x: 1, y: 2 });
-
-        // --- Add Footers ---
-        const firstRespondent = responses[0] || {};
-        const respondentName = firstRespondent.respondentName || 'N/A';
-        const respondentLocation = firstRespondent.location ? `${firstRespondent.location.city}, ${firstRespondent.location.country}` : 'N/A';
-        const respondentResponse = firstRespondent.response ? JSON.stringify(firstRespondent.response).substring(0, 50) + '...' : 'N/A';
-
-        pptx.slides.forEach((slide, index) => {
-          slide.addText(
-            `Respondent: ${respondentName} | Location: ${respondentLocation} | Response: ${respondentResponse}`,
-            { x: 0.5, y: 5.2, fontSize: 8, color: '666666' }
-          );
-          slide.addText(
-              `Slide ${index + 1}`,
-              { x: 9, y: 5.2, fontSize: 8, color: '666666' }
-          );
-        });
-
+        console.log('Generating PPTX report');
+        const presentation = new Presentation({ survey, responses, client, report, logo, chart });
+        const pptx = presentation.generate();
         const buffer = await pptx.write('buffer');
         res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pptx`);
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
         res.send(buffer);
+        console.log('PPTX report sent');
         break;
       }
       case 'xlsx': {
@@ -262,6 +169,7 @@ export const downloadReport = async (req, res) => {
         break;
       }
       case 'pdf': {
+        console.log('Generating PDF report');
         const doc = new PDFDocument();
         let buffers = [];
         doc.on('data', buffers.push.bind(buffers));
@@ -270,6 +178,7 @@ export const downloadReport = async (req, res) => {
           res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
           res.setHeader('Content-Type', 'application/pdf');
           res.send(pdfData);
+          console.log('PDF report sent');
         });
 
         // --- PDF Landing Page ---
@@ -290,14 +199,12 @@ export const downloadReport = async (req, res) => {
             underline: true
           });
         });
+        doc.end();
         break;
       }
       default:
         return res.status(400).json({ error: 'Invalid format specified' });
     }
-
-    res.end(file);
-
   } catch (err) {
     console.error(`Failed to download report ${req.params.id}:`, err);
     res.status(500).json({ error: 'Failed to download report' });
