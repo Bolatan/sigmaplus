@@ -27,6 +27,34 @@ export const createProject = async (req, res, next) => {
   }
 };
 
+export const deleteProject = async (req, res, next) => {
+  try {
+    const db = getDb();
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid project ID format' });
+    }
+
+    const projectObjectId = new ObjectId(id);
+
+    // First, delete all surveys associated with this project
+    await db.collection('surveys').deleteMany({ projectId: projectObjectId });
+
+    // Then, delete the project itself
+    const result = await db.collection('projects').deleteOne({ _id: projectObjectId });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    res.status(200).json({ status: 'success', message: 'Project and associated surveys deleted successfully' });
+  } catch (err) {
+    console.error(`Failed to delete project ${req.params.id}:`, err);
+    res.status(500).json({ error: 'Failed to delete project' });
+  }
+};
+
 export const getProjects = async (req, res, next) => {
   try {
     const db = getDb();

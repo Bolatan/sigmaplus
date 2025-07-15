@@ -7,6 +7,7 @@ import {
   getProjects,
   getProjectById,
   uploadFile,
+  deleteProject,
 } from '../controllers/projects.js';
 import multer from 'multer';
 
@@ -26,6 +27,12 @@ router.get('/', verifyToken, getProjects);
 
 // Get Project By ID
 router.get('/:id', verifyToken, getProjectById);
+
+// Delete Project
+router.delete('/:id', [
+  verifyToken,
+  authorizeRole(['admin', 'agent']),
+], deleteProject);
 
 export default function(upload) {
   router.post('/upload', [

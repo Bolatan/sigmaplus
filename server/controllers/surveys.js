@@ -6,10 +6,19 @@ import { Readable } from 'stream';
 
 export const createSurvey = async (req, res, next) => {
   try {
-    const { title, description, questions: inputQuestions, status, companyIds, agentId, customerId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyIds, agentId, customerId, projectId } = req.body;
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
     const db = getDb();
+
+    if (!projectId || !ObjectId.isValid(projectId)) {
+      throw new ApiError(400, 'A valid project ID is required.');
+    }
+
+    const project = await db.collection('projects').findOne({ _id: new ObjectId(projectId) });
+    if (!project) {
+      throw new ApiError(404, 'Project not found.');
+    }
 
     const validatedQuestions = (inputQuestions || []).map((q, index) => {
       // ... (existing question validation logic)
@@ -25,6 +34,7 @@ export const createSurvey = async (req, res, next) => {
       updatedAt: new Date(),
       responseCount: 0,
       companyIds: [],
+      projectId: new ObjectId(projectId),
     };
 
     if (userRole === 'admin' && companyIds && Array.isArray(companyIds)) {
@@ -54,7 +64,7 @@ export const createSurvey = async (req, res, next) => {
 export const getSurveys = async (req, res, next) => {
   try {
     const db = getDb();
-    const { region, demographics, outletType } = req.query;
+    const { region, demographics, outletType, projectId } = req.query;
     const query = {};
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
@@ -75,6 +85,9 @@ export const getSurveys = async (req, res, next) => {
     }
     if (outletType && outletType !== 'all') {
       query.outletType = outletType;
+    }
+    if (projectId && ObjectId.isValid(projectId)) {
+      query.projectId = new ObjectId(projectId);
     }
 
     const surveysData = await db.collection('surveys').find(query).toArray();
@@ -122,7 +135,7 @@ export const updateSurvey = async (req, res, next) => {
     const db = getDb();
     const { id: surveyId } = req.params;
     const { id: userId, role: userRole } = req.user;
-    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId, customerId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId, customerId, projectId } = req.body;
 
     if (!ObjectId.isValid(surveyId)) {
       throw new ApiError(404, 'Survey not found (invalid ID format)');
@@ -138,6 +151,17 @@ export const updateSurvey = async (req, res, next) => {
     if (title !== undefined) updateFields.title = title.trim();
     if (description !== undefined) updateFields.description = description.trim();
     if (status !== undefined) updateFields.status = status;
+
+    if (projectId !== undefined) {
+      if (!ObjectId.isValid(projectId)) {
+        throw new ApiError(400, 'Invalid Project ID format.');
+      }
+      const project = await db.collection('projects').findOne({ _id: new ObjectId(projectId) });
+      if (!project) {
+        throw new ApiError(404, 'Project not found.');
+      }
+      updateFields.projectId = new ObjectId(projectId);
+    }
 
     if (inputQuestions !== undefined) {
       updateFields.questions = (inputQuestions || []).map((q, index) => {
