@@ -201,11 +201,6 @@ export const downloadReport = async (req, res) => {
           });
 
           // --- PDF Landing Page ---
-          doc.image(Buffer.from(logo, 'base64'), {
-            fit: [100, 100],
-            align: 'center',
-            valign: 'center'
-          });
           doc.moveDown(2);
           doc.fontSize(25).text(survey.title, {
             align: 'center'
