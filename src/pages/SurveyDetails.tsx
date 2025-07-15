@@ -168,14 +168,6 @@ const SurveyDetails: React.FC = () => {
                 <label htmlFor={q.id || `q-input-${index}`} className="block text-sm font-medium text-gray-700 mb-1">
                   {index + 1}. {q.text}
                 </label>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => navigate(`/surveys/take/${survey.id}`)}
-                  className="mt-4"
-                >
-                  Take Survey
-                </Button>
                 <p className="text-sm text-gray-500">Type: {q.type}</p>
                 {q.options && q.options.length > 0 && (
                   <div className="mt-2 space-y-2">
