@@ -5,6 +5,7 @@ import csv from 'csv-parser';
 import { Readable } from 'stream';
 
 export const createSurvey = async (req, res, next) => {
+  console.log('Creating a new survey...');
   try {
     const { title, description, questions: inputQuestions, status, companyIds, agentId, customerId, projectId } = req.body;
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
@@ -131,6 +132,7 @@ export const getSurveyById = async (req, res, next) => {
 };
 
 export const updateSurvey = async (req, res, next) => {
+  console.log(`Updating survey ${req.params.id}...`);
   try {
     const db = getDb();
     const { id: surveyId } = req.params;
@@ -254,6 +256,7 @@ export const updateSurvey = async (req, res, next) => {
 };
 
 export const deleteSurvey = async (req, res, next) => {
+  console.log(`Deleting survey ${req.params.id}...`);
   try {
     const db = getDb();
     const { id: surveyId } = req.params;
@@ -289,6 +292,7 @@ export const deleteSurvey = async (req, res, next) => {
 };
 
 export const submitSurveyResponse = async (req, res, next) => {
+  console.log(`Submitting response for survey ${req.params.id}...`);
   try {
     const db = getDb();
     const { id: surveyIdParam } = req.params;

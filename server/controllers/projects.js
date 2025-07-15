@@ -3,6 +3,7 @@ import { getDb } from '../utils/db.js';
 import { ObjectId } from 'mongodb';
 
 export const createProject = async (req, res, next) => {
+  console.log('Creating a new project...');
   try {
     const { title, description } = req.body;
     const { id: userId } = req.user;
@@ -28,6 +29,7 @@ export const createProject = async (req, res, next) => {
 };
 
 export const updateProject = async (req, res, next) => {
+  console.log(`Updating project ${req.params.id}...`);
   try {
     const { id } = req.params;
     const { title, description } = req.body;
@@ -56,6 +58,7 @@ export const updateProject = async (req, res, next) => {
 };
 
 export const deleteProject = async (req, res, next) => {
+  console.log(`Deleting project ${req.params.id}...`);
   try {
     const db = getDb();
     const { id } = req.params;
