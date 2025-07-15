@@ -13,6 +13,8 @@ import authRoutes from './routes/auth.js';
 import { verifyToken, authorizeRole } from './middleware/auth.js';
 import { body, validationResult } from 'express-validator';
 import { logger } from './middleware/logger.js';
+import fs from 'fs';
+import tmp from 'tmp';
 
 import surveyRoutesFunction from './routes/surveys.js';
 import userRoutes from './routes/users.js';
@@ -141,9 +143,17 @@ app.get('/api/test-pdf', async (req, res) => {
     color: rgb(0, 0, 0),
   });
   const pdfBytes = await pdfDoc.save();
+  const tmpFile = tmp.fileSync({ postfix: '.pdf' });
+  fs.writeFileSync(tmpFile.name, pdfBytes);
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', 'attachment; filename=test.pdf');
-  res.send(Buffer.from(pdfBytes));
+  res.sendFile(tmpFile.name, (err) => {
+    if (err) {
+      console.error('Error sending PDF file:', err);
+      res.status(500).json({ error: 'Failed to send PDF file' });
+    }
+    tmpFile.removeCallback();
+  });
 });
 
 app.get('/api/test-report', async (req, res) => {
@@ -162,9 +172,17 @@ app.get('/api/test-report', async (req, res) => {
       color: rgb(0, 0, 0),
     });
     const pdfBytes = await pdfDoc.save();
+    const tmpFile = tmp.fileSync({ postfix: '.pdf' });
+    fs.writeFileSync(tmpFile.name, pdfBytes);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename=test.pdf');
-    res.send(Buffer.from(pdfBytes));
+    res.sendFile(tmpFile.name, (err) => {
+      if (err) {
+        console.error('Error sending PDF file:', err);
+        res.status(500).json({ error: 'Failed to send PDF file' });
+      }
+      tmpFile.removeCallback();
+    });
   } else if (format === 'pptx') {
     const pptxgen = await import('pptxgenjs');
     const pptx = new pptxgen.default();

@@ -220,9 +220,19 @@ export const downloadReport = async (req, res) => {
           }
 
           const pdfBytes = await pdfDoc.save();
+
+          const tmpFile = tmp.fileSync({ postfix: '.pdf' });
+          fs.writeFileSync(tmpFile.name, pdfBytes);
+
           res.setHeader('Content-Type', 'application/pdf');
           res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
-          res.send(Buffer.from(pdfBytes));
+          res.sendFile(tmpFile.name, (err) => {
+            if (err) {
+              console.error('Error sending PDF file:', err);
+              res.status(500).json({ error: 'Failed to send PDF file' });
+            }
+            tmpFile.removeCallback();
+          });
           console.log('PDF report sent');
         } catch (e) {
           console.error('Error generating pdf file:', e);
