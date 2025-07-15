@@ -29,8 +29,27 @@ const SurveyForm: React.FC<{
   }
 
   const handleInputChange = useCallback((field: keyof Omit<SurveyFormData, 'questions'>, value: string | string[]) => {
-    onFormDataChange({ ...formData, [field]: value });
-  }, [formData, onFormDataChange]);
+    if (field === 'title') {
+      const selectedSurvey = surveys.find((survey) => survey.title === value);
+      if (selectedSurvey) {
+        onFormDataChange({
+          ...formData,
+          title: selectedSurvey.title,
+          description: selectedSurvey.description,
+          questions: selectedSurvey.questions,
+        });
+      } else {
+        onFormDataChange({
+          ...formData,
+          title: value,
+          description: '',
+          questions: [],
+        });
+      }
+    } else {
+      onFormDataChange({ ...formData, [field]: value });
+    }
+  }, [formData, onFormDataChange, surveys]);
 
   const handleQuestionChange = useCallback((index: number, field: keyof SurveyQuestion, value: string | boolean | string[]) => {
     const newQuestions = [...formData.questions];
@@ -82,11 +101,12 @@ const SurveyForm: React.FC<{
             required
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
           >
-            {/* TODO: Replace with an API call to fetch surveys */}
             <option value="">Select a survey</option>
-            <option value="Survey 1">Survey 1</option>
-            <option value="Survey 2">Survey 2</option>
-            <option value="Survey 3">Survey 3</option>
+            {surveys.map((survey) => (
+              <option key={survey._id} value={survey.title}>
+                {survey.title}
+              </option>
+            ))}
           </select>
         </div>
         {(user?.role === 'admin' || user?.role === 'agent') && (
@@ -123,6 +143,7 @@ const SurveyForm: React.FC<{
             onChange={(e) => handleInputChange('description', e.target.value)}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
             rows={3}
+            disabled={!!surveys.find((survey) => survey.title === formData.title)}
           />
         </div>
         {/* Questions Section */}
@@ -135,6 +156,7 @@ const SurveyForm: React.FC<{
                 value={question.text}
                 onChange={(e) => handleQuestionChange(index, 'text', e.target.value)}
                 required
+                disabled={!!surveys.find((survey) => survey.title === formData.title)}
               />
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -144,6 +166,7 @@ const SurveyForm: React.FC<{
                   value={question.type}
                   onChange={(e) => handleQuestionChange(index, 'type', e.target.value as QuestionType)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                  disabled={!!surveys.find((survey) => survey.title === formData.title)}
                 >
                   <option value="text">Text</option>
                   <option value="textarea">Textarea</option>
@@ -164,6 +187,7 @@ const SurveyForm: React.FC<{
                     checked={!!question.isRequired}
                     onChange={(e) => handleQuestionChange(index, 'isRequired', e.target.checked)}
                     className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50"
+                    disabled={!!surveys.find((survey) => survey.title === formData.title)}
                   />
                   <span className="text-sm text-gray-700">Required</span>
                 </label>
@@ -182,6 +206,7 @@ const SurveyForm: React.FC<{
                         handleQuestionChange(index, 'options', newOptions);
                       }}
                       className="flex-grow"
+                      disabled={!!surveys.find((survey) => survey.title === formData.title)}
                     />
                     <Button
                       type="button"
@@ -191,11 +216,13 @@ const SurveyForm: React.FC<{
                         const newOptions = (question.options || []).filter((_, i) => i !== optIndex);
                         handleQuestionChange(index, 'options', newOptions);
                       }}
+                      disabled={!!surveys.find((survey) => survey.title === formData.title)}
                     >
                       Remove
                     </Button>
                   </div>
                 ))}
+                {!surveys.find((survey) => survey.title === formData.title) && (
                 <Button
                   type="button"
                   variant="outline"
@@ -208,6 +235,7 @@ const SurveyForm: React.FC<{
                 >
                   Add Option
                 </Button>
+                )}
               </div>
               )}
               {question.type === 'rating' && (
@@ -219,6 +247,7 @@ const SurveyForm: React.FC<{
                     onChange={(e) => handleQuestionChange(index, 'maxRating', parseInt(e.target.value, 10))}
                     min={2}
                     max={10}
+                    disabled={!!surveys.find((survey) => survey.title === formData.title)}
                   />
                 </div>
               )}
@@ -229,6 +258,7 @@ const SurveyForm: React.FC<{
                     value={question.allowedFileTypes || ''}
                     onChange={(e) => handleQuestionChange(index, 'allowedFileTypes', e.target.value)}
                     placeholder="e.g., .pdf,.jpg,.png"
+                    disabled={!!surveys.find((survey) => survey.title === formData.title)}
                   />
                 </div>
               )}
@@ -239,9 +269,11 @@ const SurveyForm: React.FC<{
                     value={question.videoUrl || ''}
                     onChange={(e) => handleQuestionChange(index, 'videoUrl', e.target.value)}
                     placeholder="https://example.com/video.mp4"
+                    disabled={!!surveys.find((survey) => survey.title === formData.title)}
                   />
                 </div>
               )}
+              {!surveys.find((survey) => survey.title === formData.title) && (
               <Button
                 type="button"
                 variant="danger"
@@ -251,6 +283,7 @@ const SurveyForm: React.FC<{
               >
                 Remove Question
               </Button>
+              )}
               <Button
                 type="button"
                 variant="outline"
@@ -262,9 +295,11 @@ const SurveyForm: React.FC<{
               </Button>
             </div>
           ))}
+          {!surveys.find((survey) => survey.title === formData.title) && (
           <Button type="button" variant="outline" onClick={addQuestion} leftIcon={<Plus className="h-4 w-4" />} className="mt-2">
             Add Question
           </Button>
+          )}
         </div>
         <div className="flex justify-end space-x-2 mt-6">
           <Button type="button" variant="outline" onClick={onCancel}>
