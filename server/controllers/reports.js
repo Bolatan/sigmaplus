@@ -144,9 +144,10 @@ export const downloadReport = async (req, res) => {
       case 'pptx': {
         console.log('Generating PPTX report');
         console.log('Generating PPTX report');
-        const presentation = new Presentation({ sections: report.sections || [] });
-        const pptx = presentation.generate();
-        res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pptx`);
+        const pptx = new pptxgen();
+        const slide = pptx.addSlide();
+        slide.addText('Hello World', { x: 1, y: 1, fontSize: 18 });
+        res.setHeader('Content-Disposition', `attachment; filename=hello.pptx`);
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
         const stream = await pptx.stream();
         stream.pipe(res);
@@ -173,37 +174,11 @@ export const downloadReport = async (req, res) => {
       }
       case 'pdf': {
         console.log('Generating PDF report');
-        console.log('Generating PDF report');
         const doc = new PDFDocument();
-
-        res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
+        res.setHeader('Content-Disposition', `attachment; filename=hello.pdf`);
         res.setHeader('Content-Type', 'application/pdf');
-
         doc.pipe(res);
-
-        // --- PDF Landing Page ---
-        doc.image(Buffer.from(logo, 'base64'), {
-          fit: [100, 100],
-          align: 'center',
-          valign: 'center'
-        });
-        doc.moveDown(2);
-        doc.fontSize(25).text(survey.title, {
-          align: 'center'
-        });
-
-        // --- PDF Content ---
-        if (report.sections) {
-          report.sections.forEach((section) => {
-            doc.addPage();
-            doc.fontSize(20).text(section.title, {
-              underline: true,
-            });
-            if (section.content) {
-              doc.fontSize(12).text(section.content);
-            }
-          });
-        }
+        doc.text('Hello World');
         doc.end();
         console.log('PDF report sent');
         break;
