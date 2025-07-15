@@ -4,6 +4,7 @@ import PDFDocument from 'pdfkit';
 import pptxgen from 'pptxgenjs';
 import Excel from 'exceljs';
 import fs from 'fs';
+import tmp from 'tmp';
 import Reporting from '../reporting/index.js';
 import Presentation from '../reporting/presentation.js';
 
@@ -143,14 +144,18 @@ export const downloadReport = async (req, res) => {
     switch (format) {
       case 'pptx': {
         console.log('Generating PPTX report');
-        console.log('Generating PPTX report');
-        const pptx = new pptxgen();
-        const slide = pptx.addSlide();
-        slide.addText('Hello World', { x: 1, y: 1, fontSize: 18 });
-        res.setHeader('Content-Disposition', `attachment; filename=hello.pptx`);
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
-        const stream = await pptx.stream();
-        stream.pipe(res);
+        const presentation = new Presentation({ sections: report.sections || [] });
+        const pptx = presentation.generate();
+        tmp.file({ postfix: '.pptx' }, async (err, path, fd, cleanupCallback) => {
+          if (err) throw err;
+          await pptx.writeFile({ fileName: path });
+          res.download(path, `${report.title}.pptx`, (err) => {
+            if (err) {
+              console.error('Error sending pptx file:', err);
+            }
+            cleanupCallback();
+          });
+        });
         console.log('PPTX report sent');
         break;
       }
@@ -175,11 +180,43 @@ export const downloadReport = async (req, res) => {
       case 'pdf': {
         console.log('Generating PDF report');
         const doc = new PDFDocument();
-        res.setHeader('Content-Disposition', `attachment; filename=hello.pdf`);
-        res.setHeader('Content-Type', 'application/pdf');
-        doc.pipe(res);
-        doc.text('Hello World');
+        const tmpFile = tmp.fileSync({ postfix: '.pdf' });
+        const stream = fs.createWriteStream(tmpFile.name);
+        doc.pipe(stream);
+
+        // --- PDF Landing Page ---
+        doc.image(Buffer.from(logo, 'base64'), {
+          fit: [100, 100],
+          align: 'center',
+          valign: 'center'
+        });
+        doc.moveDown(2);
+        doc.fontSize(25).text(survey.title, {
+          align: 'center'
+        });
+
+        // --- PDF Content ---
+        if (report.sections) {
+          report.sections.forEach((section) => {
+            doc.addPage();
+            doc.fontSize(20).text(section.title, {
+              underline: true,
+            });
+            if (section.content) {
+              doc.fontSize(12).text(section.content);
+            }
+          });
+        }
         doc.end();
+
+        stream.on('finish', () => {
+          res.download(tmpFile.name, `${report.title}.pdf`, (err) => {
+            if (err) {
+              console.error('Error sending pdf file:', err);
+            }
+            tmpFile.removeCallback();
+          });
+        });
         console.log('PDF report sent');
         break;
       }
