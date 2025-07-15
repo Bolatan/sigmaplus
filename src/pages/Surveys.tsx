@@ -1,3 +1,3 @@
-import SurveysList from '../components/surveys/SurveysList';
+import Projects from './Projects';
 
-export default SurveysList;
+export default Projects;
