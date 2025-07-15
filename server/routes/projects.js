@@ -8,6 +8,7 @@ import {
   getProjectById,
   uploadFile,
   deleteProject,
+  updateProject,
 } from '../controllers/projects.js';
 import multer from 'multer';
 
@@ -33,6 +34,15 @@ router.delete('/:id', [
   verifyToken,
   authorizeRole(['admin', 'agent']),
 ], deleteProject);
+
+// Update Project
+router.put('/:id', [
+  verifyToken,
+  authorizeRole(['admin', 'agent']),
+  body('title').notEmpty().withMessage('Title is required').trim(),
+  body('description').optional().trim(),
+  validateRequest
+], updateProject);
 
 export default function(upload) {
   router.post('/upload', [

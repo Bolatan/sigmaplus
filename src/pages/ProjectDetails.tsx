@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, BarChart2 } from 'lucide-react';
+import { Plus, BarChart2, Edit } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
 import { Survey, SurveyQuestion } from '../types';
 import SurveyForm from '../components/surveys/SurveyForm';
+import EditProjectModal from '../components/projects/EditProjectModal';
 
 interface Project {
   id: string;
@@ -30,6 +31,7 @@ const ProjectDetails: React.FC = () => {
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddSurveyModalOpen, setIsAddSurveyModalOpen] = useState(false);
+  const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
   const [formData, setFormData] = useState<SurveyFormData>({
     title: '',
     description: '',
@@ -183,6 +185,36 @@ const ProjectDetails: React.FC = () => {
     }
   }, [formData, resetForm]);
 
+  const handleUpdateProject = async (updatedProject: Project) => {
+    setApiError(null);
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setApiError("Authentication required. Please login.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/projects/${updatedProject.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(updatedProject),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update project: ${response.statusText}`);
+      }
+
+      setIsEditProjectModalOpen(false);
+      triggerRefetch();
+    } catch (error: any) {
+      setApiError(error.message || 'An unexpected error occurred while updating the project.');
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft':
@@ -235,15 +267,26 @@ const ProjectDetails: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">{project.title}</h1>
           <p className="text-sm text-gray-500 mt-1">{project.description}</p>
         </div>
-        {(user?.role === 'admin' || user?.role === 'agent') && (
-          <Button
-            variant="primary"
-            leftIcon={<Plus className="h-5 w-5" />}
-            onClick={() => setIsAddSurveyModalOpen(true)}
-          >
-            Add Survey
-          </Button>
-        )}
+        <div className="flex space-x-2">
+          {(user?.role === 'admin' || user?.role === 'agent') && (
+            <Button
+              variant="outline"
+              leftIcon={<Edit className="h-5 w-5" />}
+              onClick={() => setIsEditProjectModalOpen(true)}
+            >
+              Edit Project
+            </Button>
+          )}
+          {(user?.role === 'admin' || user?.role === 'agent') && (
+            <Button
+              variant="primary"
+              leftIcon={<Plus className="h-5 w-5" />}
+              onClick={() => setIsAddSurveyModalOpen(true)}
+            >
+              Add Survey
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -306,6 +349,13 @@ const ProjectDetails: React.FC = () => {
           user={user}
         />
       </Modal>
+
+      <EditProjectModal
+        isOpen={isEditProjectModalOpen}
+        onClose={() => setIsEditProjectModalOpen(false)}
+        project={project}
+        onSave={handleUpdateProject}
+      />
 
       {surveys.length === 0 && (
         <div className="text-center py-12">
