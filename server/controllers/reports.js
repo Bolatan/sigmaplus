@@ -198,15 +198,15 @@ export const downloadReport = async (req, res) => {
 
           // --- PDF Landing Page ---
           doc.moveDown(2);
-          doc.fontSize(25).text(survey.title, {
+          doc.fontSize(25).text(survey.title || 'No Title', {
             align: 'center'
           });
 
           // --- PDF Content ---
-          if (report.sections) {
+          if (report.sections && Array.isArray(report.sections)) {
             report.sections.forEach((section) => {
               doc.addPage();
-              doc.fontSize(20).text(section.title, {
+              doc.fontSize(20).text(section.title || 'No Section Title', {
                 underline: true,
               });
               if (section.content) {
