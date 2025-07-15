@@ -202,7 +202,7 @@ export const updateSurvey = async (req, res, next) => {
       });
     }
 
-    if (userRole === 'admin' && req.body.companyIds !== undefined) {
+    if ((userRole === 'admin' || userRole === 'agent') && req.body.companyIds !== undefined) {
       if (Array.isArray(req.body.companyIds)) {
         updateFields.companyIds = req.body.companyIds
           .filter(id => ObjectId.isValid(id))
@@ -212,7 +212,7 @@ export const updateSurvey = async (req, res, next) => {
       }
     }
 
-    if (userRole === 'admin' && agentId !== undefined) {
+    if ((userRole === 'admin' || userRole === 'agent') && agentId !== undefined) {
       if (agentId === null || agentId === '') {
         updateFields.agentId = null;
       } else if (ObjectId.isValid(agentId)) {
@@ -270,6 +270,10 @@ export const deleteSurvey = async (req, res, next) => {
 
      if (userRole !== 'admin' && userRole !== 'agent') {
         throw new ApiError(403, 'Forbidden: You are not authorized to delete surveys.');
+    }
+
+    if (userRole === 'agent') {
+      // Agents can delete any survey
     }
 
     const result = await db.collection('surveys').deleteOne({ _id: new ObjectId(surveyId) });
