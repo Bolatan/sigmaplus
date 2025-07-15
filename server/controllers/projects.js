@@ -21,7 +21,7 @@ export const createProject = async (req, res, next) => {
     const createdProject = await db.collection('projects').findOne({ _id: result.insertedId });
 
     res.status(201).json({ status: 'success', data: createdProject });
-  } catch (error)_ {
+  } catch (error) {
     console.error("Error in createProject controller:", error);
     next(error);
   }
