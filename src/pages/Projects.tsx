@@ -135,7 +135,6 @@ const Projects: React.FC = () => {
       const response = await fetch(`/api/projects/${projectId}`, {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
       });
