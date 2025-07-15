@@ -329,7 +329,7 @@ const ProjectDetails: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/surveys/${survey.id}`)}
+                      onClick={() => navigate(`/surveys/details/${survey.id}`)}
                     >
                       View Details
                     </Button>
