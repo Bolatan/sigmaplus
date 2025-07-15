@@ -184,8 +184,17 @@ export const downloadReport = async (req, res) => {
         try {
           console.log('Generating PDF report');
           const doc = new PDFDocument();
-          res.attachment(`${report.title}.pdf`);
-          doc.pipe(res);
+          const buffers = [];
+          doc.on('data', buffers.push.bind(buffers));
+          doc.on('end', () => {
+            const pdfData = Buffer.concat(buffers);
+            res.writeHead(200, {
+              'Content-Type': 'application/pdf',
+              'Content-Disposition': `attachment; filename=${report.title}.pdf`,
+              'Content-Length': pdfData.length,
+            });
+            res.end(pdfData);
+          });
 
           // --- PDF Landing Page ---
           doc.moveDown(2);
