@@ -121,7 +121,7 @@ export const downloadReport = async (req, res) => {
   console.log('Download report request received');
   try {
     const db = getDb();
-    const { id }_ = req.params;
+    const { id } = req.params;
     const { format } = req.query; // pptx, xlsx, pdf
 
     if (!ObjectId.isValid(id)) {
