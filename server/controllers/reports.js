@@ -143,7 +143,7 @@ export const downloadReport = async (req, res) => {
     switch (format) {
       case 'pptx': {
         console.log('Generating PPTX report');
-        const presentation = new Presentation({ sections: report.sections });
+        const presentation = new Presentation({ sections: report.sections || [] });
         const pptx = presentation.generate();
         const buffer = await pptx.write('buffer');
         res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pptx`);
@@ -196,11 +196,14 @@ export const downloadReport = async (req, res) => {
 
         // --- PDF Content ---
         if (report.sections) {
-          report.sections.forEach((section, pageIndex) => {
+          report.sections.forEach((section) => {
             doc.addPage();
             doc.fontSize(20).text(section.title, {
-              underline: true
+              underline: true,
             });
+            if (section.content) {
+              doc.fontSize(12).text(section.content);
+            }
           });
         }
         doc.end();
