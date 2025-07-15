@@ -19,7 +19,7 @@ export const createSurvey = async (req, res, next) => {
       title,
       description: description || '',
       questions: validatedQuestions,
-      status: status || 'draft',
+      status: status || 'active',
       createdBy: new ObjectId(userId),
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -133,9 +133,6 @@ export const updateSurvey = async (req, res, next) => {
       throw new ApiError(404, 'Survey not found');
     }
 
-    if (userRole === 'agent' && existingSurvey.createdBy.toString() !== userId) {
-      throw new ApiError(403, 'Forbidden: You can only update surveys you created.');
-    }
 
     const updateFields = {};
     if (title !== undefined) updateFields.title = title.trim();
@@ -247,9 +244,6 @@ export const deleteSurvey = async (req, res, next) => {
       throw new ApiError(404, 'Survey not found');
     }
 
-    if (userRole === 'agent' && existingSurvey.createdBy.toString() !== userId) {
-      throw new ApiError(403, 'Forbidden: You can only delete surveys you created.');
-    }
      if (userRole !== 'admin' && userRole !== 'agent') {
         throw new ApiError(403, 'Forbidden: You are not authorized to delete surveys.');
     }
