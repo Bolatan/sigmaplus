@@ -88,7 +88,6 @@ const SurveyForm: React.FC<{
                 {survey.title}
               </option>
             ))}
-
           </select>
         </div>
         {(user?.role === 'admin' || user?.role === 'agent') && (

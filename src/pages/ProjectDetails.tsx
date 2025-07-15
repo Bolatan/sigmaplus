@@ -19,7 +19,6 @@ interface Project {
 interface SurveyFormData {
   title: string;
   description: string;
-  questions: SurveyQuestion[];
   agentId?: string;
   companyIds?: string[];
   projectId?: string;
@@ -35,7 +34,6 @@ const ProjectDetails: React.FC = () => {
   const [formData, setFormData] = useState<SurveyFormData>({
     title: '',
     description: '',
-    questions: [],
     projectId: projectId,
   });
   const { user } = useAuth();
@@ -52,7 +50,6 @@ const ProjectDetails: React.FC = () => {
     setFormData({
       title: '',
       description: '',
-      questions: [],
       projectId: projectId,
     });
   }, [projectId]);
