@@ -27,6 +27,34 @@ export const createProject = async (req, res, next) => {
   }
 };
 
+export const updateProject = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { title, description } = req.body;
+    const db = getDb();
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid project ID format' });
+    }
+
+    const updatedResult = await db.collection('projects').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { title, description, updatedAt: new Date() } }
+    );
+
+    if (updatedResult.matchedCount === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const updatedProject = await db.collection('projects').findOne({ _id: new ObjectId(id) });
+
+    res.json({ status: 'success', data: updatedProject });
+  } catch (err) {
+    console.error(`Failed to update project ${req.params.id}:`, err);
+    res.status(500).json({ error: 'Failed to update project' });
+  }
+};
+
 export const deleteProject = async (req, res, next) => {
   try {
     const db = getDb();
