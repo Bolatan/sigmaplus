@@ -12,7 +12,6 @@ interface SurveyFormData {
   questions: SurveyQuestion[];
   agentId?: string;
   companyIds?: string[];
-  projectId?: string;
 }
 
 interface SurveyFormProps {
@@ -22,7 +21,7 @@ interface SurveyFormProps {
   onCancel: () => void;
   buttonText: string;
   companies: { _id: string; name: string }[];
-  projects: { _id: string; title: string }[];
+  surveys: Survey[];
   user: Record<string, unknown> | null;
 }
 
@@ -33,7 +32,6 @@ const SurveyForm: React.FC<SurveyFormProps> = ({
   onCancel,
   buttonText,
   companies,
-  projects,
   user,
 }) => {
   const handleInputChange = useCallback(
@@ -106,71 +104,51 @@ const SurveyForm: React.FC<SurveyFormProps> = ({
           />
         </div>
         {(user?.role === 'admin' || user?.role === 'agent') && (
-          <div>
-            <label
-              htmlFor="company"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Assign to Company
-            </label>
-            <select
-              id="company"
-              multiple
-              value={formData.companyIds || []}
-              onChange={(e) => {
-                const selectedIds = Array.from(
-                  e.target.selectedOptions,
-                  (option) => option.value
-                );
-                handleInputChange('companyIds', selectedIds);
-              }}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-            >
-              {companies.length === 0 ? (
-                <option value="" disabled>
-                  Loading companies...
-                </option>
-              ) : (
-                companies.map((company) => (
+          <>
+            <div>
+              <label
+                htmlFor="project"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Assign to Project
+              </label>
+              {/* This should be a dropdown, but we don't have projects data yet */}
+              <Input
+                id="project"
+                value={formData.projectId || ''}
+                onChange={(e) => handleInputChange('projectId', e.target.value)}
+                placeholder="Enter Project ID"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="company"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Assign to Company
+              </label>
+              <select
+                id="company"
+                multiple
+                value={formData.companyIds || []}
+                onChange={(e) => {
+                  const selectedIds = Array.from(
+                    e.target.selectedOptions,
+                    (option) => option.value
+                  );
+                  handleInputChange('companyIds', selectedIds);
+                }}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+              >
+                {companies.map((company) => (
                   <option key={company._id} value={company._id}>
                     {company.name}
                   </option>
-                ))
-              )}
-            </select>
-          </div>
-        )}
-        <div>
-          <label
-            htmlFor="project"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Assign to Project
-          </label>
-          <select
-            id="project"
-            value={formData.projectId || ''}
-            onChange={(e) => handleInputChange('projectId', e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-          >
-            {projects.length === 0 ? (
-              <option value="" disabled>
-                Loading projects...
-              </option>
-            ) : (
-              <>
-                <option value="" disabled>
-                  Select a project
-                </option>
-                {projects.map((project) => (
-                  <option key={project._id} value={project._id}>
-                    {project.title}
-                  </option>
                 ))}
-              </>
-            )}
-          </select>
-        </div>
+              </select>
+            </div>
+          </>
+        )}
         <div>
           <label
             htmlFor="projectDescription"

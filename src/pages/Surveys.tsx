@@ -20,13 +20,13 @@ const Surveys: React.FC = () => {
     questions: SurveyQuestion[];
     agentId?: string;
     companyIds?: string[];
-    projectId?: string;
   }>({
     title: '',
     description: '',
     questions: [],
     projectId: '',
     companyIds: [],
+
   });
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -89,6 +89,7 @@ const Surveys: React.FC = () => {
       questions: [],
       projectId: '',
       companyIds: [],
+
     });
   }, []);
 
@@ -126,18 +127,14 @@ const Surveys: React.FC = () => {
         if (projectsResponse.ok) {
           const { data } = await projectsResponse.json();
           setProjects(data || []);
-          if (!data || data.length === 0) {
-            setApiError("No projects found. Please create a project before creating a survey.");
-          }
         }
       } catch (error) {
         console.error("Failed to fetch agents, companies, or projects:", error);
-        setApiError("Failed to fetch data. Please try again later.");
       }
     };
 
     fetchAgentsAndCompanies();
-  }, [user]);
+  }, []);
 
   const handleAddSurvey = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -316,6 +313,7 @@ const Surveys: React.FC = () => {
           agents={agents}
           companies={companies}
           projects={projects}
+          surveys={[]}
           user={user}
         />
       </Modal>
