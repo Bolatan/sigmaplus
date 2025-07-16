@@ -183,9 +183,9 @@ export const downloadReport = async (req, res) => {
         try {
           console.log('Generating PDF report');
           const doc = new PDFDocument();
-          res.setHeader('Content-Type', 'application/pdf');
-          res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
-          doc.pipe(res);
+          const tmpFile = tmp.fileSync({ postfix: '.pdf' });
+          const stream = fs.createWriteStream(tmpFile.name);
+          doc.pipe(stream);
 
           doc.fontSize(25).text(survey.title || 'No Title', 50, 50);
 
@@ -200,7 +200,19 @@ export const downloadReport = async (req, res) => {
           }
 
           doc.end();
-          console.log('PDF report sent');
+
+          stream.on('finish', () => {
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
+            res.sendFile(tmpFile.name, (err) => {
+              if (err) {
+                console.error('Error sending PDF file:', err);
+                res.status(500).json({ error: 'Failed to send PDF file' });
+              }
+              tmpFile.removeCallback();
+            });
+            console.log('PDF report sent');
+          });
         } catch (e) {
           console.error('Error generating pdf file:', e);
           res.status(500).json({ error: 'Failed to generate pdf report' });
