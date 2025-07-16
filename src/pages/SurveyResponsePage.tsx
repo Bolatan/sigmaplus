@@ -178,7 +178,7 @@ const SurveyResponsePage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`/api/surveys/${surveyId}/responses`, {
+      const response = await fetch(`/api/surveys/${surveyId}/respond`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

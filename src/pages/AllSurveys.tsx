@@ -19,6 +19,8 @@ const AllSurveys: React.FC = () => {
     title: '',
     description: '',
     questions: [],
+    projectId: '',
+    companyIds: [],
   });
   const [agents, setAgents] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
@@ -93,6 +95,8 @@ const AllSurveys: React.FC = () => {
       title: '',
       description: '',
       questions: [],
+      projectId: '',
+      companyIds: [],
     });
   }, []);
 
