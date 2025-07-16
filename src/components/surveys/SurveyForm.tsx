@@ -23,7 +23,6 @@ interface SurveyFormProps {
   buttonText: string;
   companies: { _id: string; name: string }[];
   projects: { _id: string; title: string }[];
-  surveys: Survey[];
   user: Record<string, unknown> | null;
 }
 
