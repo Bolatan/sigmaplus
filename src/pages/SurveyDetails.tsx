@@ -65,14 +65,8 @@ const SurveyDetails: React.FC = () => {
   }, [surveyId]);
 
   useEffect(() => {
-    if (user) { // Ensure user context is loaded before trying to fetch
-        fetchSurveyDetails();
-    } else if (!localStorage.getItem('authToken')) {
-        setError("Please login to take the survey.");
-        setIsLoading(false);
-    }
-    // If token exists but user is null, AuthContext is loading, page will show its own loader.
-  }, [surveyId, user, fetchSurveyDetails]);
+    fetchSurveyDetails();
+  }, [surveyId, fetchSurveyDetails]);
 
   const handleDelete = useCallback(async (surveyId: string) => {
     if (!window.confirm('Are you sure you want to delete this survey?')) {
@@ -123,7 +117,6 @@ const SurveyDetails: React.FC = () => {
         <p className="text-gray-500">
           {error}
         </p>
-
       </div>
     );
   }
@@ -134,7 +127,6 @@ const SurveyDetails: React.FC = () => {
         <h3 className="text-lg font-medium text-gray-900 mb-2">
           Survey not found
         </h3>
-
       </div>
     );
   }

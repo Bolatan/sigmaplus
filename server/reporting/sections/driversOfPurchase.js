@@ -8,7 +8,7 @@ export default class DriversOfPurchase {
     console.log('Generating drivers of purchase section...');
     return {
       title: 'Drivers of Purchase',
-      content: 'This section would contain data and analysis on drivers of purchase.',
+      content: '...',
     };
   }
 }
