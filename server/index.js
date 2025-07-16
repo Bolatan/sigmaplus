@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import path from 'path';
 import { fileURLToPath } from 'url';
 import { ObjectId } from 'mongodb'; // Import ObjectId
 import { connectToServer, getDb } from './utils/db.js';
