@@ -204,11 +204,10 @@ export const downloadReport = async (req, res) => {
 
           if (report.sections && Array.isArray(report.sections)) {
             report.sections.forEach((section, index) => {
-              if (index > 0) pdfDoc.addPage();
-              const newPage = pdfDoc.getPage(index + 1);
-              newPage.drawText(section.title || 'No Section Title', { x: 50, y: 800, size: 20 });
+              const currentPage = index === 0 ? page : pdfDoc.addPage();
+              currentPage.drawText(section.title || 'No Section Title', { x: 50, y: 800, size: 20 });
               if (section.content) {
-                newPage.drawText(String(section.content), { x: 50, y: 750, size: 12 });
+                currentPage.drawText(String(section.content), { x: 50, y: 750, size: 12 });
               }
             });
           }
