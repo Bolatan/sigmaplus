@@ -1,122 +1,5 @@
-import { getDb } from '../utils/db.js';
-import { ObjectId } from 'mongodb';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-import pptxgen from 'pptxgenjs';
-import Excel from 'exceljs';
-import fs from 'fs';
-import Reporting from '../reporting/index.js';
-import Presentation from '../reporting/presentation.js';
-import tmp from 'tmp';
+// Fixed downloadReport function for your controllers/reports.js file
 
-// @desc    Generate a new report
-// @route   POST /api/reports
-// @access  Private (Admin, Agent)
-export const generateReport = async (req, res) => {
-  try {
-    const db = getDb();
-    const { surveyId, title, clientId } = req.body;
-    const reportsCollection = db.collection('reports');
-
-    if (!ObjectId.isValid(surveyId) || (clientId && !ObjectId.isValid(clientId))) {
-      return res.status(400).json({ error: 'Invalid ID format' });
-    }
-
-    const survey = await db.collection('surveys').findOne({ _id: new ObjectId(surveyId) });
-    if (!survey) return res.status(404).json({ error: 'Survey not found' });
-
-    const responses = await db.collection('responses').find({ surveyId: new ObjectId(surveyId) }).toArray();
-    const user = await db.collection('users').findOne({ _id: new ObjectId(req.user.id) });
-    const company = await db.collection('companies').findOne({ _id: new ObjectId(req.user.companyId) });
-    const client = clientId ? await db.collection('users').findOne({ _id: new ObjectId(clientId) }) : null;
-
-    const reporting = new Reporting({
-      survey,
-      responses,
-      user,
-      company,
-      client,
-      title
-    });
-
-    const reportData = await reporting.generateReport();
-
-    const newReport = {
-      title,
-      surveyId: new ObjectId(surveyId),
-      companyId: req.user.companyId,
-      generatedBy: new ObjectId(req.user.id),
-      clientId: client ? new ObjectId(clientId) : null,
-      createdAt: new Date(),
-      status: 'completed',
-      ...reportData,
-    };
-
-    const result = await reportsCollection.insertOne(newReport);
-    res.status(201).json({ data: { ...newReport, _id: result.insertedId } });
-  } catch (err) {
-    console.error('Failed to generate report:', err);
-    res.status(500).json({ error: 'Failed to generate report' });
-  }
-};
-
-
-// @desc    Get all reports
-// @route   GET /api/reports
-// @access  Private (Admins, Agents, Clients)
-export const getReports = async (req, res) => {
-  try {
-    const db = getDb();
-    const reportsCollection = db.collection('reports');
-    let query = {};
-
-    // Role-based filtering
-    if (req.user.role === 'client' && req.user.companyId) {
-      query.companyId = new ObjectId(req.user.companyId);
-    }
-    // Agents might have specific access rules, e.g., by surveys they manage
-    // For now, they can see all reports, but this can be refined.
-
-    const reports = await reportsCollection.find(query).toArray();
-    res.json({ data: reports });
-  } catch (err) {
-    console.error('Failed to fetch reports:', err);
-    res.status(500).json({ error: 'Failed to fetch reports from database' });
-  }
-};
-
-// @desc    Get a single report by ID
-// @route   GET /api/reports/:id
-// @access  Private
-export const getReportById = async (req, res) => {
-  try {
-    const db = getDb();
-    const { id } = req.params;
-
-    if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ error: 'Invalid report ID format' });
-    }
-
-    const report = await db.collection('reports').findOne({ _id: new ObjectId(id) });
-
-    if (!report) {
-      return res.status(404).json({ error: 'Report not found' });
-    }
-
-    // Access control
-    if (req.user.role === 'client' && (!report.companyId || report.companyId.toString() !== req.user.companyId.toString())) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
-    res.json({ data: report });
-  } catch (err) {
-    console.error(`Failed to fetch report ${req.params.id}:`, err);
-    res.status(500).json({ error: 'Failed to fetch report' });
-  }
-};
-
-// @desc    Download a report by ID
-// @route   GET /api/reports/:id/download
-// @access  Private
 export const downloadReport = async (req, res) => {
   console.log('Download report request received');
   try {
@@ -134,12 +17,14 @@ export const downloadReport = async (req, res) => {
       return res.status(404).json({ error: 'Report not found' });
     }
 
+    // Access control
+    if (req.user.role === 'client' && (!report.companyId || report.companyId.toString() !== req.user.companyId.toString())) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     const survey = await db.collection('surveys').findOne({ _id: new ObjectId(report.surveyId) });
     const responses = await db.collection('responses').find({ surveyId: new ObjectId(report.surveyId) }).toArray();
     const client = report.clientId ? await db.collection('users').findOne({ _id: new ObjectId(report.clientId) }) : null;
-
-    const logo = fs.readFileSync('logo.png').toString('base64');
-    const chart = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // Placeholder chart
 
     console.log('--- REPORT DATA ---');
     console.log(JSON.stringify(report, null, 2));
@@ -152,8 +37,12 @@ export const downloadReport = async (req, res) => {
           const presentation = new Presentation({ sections: report.sections || [] });
           const pptx = presentation.generate();
           const buffer = await pptx.write();
-          res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pptx`);
+          
+          // Set headers before sending
           res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+          res.setHeader('Content-Disposition', `attachment; filename="${report.title}.pptx"`);
+          res.setHeader('Content-Length', buffer.length);
+          
           res.send(buffer);
           console.log('PPTX report sent');
         } catch (e) {
@@ -162,134 +51,110 @@ export const downloadReport = async (req, res) => {
         }
         break;
       }
+      
       case 'xlsx': {
-        const workbook = new Excel.Workbook();
-        const worksheet = workbook.addWorksheet('Report');
+        try {
+          console.log('Generating XLSX report');
+          const workbook = new Excel.Workbook();
+          const worksheet = workbook.addWorksheet('Report');
 
-        worksheet.columns = [
-          { header: 'ID', key: 'id', width: 30 },
-          { header: 'Title', key: 'title', width: 30 },
-          { header: 'Description', key: 'description', width: 50 },
-        ];
+          worksheet.columns = [
+            { header: 'ID', key: 'id', width: 30 },
+            { header: 'Title', key: 'title', width: 30 },
+            { header: 'Description', key: 'description', width: 50 },
+          ];
 
-        worksheet.addRow({id: report._id, title: report.title, description: report.description});
+          worksheet.addRow({
+            id: report._id,
+            title: report.title,
+            description: report.description
+          });
 
-        const buffer = await workbook.xlsx.writeBuffer();
-        res.setHeader('Content-Disposition', `attachment; filename=${report.title}.xlsx`);
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.send(buffer);
+          const buffer = await workbook.xlsx.writeBuffer();
+          
+          // Set headers before sending
+          res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+          res.setHeader('Content-Disposition', `attachment; filename="${report.title}.xlsx"`);
+          res.setHeader('Content-Length', buffer.length);
+          
+          res.send(buffer);
+          console.log('XLSX report sent');
+        } catch (e) {
+          console.error('Error generating xlsx file:', e);
+          res.status(500).json({ error: 'Failed to generate xlsx report' });
+        }
         break;
       }
+      
       case 'pdf': {
         try {
           console.log('Generating PDF report');
+          
+          // Create PDF document
           const doc = new PDFDocument();
-          const tmpFile = tmp.fileSync({ postfix: '.pdf' });
-          const stream = fs.createWriteStream(tmpFile.name);
-          doc.pipe(stream);
+          const buffers = [];
+          
+          // Collect PDF data in memory instead of writing to file
+          doc.on('data', (chunk) => {
+            buffers.push(chunk);
+          });
+          
+          doc.on('end', () => {
+            // Combine all chunks into a single buffer
+            const pdfBuffer = Buffer.concat(buffers);
+            
+            // Set headers before sending
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename="${report.title}.pdf"`);
+            res.setHeader('Content-Length', pdfBuffer.length);
+            
+            // Send the PDF buffer
+            res.send(pdfBuffer);
+            console.log(`PDF report sent (${pdfBuffer.length} bytes)`);
+          });
+          
+          doc.on('error', (err) => {
+            console.error('PDF generation error:', err);
+            if (!res.headersSent) {
+              res.status(500).json({ error: 'Failed to generate PDF report' });
+            }
+          });
 
-          doc.fontSize(25).text(survey.title || 'No Title', 50, 50);
+          // Add content to PDF
+          doc.fontSize(25).text(survey?.title || 'No Title', 50, 50);
 
           if (report.sections && Array.isArray(report.sections)) {
-            report.sections.forEach((section) => {
-              doc.addPage();
+            report.sections.forEach((section, index) => {
+              if (index > 0) doc.addPage(); // Add page for each section except first
               doc.fontSize(20).text(section.title || 'No Section Title', 50, 50);
               if (section.content) {
-                doc.fontSize(12).text(String(section.content), 50, 100);
+                doc.fontSize(12).text(String(section.content), 50, 100, {
+                  width: 500,
+                  align: 'left'
+                });
               }
             });
           }
 
+          // Finalize the PDF
           doc.end();
-
-          stream.on('finish', () => {
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
-            res.sendFile(tmpFile.name, (err) => {
-              if (err) {
-                console.error('Error sending PDF file:', err);
-                res.status(500).json({ error: 'Failed to send PDF file' });
-              }
-              tmpFile.removeCallback();
-            });
-            console.log('PDF report sent');
-          });
+          
         } catch (e) {
           console.error('Error generating pdf file:', e);
-          res.status(500).json({ error: 'Failed to generate pdf report' });
+          if (!res.headersSent) {
+            res.status(500).json({ error: 'Failed to generate pdf report' });
+          }
         }
         break;
       }
+      
       default:
-        return res.status(400).json({ error: 'Invalid format specified' });
+        return res.status(400).json({ error: 'Invalid format specified. Supported formats: pdf, pptx, xlsx' });
     }
   } catch (err) {
     console.error(`Failed to download report ${req.params.id}:`, err);
-    res.status(500).json({ error: 'Failed to download report' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to download report' });
+    }
   }
-};
-
-
-// @desc    Update a report's metadata (e.g., title, sections)
-// @route   PUT /api/reports/:id
-// @access  Private (Admin, Agent)
-export const updateReport = async (req, res) => {
-  try {
-    const db = getDb();
-    const { id } = req.params;
-    const { title, sections } = req.body;
-
-    if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ error: 'Invalid report ID format' });
-    }
-
-    const updateDoc = {
-      $set: {
-        ...(title && { title }),
-        ...(sections && { sections }),
-        updatedAt: new Date(),
-      },
-    };
-
-    const result = await db.collection('reports').updateOne({ _id: new ObjectId(id) }, updateDoc);
-
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ error: 'Report not found' });
-    }
-
-    res.json({ message: 'Report updated successfully' });
-  } catch (err) {
-    console.error(`Failed to update report ${req.params.id}:`, err);
-    res.status(500).json({ error: 'Failed to update report' });
-  }
-};
-
-// @desc    Delete a report
-// @route   DELETE /api/reports/:id
-// @access  Private (Admin)
-export const deleteReport = async (req, res) => {
-  try {
-    const db = getDb();
-    const { id } = req.params;
-
-    if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ error: 'Invalid report ID format' });
-    }
-
-    const result = await db.collection('reports').deleteOne({ _id: new ObjectId(id) });
-
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ error: 'Report not found' });
-    }
-
-    res.status(204).send(); // No content
-  } catch (err) {
-    console.error(`Failed to delete report ${req.params.id}:`, err);
-    res.status(500).json({ error: 'Failed to delete report' });
-  }
-};
-
-export const generateAllReports = async () => {
-  console.log('Generating all reports...');
-  // This is a placeholder for the actual report generation logic
 };
