@@ -72,7 +72,7 @@ const SurveyDetails: React.FC = () => {
         setIsLoading(false);
     }
     // If token exists but user is null, AuthContext is loading, page will show its own loader.
-  }, [surveyId, user]);
+  }, [surveyId]);
 
   const handleDelete = async (surveyId: string) => {
     if (!window.confirm('Are you sure you want to delete this survey?')) {
