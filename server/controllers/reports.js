@@ -1,3 +1,40 @@
+// Added getReportById function
+export const getReportById = async (req, res) => {
+  console.log('Get report by ID request received');
+  try {
+    const db = getDb();
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid report ID format' });
+    }
+
+    const report = await db.collection('reports').findOne({ _id: new ObjectId(id) });
+
+    if (!report) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    // Access control
+    if (req.user.role === 'client' && (!report.companyId || report.companyId.toString() !== req.user.companyId.toString())) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    console.log(`Report ${id} retrieved successfully`);
+    res.status(200).json({
+      message: 'Report retrieved successfully',
+      report: report
+    });
+
+  } catch (err) {
+    console.error(`Failed to get report ${req.params.id}:`, err);
+    res.status(500).json({
+      error: 'Failed to retrieve report',
+      details: err.message
+    });
+  }
+};
+
 // Fixed downloadReport function for your controllers/reports.js file
 
 export const downloadReport = async (req, res) => {
