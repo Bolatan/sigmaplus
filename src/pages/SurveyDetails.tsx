@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Survey } from '../types';
@@ -14,57 +14,57 @@ const SurveyDetails: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchSurveyDetails = useCallback(async () => {
+    if (!surveyId) {
+      setError("Survey ID not found in URL.");
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    const token = localStorage.getItem('authToken');
+
+    if (!token) {
+      setError("Authentication required. Please login.");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/surveys/${surveyId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.msg || errorData.error || `Failed to fetch survey details: ${response.statusText}`);
+      }
+
+      const surveyData = await response.json();
+      const surveyFromApi = surveyData.data || surveyData;
+
+      if (!surveyFromApi || !surveyFromApi._id) {
+          throw new Error("Fetched survey data is invalid or missing ID.");
+      }
+
+      const fetchedSurvey: Survey = {
+          ...surveyFromApi,
+          id: surveyFromApi._id, // Map _id to id
+          questions: surveyFromApi.questions || [] // Ensure questions is an array, even if empty from backend
+      };
+      setSurvey(fetchedSurvey);
+
+    } catch (err) {
+      console.error('Error fetching survey details:', err);
+      setError(err.message || 'An unexpected error occurred.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [surveyId]);
+
   useEffect(() => {
-    const fetchSurveyDetails = async () => {
-      if (!surveyId) {
-        setError("Survey ID not found in URL.");
-        setIsLoading(false);
-        return;
-      }
-      setIsLoading(true);
-      setError(null);
-      const token = localStorage.getItem('authToken');
-
-      if (!token) {
-        setError("Authentication required. Please login.");
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch(`/api/surveys/${surveyId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.msg || errorData.error || `Failed to fetch survey details: ${response.statusText}`);
-        }
-
-        const surveyData = await response.json();
-        const surveyFromApi = surveyData.data || surveyData;
-
-        if (!surveyFromApi || !surveyFromApi._id) {
-            throw new Error("Fetched survey data is invalid or missing ID.");
-        }
-
-        const fetchedSurvey = {
-            ...surveyFromApi,
-            id: surveyFromApi._id, // Map _id to id
-            questions: surveyFromApi.questions || [] // Ensure questions is an array, even if empty from backend
-        };
-        setSurvey(fetchedSurvey);
-
-      } catch (err: any) {
-        console.error('Error fetching survey details:', err);
-        setError(err.message || 'An unexpected error occurred.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     if (user) { // Ensure user context is loaded before trying to fetch
         fetchSurveyDetails();
     } else if (!localStorage.getItem('authToken')) {
@@ -72,7 +72,7 @@ const SurveyDetails: React.FC = () => {
         setIsLoading(false);
     }
     // If token exists but user is null, AuthContext is loading, page will show its own loader.
-  }, [surveyId]);
+  }, [surveyId, user, fetchSurveyDetails]);
 
   const handleDelete = useCallback(async (surveyId: string) => {
     if (!window.confirm('Are you sure you want to delete this survey?')) {
@@ -100,7 +100,7 @@ const SurveyDetails: React.FC = () => {
       }
 
       navigate('/surveys');
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error deleting survey:', err);
       setError(err.message || 'An unexpected error occurred.');
     }
