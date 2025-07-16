@@ -118,21 +118,25 @@ export const getReportById = async (req, res) => {
 // @route   GET /api/reports/:id/download
 // @access  Private
 export const downloadReport = async (req, res) => {
-  console.log('Download report request received');
   try {
+    console.log('Download report request received');
     const db = getDb();
     const { id } = req.params;
     const { format } = req.query; // pptx, xlsx, pdf
 
     if (!ObjectId.isValid(id)) {
+      console.error('Invalid report ID format');
       return res.status(400).json({ error: 'Invalid report ID format' });
     }
 
     const report = await db.collection('reports').findOne({ _id: new ObjectId(id) });
 
     if (!report) {
+      console.error('Report not found');
       return res.status(404).json({ error: 'Report not found' });
     }
+
+    console.log('Report found:', report.title);
 
     const survey = await db.collection('surveys').findOne({ _id: new ObjectId(report.surveyId) });
     const responses = await db.collection('responses').find({ surveyId: new ObjectId(report.surveyId) }).toArray();
@@ -215,6 +219,7 @@ export const downloadReport = async (req, res) => {
         break;
       }
       default:
+        console.error('Invalid format specified');
         return res.status(400).json({ error: 'Invalid format specified' });
     }
   } catch (err) {
