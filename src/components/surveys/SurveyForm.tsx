@@ -12,6 +12,7 @@ interface SurveyFormData {
   questions: SurveyQuestion[];
   agentId?: string;
   companyIds?: string[];
+  projectId?: string;
 }
 
 interface SurveyFormProps {
@@ -21,6 +22,7 @@ interface SurveyFormProps {
   onCancel: () => void;
   buttonText: string;
   companies: { _id: string; name: string }[];
+  projects: { _id: string; title: string }[];
   surveys: Survey[];
   user: Record<string, unknown> | null;
 }
@@ -32,6 +34,7 @@ const SurveyForm: React.FC<SurveyFormProps> = ({
   onCancel,
   buttonText,
   companies,
+  projects,
   user,
 }) => {
   const handleInputChange = useCallback(
@@ -124,9 +127,6 @@ const SurveyForm: React.FC<SurveyFormProps> = ({
               }}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
             >
-              <option value="" disabled>
-                Select companies
-              </option>
               {companies.map((company) => (
                 <option key={company._id} value={company._id}>
                   {company.name}
@@ -135,6 +135,29 @@ const SurveyForm: React.FC<SurveyFormProps> = ({
             </select>
           </div>
         )}
+        <div>
+          <label
+            htmlFor="project"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Assign to Project
+          </label>
+          <select
+            id="project"
+            value={formData.projectId || ''}
+            onChange={(e) => handleInputChange('projectId', e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+          >
+            <option value="" disabled>
+              Select a project
+            </option>
+            {projects.map((project) => (
+              <option key={project._id} value={project._id}>
+                {project.title}
+              </option>
+            ))}
+          </select>
+        </div>
         <div>
           <label
             htmlFor="projectDescription"
