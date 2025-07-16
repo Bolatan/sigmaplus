@@ -153,6 +153,12 @@ const SurveyResponsePage: React.FC = () => {
           return newResponses;
         });
         break;
+      case 'range':
+        setResponses(prev => ({
+          ...prev,
+          [questionId]: parseInt(value as string, 10),
+        }));
+        break;
       default:
         setResponses(prev => ({
           ...prev,
