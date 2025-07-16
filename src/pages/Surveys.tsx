@@ -28,22 +28,10 @@ const Surveys: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [apiError, setApiError] = useState<string | null>(null);
-  const [agents, setAgents] = useState<any[]>([]);
-  const [companies, setCompanies] = useState<any[]>([]);
+  const [agents, setAgents] = useState<{ _id: string; name: string }[]>([]);
+  const [companies, setCompanies] = useState<{ _id: string; name: string }[]>([]);
 
-  const triggerRefetch = () => {
-    fetchSurveys();
-  };
-
-  const resetForm = useCallback(() => {
-    setFormData({
-      title: '',
-      description: '',
-      questions: [],
-    });
-  }, []);
-
-  const fetchSurveys = async () => {
+  const fetchSurveys = useCallback(async () => {
     setIsLoading(true);
     setApiError(null);
     const token = localStorage.getItem('authToken');
@@ -68,7 +56,7 @@ const Surveys: React.FC = () => {
         setSurveys([]);
       } else {
         const result = await response.json();
-        const fetchedSurveys = (result.data || []).map((s: any) => ({
+        const fetchedSurveys = (result.data || []).map((s: Survey) => ({
           ...s,
           id: s._id,
           createdAt: s.createdAt || new Date().toISOString(),
@@ -78,17 +66,31 @@ const Surveys: React.FC = () => {
         }));
         setSurveys(fetchedSurveys);
       }
-    } catch (error: any) {
+    } catch (error) {
       if (!apiError) setApiError(error.message || 'Failed to fetch surveys from API.');
       setSurveys([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [apiError]);
+
+  const triggerRefetch = useCallback(() => {
+    fetchSurveys();
+  }, [fetchSurveys]);
+
+  const resetForm = useCallback(() => {
+    setFormData({
+      title: '',
+      description: '',
+      questions: [],
+    });
+  }, []);
 
   useEffect(() => {
-    fetchSurveys();
-  }, [user]);
+    if (user) {
+      fetchSurveys();
+    }
+  }, [user, fetchSurveys]);
 
   useEffect(() => {
     const fetchAgentsAndCompanies = async () => {
@@ -151,12 +153,12 @@ const Surveys: React.FC = () => {
       setIsAddModalOpen(false);
       resetForm();
       triggerRefetch();
-    } catch (error: any) {
+    } catch (error) {
       setApiError(error.message || 'An unexpected error occurred while adding the survey.');
     }
-  }, [formData, resetForm]);
+  }, [formData, resetForm, triggerRefetch]);
 
-  const handleDelete = async (surveyId: string) => {
+  const handleDelete = useCallback(async (surveyId: string) => {
     if (!window.confirm('Are you sure you want to delete this survey?')) {
       return;
     }
@@ -182,10 +184,10 @@ const Surveys: React.FC = () => {
       }
 
       triggerRefetch();
-    } catch (error: any) {
+    } catch (error) {
       setApiError(error.message || 'An unexpected error occurred while deleting the survey.');
     }
-  };
+  }, [triggerRefetch]);
 
   const filteredSurveys = surveys.filter(survey =>
     (survey.title && survey.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
