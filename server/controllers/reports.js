@@ -158,3 +158,48 @@ export const downloadReport = async (req, res) => {
     }
   }
 };
+
+// Added deleteReport function
+export const deleteReport = async (req, res) => {
+  console.log('Delete report request received');
+  try {
+    const db = getDb();
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid report ID format' });
+    }
+
+    // First, check if the report exists
+    const report = await db.collection('reports').findOne({ _id: new ObjectId(id) });
+
+    if (!report) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    // Access control - ensure user can only delete their own reports
+    if (req.user.role === 'client' && (!report.companyId || report.companyId.toString() !== req.user.companyId.toString())) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Delete the report
+    const result = await db.collection('reports').deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'Report not found or already deleted' });
+    }
+
+    console.log(`Report ${id} deleted successfully`);
+    res.status(200).json({ 
+      message: 'Report deleted successfully',
+      id: id 
+    });
+
+  } catch (err) {
+    console.error(`Failed to delete report ${req.params.id}:`, err);
+    res.status(500).json({ 
+      error: 'Failed to delete report',
+      details: err.message 
+    });
+  }
+};
