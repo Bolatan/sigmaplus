@@ -145,15 +145,40 @@ const SurveyDetails: React.FC = () => {
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>{survey.title}</CardTitle>
-            {(user?.role === 'admin' || user?.role === 'agent') && (
+            <div className="flex space-x-2">
+              {(user?.role === 'admin' || user?.role === 'agent') && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/surveys/${survey.id}/edit`)}
+                >
+                  Edit
+                </Button>
+              )}
               <Button
-                variant="danger"
+                variant="primary"
                 size="sm"
-                onClick={() => handleDelete(survey.id)}
+                onClick={() => navigate(`/surveys/${survey.id}/respond`)}
               >
-                Delete
+                Take Survey
               </Button>
-            )}
+              {(user?.role === 'admin' || user?.role === 'agent') && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => handleDelete(survey.id)}
+                >
+                  Delete
+                </Button>
+              )}
+               <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate('/projects')}
+                >
+                Create Survey
+                </Button>
+            </div>
           </div>
           {survey.description && <CardDescription>{survey.description}</CardDescription>}
         </CardHeader>
