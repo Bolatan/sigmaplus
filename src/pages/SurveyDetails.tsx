@@ -146,7 +146,7 @@ const SurveyDetails: React.FC = () => {
           <div className="flex justify-between items-center">
             <CardTitle>{survey.title}</CardTitle>
             <div className="flex space-x-2">
-              {(user?.role === 'admin' || user?.role === 'agent') && (
+              {(user?.role === 'admin' || user?.role === 'agent') && survey && (
                 <Button
                   variant="outline"
                   size="sm"
