@@ -8,7 +8,7 @@ export default class RegionalAndOutletLevelFindings {
     console.log('Generating regional and outlet-level findings section...');
     return {
       title: 'Regional and Outlet-Level Findings',
-      content: 'This section would contain data and analysis on regional and outlet-level findings.',
+      content: '...',
     };
   }
 }
