@@ -159,6 +159,71 @@ export const downloadReport = async (req, res) => {
   }
 };
 
+// Added generateReport function
+export const generateReport = async (req, res) => {
+  console.log('Generate report request received');
+  try {
+    const db = getDb();
+    const { surveyId, title, clientId } = req.body;
+
+    if (!ObjectId.isValid(surveyId)) {
+      return res.status(400).json({ error: 'Invalid survey ID format' });
+    }
+
+    // Check if survey exists
+    const survey = await db.collection('surveys').findOne({ _id: new ObjectId(surveyId) });
+    if (!survey) {
+      return res.status(404).json({ error: 'Survey not found' });
+    }
+
+    // Access control for clients
+    if (req.user.role === 'client' && survey.companyId && survey.companyId.toString() !== req.user.companyId.toString()) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Get survey responses for report generation
+    const responses = await db.collection('responses').find({ surveyId: new ObjectId(surveyId) }).toArray();
+
+    // Create new report
+    const newReport = {
+      surveyId: new ObjectId(surveyId),
+      title: title.trim(),
+      clientId: clientId ? new ObjectId(clientId) : null,
+      companyId: req.user.companyId ? new ObjectId(req.user.companyId) : null,
+      createdBy: new ObjectId(req.user.id),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      status: 'generated',
+      sections: [], // Will be populated based on survey data
+      description: `Report generated for survey: ${survey.title}`,
+      responseCount: responses.length
+    };
+
+    // Insert the report
+    const result = await db.collection('reports').insertOne(newReport);
+
+    if (!result.insertedId) {
+      return res.status(500).json({ error: 'Failed to create report' });
+    }
+
+    // Fetch the created report
+    const createdReport = await db.collection('reports').findOne({ _id: result.insertedId });
+
+    console.log(`Report ${result.insertedId} generated successfully`);
+    res.status(201).json({
+      message: 'Report generated successfully',
+      report: createdReport
+    });
+
+  } catch (err) {
+    console.error('Failed to generate report:', err);
+    res.status(500).json({
+      error: 'Failed to generate report',
+      details: err.message
+    });
+  }
+};
+
 // Added deleteReport function
 export const deleteReport = async (req, res) => {
   console.log('Delete report request received');
