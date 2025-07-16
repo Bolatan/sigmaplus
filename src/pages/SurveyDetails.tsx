@@ -163,13 +163,6 @@ const SurveyDetails: React.FC = () => {
                   Delete
                 </Button>
               )}
-               <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => navigate('/projects')}
-                >
-                Create Survey
-                </Button>
             </div>
           </div>
           {survey.description && <CardDescription>{survey.description}</CardDescription>}
@@ -179,14 +172,14 @@ const SurveyDetails: React.FC = () => {
           <p className="text-sm text-gray-500 mb-6">Status: {survey.status}</p>
 
           <h3 className="text-lg font-semibold mb-4 border-t pt-4">Questions</h3>
-          {survey.questions && survey.questions.length > 0 ? (
+          {Array.isArray(survey.questions) && survey.questions.length > 0 ? (
             survey.questions.map((q, index) => (
               <div key={q.id || `q-${index}`} className="mb-6">
                 <label htmlFor={q.id || `q-input-${index}`} className="block text-sm font-medium text-gray-700 mb-1">
                   {index + 1}. {q.text}
                 </label>
                 <p className="text-sm text-gray-500">Type: {q.type}</p>
-                {q.options && q.options.length > 0 && (
+                {Array.isArray(q.options) && q.options.length > 0 && (
                   <div className="mt-2 space-y-2">
                     {q.options.map((option, optIndex) => (
                       <p key={optIndex} className="text-sm text-gray-500 pl-4">{option}</p>
