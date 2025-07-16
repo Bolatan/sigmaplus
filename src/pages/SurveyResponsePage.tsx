@@ -135,23 +135,36 @@ const SurveyResponsePage: React.FC = () => {
   };
 
   const handleInputChange = (questionId: string, value: string | File, questionType: SurveyQuestion['type']) => {
-    if (questionType === 'file-upload' && value instanceof File) {
-      handleFileUpload(questionId, value);
-    } else {
-      setResponses(prev => {
-        const newResponses = { ...prev };
-        if (questionType === 'multiple-choice') {
+    switch (questionType) {
+      case 'file-upload':
+        if (value instanceof File) {
+          handleFileUpload(questionId, value);
+        }
+        break;
+      case 'multiple-choice':
+        setResponses(prev => {
+          const newResponses = { ...prev };
           const currentAnswers = (newResponses[questionId] || []) as string[];
           if (currentAnswers.includes(value as string)) {
             newResponses[questionId] = currentAnswers.filter(ans => ans !== value);
           } else {
             newResponses[questionId] = [...currentAnswers, value as string];
           }
-        } else {
-          newResponses[questionId] = value as string;
-        }
-        return newResponses;
-      });
+          return newResponses;
+        });
+        break;
+      case 'range':
+        setResponses(prev => ({
+          ...prev,
+          [questionId]: parseInt(value as string, 10),
+        }));
+        break;
+      default:
+        setResponses(prev => ({
+          ...prev,
+          [questionId]: value as string,
+        }));
+        break;
     }
   };
 
@@ -178,7 +191,7 @@ const SurveyResponsePage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`/api/surveys/${surveyId}/responses`, {
+      const response = await fetch(`/api/surveys/${surveyId}/respond`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

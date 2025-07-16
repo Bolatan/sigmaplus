@@ -26,14 +26,45 @@ export const createSurvey = async (req, res, next) => {
     }
 
     const validatedQuestions = (inputQuestions || []).map((q, index) => {
-      // ... (existing question validation logic)
+      if (!q || typeof q !== 'object') {
+        throw new ApiError(400, `Question at index ${index} is not a valid object.`);
+      }
+      if (!q.id || typeof q.id !== 'string') {
+        throw new ApiError(400, `Question at index ${index} is missing a valid 'id'.`);
+      }
+      if (!q.text || typeof q.text !== 'string' || q.text.trim() === '') {
+        throw new ApiError(400, `Question '${q.id}' (index ${index}) must have non-empty 'text'.`);
+      }
+      if (!q.type || typeof q.type !== 'string' || !['text', 'textarea', 'single-choice', 'multiple-choice', 'rating', 'nps', 'ces', 'image-choice', 'file-upload', 'video'].includes(q.type)) {
+        throw new ApiError(400, `Question '${q.id}' (index ${index}) has an invalid 'type'.`);
+      }
+      const newQuestion = {
+        id: q.id,
+        text: q.text.trim(),
+        type: q.type,
+        options: q.options && Array.isArray(q.options) ? q.options.map(opt => String(opt)) : [],
+        isRequired: typeof q.isRequired === 'boolean' ? q.isRequired : !!q.isRequired,
+      };
+      if (q.type === 'rating') {
+        newQuestion.maxRating = q.maxRating;
+      }
+      if (q.type === 'file-upload') {
+        newQuestion.allowedFileTypes = q.allowedFileTypes;
+      }
+      if (q.type === 'video') {
+        newQuestion.videoUrl = q.videoUrl;
+      }
+      if (q.type === 'image-choice') {
+        newQuestion.options = q.options;
+      }
+      return newQuestion;
     });
 
     const newSurveyData = {
       title,
       description: description || '',
       questions: validatedQuestions,
-      status: 'active', // Always set status to active
+      status: 'draft',
       createdBy: new ObjectId(userId),
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -343,6 +374,10 @@ export const submitSurveyResponse = async (req, res, next) => {
       throw new ApiError(400, `Survey is not active. Current status: ${survey.status}.`);
     }
 
+
+    if (!responseData || typeof responseData !== 'object' || Object.keys(responseData).length === 0) {
+      throw new ApiError(400, 'Response data is missing or invalid.');
+    }
 
     const newResponse = {
       surveyId: surveyObjectId,
