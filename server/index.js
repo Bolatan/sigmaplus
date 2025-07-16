@@ -1,10 +1,6 @@
-import dotenv from 'dotenv';
-dotenv.config(); // Load environment variables from .env file
-
-console.log('JWT_SECRET:', process.env.JWT_SECRET);
-
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { ObjectId } from 'mongodb'; // Import ObjectId

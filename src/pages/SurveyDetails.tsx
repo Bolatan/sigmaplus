@@ -123,6 +123,7 @@ const SurveyDetails: React.FC = () => {
         <p className="text-gray-500">
           {error}
         </p>
+
       </div>
     );
   }
@@ -133,6 +134,7 @@ const SurveyDetails: React.FC = () => {
         <h3 className="text-lg font-medium text-gray-900 mb-2">
           Survey not found
         </h3>
+
       </div>
     );
   }
