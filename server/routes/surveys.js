@@ -27,7 +27,7 @@ const surveyRoutesFunction = (upload) => {
   router.delete('/:id', verifyToken, authorizeRole(['admin', 'agent']), deleteSurvey);
 
   // Route for submitting a single survey response
-  router.post('/:id/responses', verifyToken, submitSurveyResponse);
+  router.post('/:id/respond', verifyToken, submitSurveyResponse);
 
   // Route for bulk uploading survey responses, using the upload middleware
   router.post('/:surveyId/responses/bulk-upload', verifyToken, authorizeRole(['admin', 'agent']), upload.single('file'), bulkUploadSurveyResponses);
