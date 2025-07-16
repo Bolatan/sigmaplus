@@ -4,6 +4,7 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import pptxgen from 'pptxgenjs';
 import Excel from 'exceljs';
 import fs from 'fs';
+import tmp from 'tmp';
 import Reporting from '../reporting/index.js';
 import Presentation from '../reporting/presentation.js';
 
