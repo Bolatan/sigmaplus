@@ -11,6 +11,7 @@ interface SurveyFormData {
   questions: SurveyQuestion[];
   agentId?: string;
   companyIds?: string[];
+  projectId?: string;
 }
 
 const EditSurvey: React.FC = () => {
@@ -49,7 +50,7 @@ const EditSurvey: React.FC = () => {
           description: data.description,
           questions: data.questions || [],
           agentId: data.agentId,
-          companyIds: data.companyIds.map((id: any) => id.toString()),
+          companyIds: Array.isArray(data.companyIds) ? data.companyIds.map((id: any) => id.toString()) : [],
           projectId: data.projectId,
         });
       } catch (error) {
