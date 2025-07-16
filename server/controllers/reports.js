@@ -7,6 +7,7 @@ import fs from 'fs';
 import Reporting from '../reporting/index.js';
 import Presentation from '../reporting/presentation.js';
 
+
 // @desc    Generate a new report
 // @route   POST /api/reports
 // @access  Private (Admin, Agent)
@@ -233,6 +234,8 @@ export const downloadReport = async (req, res) => {
 // @route   PUT /api/reports/:id
 // @access  Private (Admin, Agent)
 export const updateReport = async (req, res) => {
+
+
   try {
     const db = getDb();
     const { id } = req.params;
