@@ -56,7 +56,7 @@ const SurveyDetails: React.FC = () => {
       };
       setSurvey(fetchedSurvey);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching survey details:', err);
       setError(err.message || 'An unexpected error occurred.');
     } finally {
@@ -100,7 +100,7 @@ const SurveyDetails: React.FC = () => {
       }
 
       navigate('/surveys');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error deleting survey:', err);
       setError(err.message || 'An unexpected error occurred.');
     }

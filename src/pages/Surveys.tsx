@@ -66,7 +66,7 @@ const Surveys: React.FC = () => {
         }));
         setSurveys(fetchedSurveys);
       }
-    } catch (error) {
+    } catch (error: any) {
       if (!apiError) setApiError(error.message || 'Failed to fetch surveys from API.');
       setSurveys([]);
     } finally {
@@ -153,7 +153,7 @@ const Surveys: React.FC = () => {
       setIsAddModalOpen(false);
       resetForm();
       triggerRefetch();
-    } catch (error) {
+    } catch (error: any) {
       setApiError(error.message || 'An unexpected error occurred while adding the survey.');
     }
   }, [formData, resetForm, triggerRefetch]);
@@ -184,7 +184,7 @@ const Surveys: React.FC = () => {
       }
 
       triggerRefetch();
-    } catch (error) {
+    } catch (error: any) {
       setApiError(error.message || 'An unexpected error occurred while deleting the survey.');
     }
   }, [triggerRefetch]);
