@@ -321,6 +321,68 @@ export const generateReport = async (req, res) => {
   }
 };
 
+// Added updateReport function
+export const updateReport = async (req, res) => {
+  console.log('Update report request received');
+  try {
+    const db = getDb();
+    const { id } = req.params;
+    const { title } = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid report ID format' });
+    }
+
+    // Check if report exists
+    const existingReport = await db.collection('reports').findOne({ _id: new ObjectId(id) });
+
+    if (!existingReport) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    // Access control
+    if (req.user.role === 'client' && (!existingReport.companyId || existingReport.companyId.toString() !== req.user.companyId.toString())) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Prepare update data
+    const updateData = {
+      updatedAt: new Date()
+    };
+
+    // Only update title if provided
+    if (title && title.trim()) {
+      updateData.title = title.trim();
+    }
+
+    // Update the report
+    const result = await db.collection('reports').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateData }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    // Fetch the updated report
+    const updatedReport = await db.collection('reports').findOne({ _id: new ObjectId(id) });
+
+    console.log(`Report ${id} updated successfully`);
+    res.status(200).json({
+      message: 'Report updated successfully',
+      report: updatedReport
+    });
+
+  } catch (err) {
+    console.error(`Failed to update report ${req.params.id}:`, err);
+    res.status(500).json({
+      error: 'Failed to update report',
+      details: err.message
+    });
+  }
+};
+
 // Added deleteReport function
 export const deleteReport = async (req, res) => {
   console.log('Delete report request received');
