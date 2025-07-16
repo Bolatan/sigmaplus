@@ -1,3 +1,63 @@
+// Added getReports function
+export const getReports = async (req, res) => {
+  console.log('Get reports request received');
+  try {
+    const db = getDb();
+    const { page = 1, limit = 10, surveyId, clientId } = req.query;
+
+    // Build query based on user role and filters
+    let query = {};
+
+    // Access control for clients
+    if (req.user.role === 'client' && req.user.companyId) {
+      query.companyId = new ObjectId(req.user.companyId);
+    }
+
+    // Filter by survey ID if provided
+    if (surveyId && ObjectId.isValid(surveyId)) {
+      query.surveyId = new ObjectId(surveyId);
+    }
+
+    // Filter by client ID if provided
+    if (clientId && ObjectId.isValid(clientId)) {
+      query.clientId = new ObjectId(clientId);
+    }
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get reports with pagination
+    const reports = await db.collection('reports')
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .toArray();
+
+    // Get total count for pagination
+    const totalReports = await db.collection('reports').countDocuments(query);
+
+    console.log(`Retrieved ${reports.length} reports`);
+    res.status(200).json({
+      message: 'Reports retrieved successfully',
+      reports: reports,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalReports / parseInt(limit)),
+        totalReports: totalReports,
+        limit: parseInt(limit)
+      }
+    });
+
+  } catch (err) {
+    console.error('Failed to get reports:', err);
+    res.status(500).json({
+      error: 'Failed to retrieve reports',
+      details: err.message
+    });
+  }
+};
+
 // Added getReportById function
 export const getReportById = async (req, res) => {
   console.log('Get report by ID request received');
