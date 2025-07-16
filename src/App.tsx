@@ -21,7 +21,7 @@ import AllSurveys from './pages/AllSurveys';
 import EditSurvey from './pages/EditSurvey';
 
 // Protected route component
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = React.memo(({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
@@ -37,7 +37,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }
 
   return <>{children}</>;
-};
+});
 
 const AppRoutes: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
