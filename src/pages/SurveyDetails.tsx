@@ -106,6 +106,39 @@ const SurveyDetails: React.FC = () => {
     }
   }, [navigate]);
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle className="text-error-500">Error</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>{error}</p>
+            <Button onClick={() => navigate(-1)} className="mt-4">Go Back</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!survey) {
+    return (
+      <div className="container mx-auto py-8 px-4 text-center">
+        <p>Survey not found or could not be loaded.</p>
+         <Button onClick={() => navigate('/')} className="mt-4">Go to Dashboard</Button>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-8 px-4">
       <Card className="max-w-2xl mx-auto">
