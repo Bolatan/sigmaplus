@@ -182,46 +182,24 @@ export const downloadReport = async (req, res) => {
       case 'pdf': {
         try {
           console.log('Generating PDF report');
-          const pdfDoc = await PDFDocument.create();
-          const page = pdfDoc.addPage();
-          const { width, height } = page.getSize();
-          const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-          const fontSize = 25;
+          const doc = new PDFDocument();
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
+          doc.pipe(res);
 
-          page.drawText(survey.title || 'No Title', {
-            x: 50,
-            y: height - 4 * fontSize,
-            font,
-            size: fontSize,
-            color: rgb(0, 0, 0),
-          });
+          doc.fontSize(25).text(survey.title || 'No Title', 50, 50);
 
           if (report.sections && Array.isArray(report.sections)) {
             report.sections.forEach((section) => {
-              const newPage = pdfDoc.addPage();
-              newPage.drawText(section.title || 'No Section Title', {
-                x: 50,
-                y: height - 2 * 20,
-                font,
-                size: 20,
-                color: rgb(0, 0, 0),
-              });
+              doc.addPage();
+              doc.fontSize(20).text(section.title || 'No Section Title', 50, 50);
               if (section.content) {
-                newPage.drawText(String(section.content), {
-                  x: 50,
-                  y: height - 2 * 20 - 20,
-                  font,
-                  size: 12,
-                  color: rgb(0, 0, 0),
-                });
+                doc.fontSize(12).text(String(section.content), 50, 100);
               }
             });
           }
 
-          const pdfBytes = await pdfDoc.save();
-          res.setHeader('Content-Type', 'application/pdf');
-          res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
-          res.send(Buffer.from(pdfBytes));
+          doc.end();
           console.log('PDF report sent');
         } catch (e) {
           console.error('Error generating pdf file:', e);
