@@ -10,7 +10,7 @@ const SurveyDetails: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [survey, setSurvey] = useState<Survey | null>({} as Survey);
+  const [survey, setSurvey] = useState<Survey | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
