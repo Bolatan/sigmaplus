@@ -14,7 +14,7 @@ interface SurveyFormData {
   companyIds?: string[];
 }
 
-const SurveyForm: React.FC<{
+interface SurveyFormProps {
   formData: SurveyFormData;
   onFormDataChange: (data: SurveyFormData) => void;
   onSubmit: (e: React.FormEvent) => Promise<void>;
@@ -23,17 +23,33 @@ const SurveyForm: React.FC<{
   companies: { _id: string; name: string }[];
   surveys: Survey[];
   user: Record<string, unknown> | null;
-}> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText, companies, user }) => {
-  const handleInputChange = useCallback((field: keyof Omit<SurveyFormData, 'questions'>, value: string | string[]) => {
-    onFormDataChange({ ...formData, [field]: value });
-  }, [formData, onFormDataChange]);
+}
 
-  const handleQuestionChange = useCallback((index: number, field: keyof SurveyQuestion, value: string | boolean | string[]) => {
-    const newQuestions = [...formData.questions];
-    // @ts-expect-error -- Please add a comment explaining the reason for this ignore
-    newQuestions[index] = { ...newQuestions[index], [field]: value };
-    onFormDataChange({ ...formData, questions: newQuestions });
-  }, [formData, onFormDataChange]);
+const SurveyForm: React.FC<SurveyFormProps> = ({
+  formData,
+  onFormDataChange,
+  onSubmit,
+  onCancel,
+  buttonText,
+  companies,
+  user,
+}) => {
+  const handleInputChange = useCallback(
+    (field: keyof Omit<SurveyFormData, 'questions'>, value: string | string[]) => {
+      onFormDataChange({ ...formData, [field]: value });
+    },
+    [formData, onFormDataChange]
+  );
+
+  const handleQuestionChange = useCallback(
+    (index: number, field: keyof SurveyQuestion, value: string | boolean | string[]) => {
+      const newQuestions = [...formData.questions];
+      // @ts-expect-error -- Please add a comment explaining the reason for this ignore
+      newQuestions[index] = { ...newQuestions[index], [field]: value };
+      onFormDataChange({ ...formData, questions: newQuestions });
+    },
+    [formData, onFormDataChange]
+  );
 
   const addQuestion = useCallback(() => {
     const newQuestion: SurveyQuestion = {
@@ -41,15 +57,21 @@ const SurveyForm: React.FC<{
       text: '',
       type: 'text',
       isRequired: false,
-      options: []
+      options: [],
     };
-    onFormDataChange({ ...formData, questions: [...formData.questions, newQuestion] });
+    onFormDataChange({
+      ...formData,
+      questions: [...formData.questions, newQuestion],
+    });
   }, [formData, onFormDataChange]);
 
-  const removeQuestion = useCallback((index: number) => {
-    const newQuestions = formData.questions.filter((_, i) => i !== index);
-    onFormDataChange({ ...formData, questions: newQuestions });
-  }, [formData, onFormDataChange]);
+  const removeQuestion = useCallback(
+    (index: number) => {
+      const newQuestions = formData.questions.filter((_, i) => i !== index);
+      onFormDataChange({ ...formData, questions: newQuestions });
+    },
+    [formData, onFormDataChange]
+  );
 
   const [isLogicModalOpen, setIsLogicModalOpen] = useState(false);
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null);
@@ -64,15 +86,14 @@ const SurveyForm: React.FC<{
     setIsLogicModalOpen(false);
   };
 
-  if (!formData || !Array.isArray(formData.questions)) {
-    return <div>Loading survey form...</div>;
-  }
-
   return (
     <>
       <form onSubmit={onSubmit} className="space-y-6">
         <div>
-          <label htmlFor="surveyName" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="surveyName"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Survey Name
           </label>
           <Input
@@ -84,7 +105,10 @@ const SurveyForm: React.FC<{
         </div>
         {(user?.role === 'admin' || user?.role === 'agent') && (
           <div>
-            <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="company"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Assign to Company
             </label>
             <select
@@ -92,12 +116,17 @@ const SurveyForm: React.FC<{
               multiple
               value={formData.companyIds || []}
               onChange={(e) => {
-                const selectedIds = Array.from(e.target.selectedOptions, (option) => option.value);
+                const selectedIds = Array.from(
+                  e.target.selectedOptions,
+                  (option) => option.value
+                );
                 handleInputChange('companyIds', selectedIds);
               }}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
             >
-              <option value="" disabled>Select companies</option>
+              <option value="" disabled>
+                Select companies
+              </option>
               {companies.map((company) => (
                 <option key={company._id} value={company._id}>
                   {company.name}
@@ -107,7 +136,10 @@ const SurveyForm: React.FC<{
           </div>
         )}
         <div>
-          <label htmlFor="projectDescription" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="projectDescription"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Description
           </label>
           <textarea
@@ -122,11 +154,16 @@ const SurveyForm: React.FC<{
         <div className="space-y-4 border-t pt-4">
           <h3 className="text-md font-semibold">Questions</h3>
           {(formData.questions || []).map((question, index) => (
-            <div key={question.id || index} className="p-3 border rounded-md space-y-2 bg-gray-50">
+            <div
+              key={question.id || index}
+              className="p-3 border rounded-md space-y-2 bg-gray-50"
+            >
               <Input
                 label={`Question ${index + 1} Text`}
                 value={question.text}
-                onChange={(e) => handleQuestionChange(index, 'text', e.target.value)}
+                onChange={(e) =>
+                  handleQuestionChange(index, 'text', e.target.value)
+                }
                 required
               />
               <div>
@@ -135,13 +172,21 @@ const SurveyForm: React.FC<{
                 </label>
                 <select
                   value={question.type}
-                  onChange={(e) => handleQuestionChange(index, 'type', e.target.value as QuestionType)}
+                  onChange={(e) =>
+                    handleQuestionChange(
+                      index,
+                      'type',
+                      e.target.value as QuestionType
+                    )
+                  }
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                 >
                   <option value="text">Text</option>
                   <option value="textarea">Textarea</option>
                   <option value="single-choice">Single Choice (Radio)</option>
-                  <option value="multiple-choice">Multiple Choice (Checkbox)</option>
+                  <option value="multiple-choice">
+                    Multiple Choice (Checkbox)
+                  </option>
                   <option value="rating">Rating (1-10)</option>
                   <option value="nps">Net Promoter Score (NPS)</option>
                   <option value="ces">Customer Effort Score (CES)</option>
@@ -155,53 +200,62 @@ const SurveyForm: React.FC<{
                   <input
                     type="checkbox"
                     checked={!!question.isRequired}
-                    onChange={(e) => handleQuestionChange(index, 'isRequired', e.target.checked)}
+                    onChange={(e) =>
+                      handleQuestionChange(index, 'isRequired', e.target.checked)
+                    }
                     className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50"
                   />
                   <span className="text-sm text-gray-700">Required</span>
                 </label>
               </div>
-              {(question.type === 'single-choice' || question.type === 'multiple-choice' || question.type === 'image-choice') && (
-              <div className="mt-2 space-y-2 pl-4 border-l-2">
-                {(question.options || []).map((opt, optIndex) => (
-                  <div key={optIndex} className="flex items-center space-x-2">
-                    <Input
-                      type="text"
-                      value={opt}
-                      placeholder={`Option ${optIndex + 1}`}
-                      onChange={(e) => {
-                        const newOptions = [...(question.options || [])];
-                        newOptions[optIndex] = e.target.value;
-                        handleQuestionChange(index, 'options', newOptions);
-                      }}
-                      className="flex-grow"
-                    />
-                    <Button
-                      type="button"
-                      variant="danger"
-                      size="sm"
-                      onClick={() => {
-                        const newOptions = (question.options || []).filter((_, i) => i !== optIndex);
-                        handleQuestionChange(index, 'options', newOptions);
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const newOptions = [...(question.options || []), 'New Option'];
-                    handleQuestionChange(index, 'options', newOptions);
-                  }}
-                  leftIcon={<Plus className="h-3 w-3" />}
-                >
-                  Add Option
-                </Button>
-              </div>
+              {(question.type === 'single-choice' ||
+                question.type === 'multiple-choice' ||
+                question.type === 'image-choice') && (
+                <div className="mt-2 space-y-2 pl-4 border-l-2">
+                  {(question.options || []).map((opt, optIndex) => (
+                    <div key={optIndex} className="flex items-center space-x-2">
+                      <Input
+                        type="text"
+                        value={opt}
+                        placeholder={`Option ${optIndex + 1}`}
+                        onChange={(e) => {
+                          const newOptions = [...(question.options || [])];
+                          newOptions[optIndex] = e.target.value;
+                          handleQuestionChange(index, 'options', newOptions);
+                        }}
+                        className="flex-grow"
+                      />
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        onClick={() => {
+                          const newOptions = (question.options || []).filter(
+                            (_, i) => i !== optIndex
+                          );
+                          handleQuestionChange(index, 'options', newOptions);
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const newOptions = [
+                        ...(question.options || []),
+                        'New Option',
+                      ];
+                      handleQuestionChange(index, 'options', newOptions);
+                    }}
+                    leftIcon={<Plus className="h-3 w-3" />}
+                  >
+                    Add Option
+                  </Button>
+                </div>
               )}
               {question.type === 'rating' && (
                 <div className="mt-2">
@@ -209,7 +263,13 @@ const SurveyForm: React.FC<{
                     label="Max Rating"
                     type="number"
                     value={question.maxRating || 5}
-                    onChange={(e) => handleQuestionChange(index, 'maxRating', parseInt(e.target.value, 10))}
+                    onChange={(e) =>
+                      handleQuestionChange(
+                        index,
+                        'maxRating',
+                        parseInt(e.target.value, 10)
+                      )
+                    }
                     min={2}
                     max={10}
                   />
@@ -220,7 +280,13 @@ const SurveyForm: React.FC<{
                   <Input
                     label="Allowed File Types"
                     value={question.allowedFileTypes || ''}
-                    onChange={(e) => handleQuestionChange(index, 'allowedFileTypes', e.target.value)}
+                    onChange={(e) =>
+                      handleQuestionChange(
+                        index,
+                        'allowedFileTypes',
+                        e.target.value
+                      )
+                    }
                     placeholder="e.g., .pdf,.jpg,.png"
                   />
                 </div>
@@ -230,7 +296,9 @@ const SurveyForm: React.FC<{
                   <Input
                     label="Video URL"
                     value={question.videoUrl || ''}
-                    onChange={(e) => handleQuestionChange(index, 'videoUrl', e.target.value)}
+                    onChange={(e) =>
+                      handleQuestionChange(index, 'videoUrl', e.target.value)
+                    }
                     placeholder="https://example.com/video.mp4"
                   />
                 </div>
@@ -255,7 +323,13 @@ const SurveyForm: React.FC<{
               </Button>
             </div>
           ))}
-          <Button type="button" variant="outline" onClick={addQuestion} leftIcon={<Plus className="h-4 w-4" />} className="mt-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addQuestion}
+            leftIcon={<Plus className="h-4 w-4" />}
+            className="mt-2"
+          >
             Add Question
           </Button>
         </div>
@@ -269,12 +343,20 @@ const SurveyForm: React.FC<{
         </div>
       </form>
       {selectedQuestionIndex !== null && (
-        <ConditionalLogicModal isOpen={isLogicModalOpen} onClose={closeLogicModal} />
+        <ConditionalLogicModal
+          isOpen={isLogicModalOpen}
+          onClose={closeLogicModal}
+        />
       )}
     </>
   );
-});
+};
 
-SurveyForm.displayName = 'SurveyForm';
+const SurveyFormWrapper: React.FC<SurveyFormProps> = (props) => {
+  if (!props.formData || !Array.isArray(props.formData.questions)) {
+    return <div>Loading survey form...</div>;
+  }
+  return <SurveyForm {...props} />;
+};
 
-export default SurveyForm;
+export default SurveyFormWrapper;

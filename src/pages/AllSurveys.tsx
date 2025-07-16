@@ -67,50 +67,6 @@ const AllSurveys: React.FC = () => {
     fetchAllSurveys();
   }, [user]);
 
-  useEffect(() => {
-    const fetchAllSurveys = async () => {
-      setIsLoading(true);
-      setApiError(null);
-      const token = localStorage.getItem('authToken');
-
-      if (!token) {
-        setApiError("No authentication token found. Please login.");
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const surveyResponse = await fetch(`/api/surveys`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (!surveyResponse.ok) {
-          const errorData = await surveyResponse.json().catch(() => ({}));
-          setApiError(errorData.msg || errorData.error || `HTTP error! status: ${surveyResponse.status}`);
-        } else {
-          const surveyResult = await surveyResponse.json();
-          const fetchedSurveys = (surveyResult.data || []).map((s: any) => ({
-            ...s,
-            id: s._id,
-            createdAt: s.createdAt || new Date().toISOString(),
-            responseCount: s.responseCount || 0,
-            status: s.status || 'draft',
-            questions: s.questions || [],
-          }));
-          setSurveys(fetchedSurveys);
-        }
-      } catch (error) {
-        if (!apiError) setApiError(error.message || 'Failed to fetch surveys from API.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAllSurveys();
-  }, []);
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft':
@@ -131,14 +87,6 @@ const AllSurveys: React.FC = () => {
       day: 'numeric'
     });
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-      </div>
-    );
-  }
 
   const resetForm = useCallback(() => {
     setFormData({
