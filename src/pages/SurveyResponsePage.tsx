@@ -152,7 +152,6 @@ const SurveyResponsePage: React.FC = () => {
         }
         return newResponses;
       });
-
     }
   };
 
