@@ -6,6 +6,7 @@ import Excel from 'exceljs';
 import fs from 'fs';
 import Reporting from '../reporting/index.js';
 import Presentation from '../reporting/presentation.js';
+import { sanitizeFilename } from '../utils/sanitize.js';
 
 
 // @desc    Generate a new report
@@ -140,6 +141,8 @@ export const downloadReport = async (req, res) => {
 
     const survey = await db.collection('surveys').findOne({ _id: new ObjectId(report.surveyId) });
     const responses = await db.collection('responses').find({ surveyId: new ObjectId(report.surveyId) }).toArray();
+    const user = await db.collection('users').findOne({ _id: new ObjectId(report.generatedBy) });
+    const company = await db.collection('companies').findOne({ _id: new ObjectId(report.companyId) });
     const client = report.clientId ? await db.collection('users').findOne({ _id: new ObjectId(report.clientId) }) : null;
 
     const reporting = new Reporting({
@@ -154,7 +157,6 @@ export const downloadReport = async (req, res) => {
     const reportData = await reporting.generateReport();
     report.sections = reportData.sections;
 
-
     const chart = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // Placeholder chart
 
     console.log('--- REPORT DATA ---');
@@ -168,7 +170,8 @@ export const downloadReport = async (req, res) => {
           const presentation = new Presentation({ sections: report.sections || [] });
           const pptx = presentation.generate();
           const buffer = await pptx.write();
-          res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pptx`);
+          const sanitizedTitle = sanitizeFilename(report.title);
+          res.setHeader('Content-Disposition', `attachment; filename=${sanitizedTitle}.pptx`);
           res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
           res.send(buffer);
           console.log('PPTX report sent');
@@ -191,17 +194,16 @@ export const downloadReport = async (req, res) => {
         worksheet.addRow({id: report._id, title: report.title, description: report.description});
 
         const buffer = await workbook.xlsx.writeBuffer();
-        res.setHeader('Content-Disposition', `attachment; filename=${report.title}.xlsx`);
+        const sanitizedTitle = sanitizeFilename(report.title);
+        res.setHeader('Content-Disposition', `attachment; filename=${sanitizedTitle}.xlsx`);
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.send(buffer);
         break;
       }
       case 'pdf': {
-        try {
-          console.log('Generating PDF report');
-          const pdfDoc = await PDFDocument.create();
+        console.log('Generating PDF report');
+        PDFDocument.create().then(pdfDoc => {
           const page = pdfDoc.addPage();
-
           page.drawText(survey.title || 'No Title', { x: 50, y: 800, size: 25 });
 
           if (report.sections && Array.isArray(report.sections)) {
@@ -209,25 +211,28 @@ export const downloadReport = async (req, res) => {
             console.log(JSON.stringify(report.sections, null, 2));
             console.log('--- END SECTIONS ---');
             report.sections.forEach((section, index) => {
-              if (index > 0) pdfDoc.addPage();
-              const newPage = pdfDoc.getPage(index + 1);
-              newPage.drawText(section.title || 'No Section Title', { x: 50, y: 800, size: 20 });
+              const currentPage = index === 0 ? page : pdfDoc.addPage();
+              currentPage.drawText(section.title || 'No Section Title', { x: 50, y: 800, size: 20 });
               if (section.content) {
-                newPage.drawText(String(section.content), { x: 50, y: 750, size: 12 });
+                currentPage.drawText(String(section.content), { x: 50, y: 750, size: 12 });
               }
             });
           }
 
-          const pdfBytes = await pdfDoc.save();
-
-          res.setHeader('Content-Type', 'application/pdf');
-          res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
-          res.send(Buffer.from(pdfBytes));
-          console.log('PDF report sent');
-        } catch (e) {
-          console.error('Error generating pdf file:', e);
-          res.status(500).json({ error: 'Failed to generate pdf report' });
-        }
+          pdfDoc.save().then(pdfBytes => {
+            const sanitizedTitle = sanitizeFilename(report.title);
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=${sanitizedTitle}.pdf`);
+            res.send(Buffer.from(pdfBytes));
+            console.log('PDF report sent');
+          }).catch(err => {
+            console.error('Error saving pdf file:', err);
+            res.status(500).json({ error: 'Failed to save pdf report' });
+          });
+        }).catch(err => {
+          console.error('Error creating pdf document:', err);
+          res.status(500).json({ error: 'Failed to create pdf document' });
+        });
         break;
       }
       default:

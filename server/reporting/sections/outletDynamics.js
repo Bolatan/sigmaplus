@@ -8,7 +8,7 @@ export default class OutletDynamics {
     console.log('Generating outlet dynamics section...');
     return {
       title: 'Outlet Dynamics',
-      content: '...',
+      content: 'This section would contain data and analysis on outlet dynamics.',
     };
   }
 }
