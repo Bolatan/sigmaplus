@@ -4,7 +4,6 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import pptxgen from 'pptxgenjs';
 import Excel from 'exceljs';
 import fs from 'fs';
-import tmp from 'tmp';
 import Reporting from '../reporting/index.js';
 import Presentation from '../reporting/presentation.js';
 
@@ -220,20 +219,9 @@ export const downloadReport = async (req, res) => {
           }
 
           const pdfBytes = await pdfDoc.save();
-
-          const tmpFile = tmp.fileSync({ postfix: '.pdf' });
-          fs.writeFileSync(tmpFile.name, pdfBytes);
-
           res.setHeader('Content-Type', 'application/pdf');
           res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
-          res.sendFile(tmpFile.name, (err) => {
-            if (err) {
-              console.error('Error sending PDF file:', err);
-              // Important to handle the error, maybe log it or send a different response
-            }
-            // Cleanup the temporary file after sending
-            tmpFile.removeCallback();
-          });
+          res.send(Buffer.from(pdfBytes));
           console.log('PDF report sent');
         } catch (e) {
           console.error('Error generating pdf file:', e);
