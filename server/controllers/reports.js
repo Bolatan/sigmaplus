@@ -221,7 +221,7 @@ export const downloadReport = async (req, res) => {
           const pdfBytes = await pdfDoc.save();
           res.setHeader('Content-Type', 'application/pdf');
           res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
-          res.send(Buffer.from(pdfBytes));
+          res.send(Buffer.from(pdfBytes.buffer));
           console.log('PDF report sent');
         } catch (e) {
           console.error('Error generating pdf file:', e);
