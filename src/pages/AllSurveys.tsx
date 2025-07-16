@@ -22,6 +22,7 @@ const AllSurveys: React.FC = () => {
   });
   const [agents, setAgents] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
+  const [projects, setProjects] = useState<{ _id: string; title: string }[]>([]);
 
   const fetchAllSurveys = async () => {
     setIsLoading(true);
@@ -64,7 +65,27 @@ const AllSurveys: React.FC = () => {
   };
 
   useEffect(() => {
+    const fetchRelatedData = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      try {
+        const [agentsRes, companiesRes, projectsRes] = await Promise.all([
+          fetch('/api/users?role=agent', { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch('/api/companies', { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch('/api/projects', { headers: { 'Authorization': `Bearer ${token}` } }),
+        ]);
+
+        if (agentsRes.ok) setAgents((await agentsRes.json()).data || []);
+        if (companiesRes.ok) setCompanies((await companiesRes.json()).data || []);
+        if (projectsRes.ok) setProjects((await projectsRes.json()).data || []);
+      } catch (error) {
+        console.error("Failed to fetch related data:", error);
+      }
+    };
+
     fetchAllSurveys();
+    fetchRelatedData();
   }, [user]);
 
   const getStatusColor = (status: string) => {
@@ -220,7 +241,7 @@ const AllSurveys: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/surveys/edit/${survey.id}`)}
+                      onClick={() => navigate(`/surveys/${survey.id}/edit`)}
                     >
                       Edit
                     </Button>
@@ -259,6 +280,7 @@ const AllSurveys: React.FC = () => {
           buttonText="Create Survey"
           agents={agents}
           companies={companies}
+          projects={projects}
           surveys={[]}
           user={user}
         />
