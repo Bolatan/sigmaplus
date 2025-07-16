@@ -127,11 +127,17 @@ const SurveyForm: React.FC<SurveyFormProps> = ({
               }}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
             >
-              {companies.map((company) => (
-                <option key={company._id} value={company._id}>
-                  {company.name}
+              {companies.length === 0 ? (
+                <option value="" disabled>
+                  Loading companies...
                 </option>
-              ))}
+              ) : (
+                companies.map((company) => (
+                  <option key={company._id} value={company._id}>
+                    {company.name}
+                  </option>
+                ))
+              )}
             </select>
           </div>
         )}
@@ -148,14 +154,22 @@ const SurveyForm: React.FC<SurveyFormProps> = ({
             onChange={(e) => handleInputChange('projectId', e.target.value)}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
           >
-            <option value="" disabled>
-              Select a project
-            </option>
-            {projects.map((project) => (
-              <option key={project._id} value={project._id}>
-                {project.title}
+            {projects.length === 0 ? (
+              <option value="" disabled>
+                Loading projects...
               </option>
-            ))}
+            ) : (
+              <>
+                <option value="" disabled>
+                  Select a project
+                </option>
+                {projects.map((project) => (
+                  <option key={project._id} value={project._id}>
+                    {project.title}
+                  </option>
+                ))}
+              </>
+            )}
           </select>
         </div>
         <div>
