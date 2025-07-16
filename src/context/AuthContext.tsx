@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('authToken');
       }
     }
-    setIsLoading(false);
+    setTimeout(() => setIsLoading(false), 500);
   }, []);
 
   const login = async (email: string, password: string) => {
