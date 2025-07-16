@@ -272,7 +272,6 @@ const SurveyForm: React.FC<{
         <ConditionalLogicModal isOpen={isLogicModalOpen} onClose={closeLogicModal} />
       )}
     </>
-
   );
 });
 
