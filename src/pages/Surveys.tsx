@@ -30,6 +30,7 @@ const Surveys: React.FC = () => {
   const [apiError, setApiError] = useState<string | null>(null);
   const [agents, setAgents] = useState<{ _id: string; name: string }[]>([]);
   const [companies, setCompanies] = useState<{ _id: string; name: string }[]>([]);
+  const [projects, setProjects] = useState<{ _id: string; title: string }[]>([]);
 
   const fetchSurveys = useCallback(async () => {
     setIsLoading(true);
@@ -112,6 +113,14 @@ const Surveys: React.FC = () => {
         if (companiesResponse.ok) {
           const { data } = await companiesResponse.json();
           setCompanies(data || []);
+        }
+
+        const projectsResponse = await fetch('/api/projects', {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (projectsResponse.ok) {
+            const { data } = await projectsResponse.json();
+            setProjects(data || []);
         }
       } catch (error) {
         console.error("Failed to fetch agents or companies:", error);
@@ -297,6 +306,7 @@ const Surveys: React.FC = () => {
           buttonText="Create Survey"
           agents={agents}
           companies={companies}
+          projects={projects}
           surveys={[]}
           user={user}
         />
