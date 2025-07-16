@@ -106,6 +106,37 @@ const SurveyDetails: React.FC = () => {
     }
   }, [navigate]);
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-lg font-medium text-red-600 mb-2">
+          Error
+        </h3>
+        <p className="text-gray-500">
+          {error}
+        </p>
+      </div>
+    );
+  }
+
+  if (!survey) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-lg font-medium text-gray-900 mb-2">
+          Survey not found
+        </h3>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-8 px-4">
       <Card className="max-w-2xl mx-auto">
