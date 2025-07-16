@@ -1,22 +1,17 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
-import { Menu, Bell } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Menu, Bell, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/Button';
+import { useBreadcrumbs } from '../../hooks/useBreadcrumbs';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
-  const location = useLocation();
   const { user } = useAuth();
-
-  const getPageTitle = () => {
-    const path = location.pathname;
-    if (path === '/') return 'Dashboard';
-    return path.charAt(1).toUpperCase() + path.slice(2).replace(/\//g, ' › ');
-  };
+  const breadcrumbs = useBreadcrumbs();
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-10 h-16 flex items-center justify-between px-4 md:px-6">
@@ -29,7 +24,18 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <h1 className="text-xl font-semibold text-gray-800">{getPageTitle()}</h1>
+        <nav className="hidden md:flex items-center text-sm font-medium">
+          {breadcrumbs.map((crumb, index) => (
+            <React.Fragment key={crumb.path}>
+              <Link to={crumb.path} className="text-gray-500 hover:text-gray-700">
+                {crumb.label}
+              </Link>
+              {index < breadcrumbs.length - 1 && (
+                <ChevronRight className="h-4 w-4 text-gray-400 mx-1" />
+              )}
+            </React.Fragment>
+          ))}
+        </nav>
       </div>
       
       <div className="flex items-center space-x-4">

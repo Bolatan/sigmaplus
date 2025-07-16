@@ -51,6 +51,8 @@ export const createSurvey = async (req, res, next) => {
 
     if (userRole === 'admin' && agentId && ObjectId.isValid(agentId)) {
       newSurveyData.agentId = new ObjectId(agentId);
+    } else if (userRole === 'agent') {
+      newSurveyData.agentId = new ObjectId(userId);
     }
 
     if (customerId && ObjectId.isValid(customerId)) {
@@ -75,13 +77,18 @@ export const getSurveys = async (req, res, next) => {
     const query = {};
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
-    if (userRole === 'client') {
+    if (userRole === 'admin') {
+      // Admin gets all surveys, so no specific query is added here.
+    } else if (userRole === 'client') {
       if (!userCompanyId) {
         return res.json({ status: 'success', data: [] });
       }
       query.companyIds = new ObjectId(userCompanyId);
     } else if (userRole === 'agent') {
-      query.agentId = new ObjectId(userId);
+      query.$or = [
+        { agentId: new ObjectId(userId) },
+        { createdBy: new ObjectId(userId) }
+      ];
     }
 
     if (region && region !== 'all') {
@@ -121,12 +128,16 @@ export const getSurveyById = async (req, res, next) => {
       throw new ApiError(404, 'Survey not found');
     }
 
-    if (userRole === 'client') {
+    if (userRole === 'admin') {
+      // Admin can access any survey, so no further checks.
+    } else if (userRole === 'client') {
       if (!userCompanyId || !survey.companyIds || !survey.companyIds.some(id => id.toString() === userCompanyId.toString())) {
         throw new ApiError(403, 'Not authorized to access this survey');
       }
     } else if (userRole === 'agent') {
-      if (survey.createdBy.toString() !== userId.toString()) {
+      const isCreator = survey.createdBy.toString() === userId.toString();
+      const isAgent = survey.agentId && survey.agentId.toString() === userId.toString();
+      if (!isCreator && !isAgent) {
         throw new ApiError(403, 'Not authorized to access this survey');
       }
     }

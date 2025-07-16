@@ -118,7 +118,7 @@ const ProjectDetails: React.FC = () => {
 
   useEffect(() => {
     fetchProjectAndSurveys();
-  }, [projectId, user]);
+  }, [projectId]);
 
   useEffect(() => {
     const fetchAgentsAndCompanies = async () => {

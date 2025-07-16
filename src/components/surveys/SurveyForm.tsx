@@ -144,7 +144,7 @@ const SurveyForm: React.FC<{
                   <option value="textarea">Textarea</option>
                   <option value="single-choice">Single Choice (Radio)</option>
                   <option value="multiple-choice">Multiple Choice (Checkbox)</option>
-                  <option value="range">Range</option>
+                  <option value="rating">Rating (1-10)</option>
                   <option value="nps">Net Promoter Score (NPS)</option>
                   <option value="ces">Customer Effort Score (CES)</option>
                   <option value="image-choice">Image Choice</option>

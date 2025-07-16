@@ -35,24 +35,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check for saved token and user in localStorage to rehydrate session
     const token = localStorage.getItem('authToken');
     const savedUserString = localStorage.getItem('user');
-    if (token && savedUserString) {
-      try {
-        const savedUser = JSON.parse(savedUserString);
-        // It's good practice to ensure the savedUser object has expected properties
-        if (savedUser && savedUser._id && savedUser.email && savedUser.role) {
-          setUser(savedUser);
-        } else {
-          // Invalid user object, clear storage
+    const validateToken = async () => {
+      if (token && savedUserString) {
+        try {
+          const savedUser = JSON.parse(savedUserString);
+          if (savedUser && savedUser._id && savedUser.email && savedUser.role) {
+            setUser(savedUser);
+          } else {
+            localStorage.removeItem('user');
+            localStorage.removeItem('authToken');
+          }
+        } catch (e) {
+          console.error("Error parsing saved user from localStorage", e);
           localStorage.removeItem('user');
           localStorage.removeItem('authToken');
         }
-      } catch (e) {
-        console.error("Error parsing saved user from localStorage", e);
-        localStorage.removeItem('user'); // Clear corrupted user data
-        localStorage.removeItem('authToken');
       }
-    }
-    setTimeout(() => setIsLoading(false), 500);
+      setIsLoading(false);
+    };
+
+    validateToken();
   }, []);
 
   const login = async (email: string, password: string) => {

@@ -77,7 +77,7 @@ const ClientDashboard: React.FC = () => {
 
     if (timePeriod !== 'all') {
       const now = new Date();
-      let startDate = new Date();
+      const startDate = new Date();
       if (timePeriod === '30days') {
         startDate.setDate(now.getDate() - 30);
       } else if (timePeriod === '90days') {

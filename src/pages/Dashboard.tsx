@@ -72,7 +72,7 @@ const Dashboard: React.FC = () => {
       };
 
       // For main stats
-      let finalStats: Partial<DashboardStats> = {
+      const finalStats: Partial<DashboardStats> = {
         totalSurveys: 0,
         totalResponses: 0,
         reportsGenerated: 0,
@@ -84,11 +84,11 @@ const Dashboard: React.FC = () => {
         // Fetch all data first
         const surveysResponse = await fetch('/api/surveys', { headers });
         if (!surveysResponse.ok) throw new Error(`Surveys: ${surveysResponse.statusText}`);
-        let allSurveys = (await surveysResponse.json()).data || [];
+        const allSurveys = (await surveysResponse.json()).data || [];
 
         const reportsResponse = await fetch('/api/reports', { headers });
         if (!reportsResponse.ok) throw new Error(`Reports: ${reportsResponse.statusText}`);
-        let allReports = (await reportsResponse.json()).data || [];
+        const allReports = (await reportsResponse.json()).data || [];
 
         const companiesResponse = await fetch('/api/companies', { headers });
         if (!companiesResponse.ok) throw new Error(`Companies: ${companiesResponse.statusText}`);
