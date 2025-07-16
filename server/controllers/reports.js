@@ -191,11 +191,12 @@ export const downloadReport = async (req, res) => {
           doc.fontSize(25).text(survey.title || 'No Title', 50, 50);
 
           if (report.sections && Array.isArray(report.sections)) {
-            report.sections.forEach((section) => {
-              doc.addPage();
-              doc.fontSize(20).text(section.title || 'No Section Title', 50, 50);
+            report.sections.forEach((section, index) => {
+              const currentPage = index === 0 ? page : pdfDoc.addPage();
+              currentPage.drawText(section.title || 'No Section Title', { x: 50, y: 800, size: 20 });
               if (section.content) {
-                doc.fontSize(12).text(String(section.content), 50, 100);
+                currentPage.drawText(String(section.content), { x: 50, y: 750, size: 12 });
+
               }
             });
           }
