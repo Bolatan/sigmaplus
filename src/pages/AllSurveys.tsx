@@ -55,7 +55,7 @@ const AllSurveys: React.FC = () => {
     };
 
     fetchAllSurveys();
-  }, [user]);
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
