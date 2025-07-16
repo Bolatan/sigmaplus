@@ -74,7 +74,7 @@ const SurveyDetails: React.FC = () => {
     // If token exists but user is null, AuthContext is loading, page will show its own loader.
   }, [surveyId]);
 
-  const handleDelete = async (surveyId: string) => {
+  const handleDelete = useCallback(async (surveyId: string) => {
     if (!window.confirm('Are you sure you want to delete this survey?')) {
       return;
     }
@@ -104,7 +104,7 @@ const SurveyDetails: React.FC = () => {
       console.error('Error deleting survey:', err);
       setError(err.message || 'An unexpected error occurred.');
     }
-  };
+  }, [navigate]);
 
   if (isLoading) {
     return (
