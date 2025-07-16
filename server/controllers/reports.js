@@ -267,6 +267,7 @@ export const updateReport = async (req, res) => {
 // @route   DELETE /api/reports/:id
 // @access  Private (Admin)
 export const deleteReport = async (req, res) => {
+
   try {
     const db = getDb();
     const { id } = req.params;
@@ -292,3 +293,4 @@ export const generateAllReports = async () => {
   console.log('Generating all reports...');
   // This is a placeholder for the actual report generation logic
 };
+
