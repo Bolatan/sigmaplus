@@ -77,7 +77,9 @@ export const getSurveys = async (req, res, next) => {
     const query = {};
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
-    if (userRole === 'client') {
+    if (userRole === 'admin') {
+      // Admin gets all surveys, so no specific query is added here.
+    } else if (userRole === 'client') {
       if (!userCompanyId) {
         return res.json({ status: 'success', data: [] });
       }
@@ -126,7 +128,9 @@ export const getSurveyById = async (req, res, next) => {
       throw new ApiError(404, 'Survey not found');
     }
 
-    if (userRole === 'client') {
+    if (userRole === 'admin') {
+      // Admin can access any survey, so no further checks.
+    } else if (userRole === 'client') {
       if (!userCompanyId || !survey.companyIds || !survey.companyIds.some(id => id.toString() === userCompanyId.toString())) {
         throw new ApiError(403, 'Not authorized to access this survey');
       }
