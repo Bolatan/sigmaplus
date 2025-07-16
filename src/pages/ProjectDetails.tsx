@@ -44,6 +44,7 @@ const ProjectDetails: React.FC = () => {
   const [agents, setAgents] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
   const [allSurveys, setAllSurveys] = useState<Survey[]>([]);
+  const [allProjects, setAllProjects] = useState<{ _id: string; title: string }[]>([]);
 
   const triggerRefetch = () => {
     fetchProjectAndSurveys();
@@ -148,6 +149,14 @@ const ProjectDetails: React.FC = () => {
         if (allSurveysResponse.ok) {
           const { data } = await allSurveysResponse.json();
           setAllSurveys(data || []);
+        }
+
+        const allProjectsResponse = await fetch('/api/projects', {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (allProjectsResponse.ok) {
+            const { data } = await allProjectsResponse.json();
+            setAllProjects(data || []);
         }
       } catch (error) {
         console.error("Failed to fetch agents, companies, or all surveys:", error);
@@ -357,6 +366,7 @@ const ProjectDetails: React.FC = () => {
           buttonText="Add Survey"
           agents={agents}
           companies={companies}
+          projects={allProjects}
           surveys={allSurveys}
           user={user}
         />

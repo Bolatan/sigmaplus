@@ -106,6 +106,36 @@ const SurveyDetails: React.FC = () => {
     }
   }, [navigate]);
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8 px-4 text-center">
+        <p className="text-red-500">{error}</p>
+        <Button onClick={() => navigate('/surveys')} className="mt-4">
+          Back to Surveys
+        </Button>
+      </div>
+    );
+  }
+
+  if (!survey) {
+    return (
+      <div className="container mx-auto py-8 px-4 text-center">
+        <p>Survey not found.</p>
+        <Button onClick={() => navigate('/surveys')} className="mt-4">
+          Back to Surveys
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-8 px-4">
       <Card className="max-w-2xl mx-auto">
@@ -138,13 +168,6 @@ const SurveyDetails: React.FC = () => {
                   Delete
                 </Button>
               )}
-               <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => navigate('/projects')}
-                >
-                Create Survey
-                </Button>
             </div>
           </div>
           {survey.description && <CardDescription>{survey.description}</CardDescription>}
