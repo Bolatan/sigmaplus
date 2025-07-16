@@ -35,7 +35,7 @@ export const createSurvey = async (req, res, next) => {
       if (!q.text || typeof q.text !== 'string' || q.text.trim() === '') {
         throw new ApiError(400, `Question '${q.id}' (index ${index}) must have non-empty 'text'.`);
       }
-      if (!q.type || typeof q.type !== 'string' || !['text', 'textarea', 'single-choice', 'multiple-choice', 'rating', 'nps', 'ces', 'image-choice', 'file-upload', 'video'].includes(q.type)) {
+      if (!q.type || typeof q.type !== 'string' || !['text', 'textarea', 'single-choice', 'multiple-choice', 'rating', 'image-choice', 'file-upload', 'video'].includes(q.type)) {
         throw new ApiError(400, `Question '${q.id}' (index ${index}) has an invalid 'type'.`);
       }
       const newQuestion = {
@@ -233,7 +233,7 @@ export const updateSurvey = async (req, res, next) => {
         if (!q.text || typeof q.text !== 'string' || q.text.trim() === '') {
           throw new ApiError(400, `Update: Question '${q.id}' (index ${index}) must have non-empty 'text'.`);
         }
-        if (!q.type || typeof q.type !== 'string' || !['text', 'textarea', 'single-choice', 'multiple-choice', 'rating', 'nps', 'ces', 'image-choice', 'file-upload', 'video'].includes(q.type)) {
+        if (!q.type || typeof q.type !== 'string' || !['text', 'textarea', 'single-choice', 'multiple-choice', 'rating', 'image-choice', 'file-upload', 'video'].includes(q.type)) {
           throw new ApiError(400, `Update: Question '${q.id}' (index ${index}) has an invalid 'type'.`);
         }
         const updatedQuestion = {

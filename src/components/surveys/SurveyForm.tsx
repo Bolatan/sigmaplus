@@ -224,8 +224,6 @@ const SurveyForm: React.FC<SurveyFormProps> = ({
                     Multiple Choice (Checkbox)
                   </option>
                   <option value="rating">Rating (1-10)</option>
-                  <option value="nps">Net Promoter Score (NPS)</option>
-                  <option value="ces">Customer Effort Score (CES)</option>
                   <option value="image-choice">Image Choice</option>
                   <option value="file-upload">File Upload</option>
                   <option value="video">Video</option>
