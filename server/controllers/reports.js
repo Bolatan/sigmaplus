@@ -206,6 +206,9 @@ export const downloadReport = async (req, res) => {
           page.drawText(survey.title || 'No Title', { x: 50, y: 800, size: 25 });
 
           if (report.sections && Array.isArray(report.sections)) {
+            console.log('--- SECTIONS ---');
+            console.log(JSON.stringify(report.sections, null, 2));
+            console.log('--- END SECTIONS ---');
             report.sections.forEach((section, index) => {
               const currentPage = index === 0 ? page : pdfDoc.addPage();
               currentPage.drawText(section.title || 'No Section Title', { x: 50, y: 800, size: 20 });
