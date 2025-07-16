@@ -41,6 +41,10 @@ export const generateReport = async (req, res) => {
 
     const reportData = await reporting.generateReport();
 
+    console.log('--- SURVEY ID ---');
+    console.log(surveyId);
+    console.log('--- END SURVEY ID ---');
+
     const newReport = {
       title,
       surveyId: new ObjectId(surveyId),
