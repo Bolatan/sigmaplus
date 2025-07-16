@@ -8,7 +8,7 @@ export default class TradeMarginsAndPricing {
     console.log('Generating trade margins and pricing section...');
     return {
       title: 'Trade Margins & Pricing',
-      content: '...',
+      content: 'This section would contain data and analysis on trade margins and pricing.',
     };
   }
 }
