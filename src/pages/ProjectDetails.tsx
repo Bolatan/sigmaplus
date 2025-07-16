@@ -302,7 +302,7 @@ const ProjectDetails: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {surveys.map((survey) => (
+        {surveys.filter(survey => survey).map((survey) => (
           <Card key={survey.id} className="hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
