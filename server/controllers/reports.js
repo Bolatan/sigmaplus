@@ -157,7 +157,6 @@ export const downloadReport = async (req, res) => {
     const reportData = await reporting.generateReport();
     report.sections = reportData.sections;
 
-    const logo = fs.readFileSync('logo.png').toString('base64');
     const chart = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // Placeholder chart
 
     console.log('--- REPORT DATA ---');
