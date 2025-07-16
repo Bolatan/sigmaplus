@@ -6,7 +6,6 @@ import Excel from 'exceljs';
 import fs from 'fs';
 import Reporting from '../reporting/index.js';
 import Presentation from '../reporting/presentation.js';
-import { sanitizeFilename } from '../utils/sanitize.js';
 
 
 // @desc    Generate a new report
@@ -137,21 +136,7 @@ export const downloadReport = async (req, res) => {
 
     const survey = await db.collection('surveys').findOne({ _id: new ObjectId(report.surveyId) });
     const responses = await db.collection('responses').find({ surveyId: new ObjectId(report.surveyId) }).toArray();
-    const user = await db.collection('users').findOne({ _id: new ObjectId(report.generatedBy) });
-    const company = await db.collection('companies').findOne({ _id: new ObjectId(report.companyId) });
     const client = report.clientId ? await db.collection('users').findOne({ _id: new ObjectId(report.clientId) }) : null;
-
-    const reporting = new Reporting({
-      survey,
-      responses,
-      user,
-      company,
-      client,
-      title: report.title
-    });
-
-    const reportData = await reporting.generateReport();
-    report.sections = reportData.sections;
 
     const logo = fs.readFileSync('logo.png').toString('base64');
     const chart = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // Placeholder chart
@@ -167,8 +152,7 @@ export const downloadReport = async (req, res) => {
           const presentation = new Presentation({ sections: report.sections || [] });
           const pptx = presentation.generate();
           const buffer = await pptx.write();
-          const sanitizedTitle = sanitizeFilename(report.title);
-          res.setHeader('Content-Disposition', `attachment; filename=${sanitizedTitle}.pptx`);
+          res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pptx`);
           res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
           res.send(buffer);
           console.log('PPTX report sent');
@@ -191,8 +175,7 @@ export const downloadReport = async (req, res) => {
         worksheet.addRow({id: report._id, title: report.title, description: report.description});
 
         const buffer = await workbook.xlsx.writeBuffer();
-        const sanitizedTitle = sanitizeFilename(report.title);
-        res.setHeader('Content-Disposition', `attachment; filename=${sanitizedTitle}.xlsx`);
+        res.setHeader('Content-Disposition', `attachment; filename=${report.title}.xlsx`);
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.send(buffer);
         break;
@@ -207,19 +190,19 @@ export const downloadReport = async (req, res) => {
 
           if (report.sections && Array.isArray(report.sections)) {
             report.sections.forEach((section, index) => {
-              const currentPage = index === 0 ? page : pdfDoc.addPage();
-              currentPage.drawText(section.title || 'No Section Title', { x: 50, y: 800, size: 20 });
+              if (index > 0) pdfDoc.addPage();
+              const newPage = pdfDoc.getPage(index + 1);
+              newPage.drawText(section.title || 'No Section Title', { x: 50, y: 800, size: 20 });
               if (section.content) {
-                currentPage.drawText(String(section.content), { x: 50, y: 750, size: 12 });
+                newPage.drawText(String(section.content), { x: 50, y: 750, size: 12 });
               }
             });
           }
 
           const pdfBytes = await pdfDoc.save();
 
-          const sanitizedTitle = sanitizeFilename(report.title);
           res.setHeader('Content-Type', 'application/pdf');
-          res.setHeader('Content-Disposition', `attachment; filename=${sanitizedTitle}.pdf`);
+          res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
           res.send(Buffer.from(pdfBytes));
           console.log('PDF report sent');
         } catch (e) {
