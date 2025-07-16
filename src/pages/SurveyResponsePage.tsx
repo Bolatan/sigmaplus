@@ -159,6 +159,8 @@ const SurveyResponsePage: React.FC = () => {
           [questionId]: parseInt(value as string, 10),
         }));
         break;
+      case 'text':
+      case 'textarea':
       default:
         setResponses(prev => ({
           ...prev,
