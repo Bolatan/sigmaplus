@@ -4,7 +4,6 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import pptxgen from 'pptxgenjs';
 import Excel from 'exceljs';
 import fs from 'fs';
-import tmp from 'tmp';
 import Reporting from '../reporting/index.js';
 import Presentation from '../reporting/presentation.js';
 
@@ -184,37 +183,28 @@ export const downloadReport = async (req, res) => {
       case 'pdf': {
         try {
           console.log('Generating PDF report');
-          const doc = new PDFDocument();
-          const tmpFile = tmp.fileSync({ postfix: '.pdf' });
-          const stream = fs.createWriteStream(tmpFile.name);
-          doc.pipe(stream);
+          const pdfDoc = await PDFDocument.create();
+          const page = pdfDoc.addPage();
 
-          doc.fontSize(25).text(survey.title || 'No Title', 50, 50);
+          page.drawText(survey.title || 'No Title', { x: 50, y: 800, size: 25 });
 
           if (report.sections && Array.isArray(report.sections)) {
-            report.sections.forEach((section) => {
-              doc.addPage();
-              doc.fontSize(20).text(section.title || 'No Section Title', 50, 50);
+            report.sections.forEach((section, index) => {
+              if (index > 0) pdfDoc.addPage();
+              const newPage = pdfDoc.getPage(index + 1);
+              newPage.drawText(section.title || 'No Section Title', { x: 50, y: 800, size: 20 });
               if (section.content) {
-                doc.fontSize(12).text(String(section.content), 50, 100);
+                newPage.drawText(String(section.content), { x: 50, y: 750, size: 12 });
               }
             });
           }
 
-          doc.end();
+          const pdfBytes = await pdfDoc.save();
 
-          stream.on('finish', () => {
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
-            res.sendFile(tmpFile.name, (err) => {
-              if (err) {
-                console.error('Error sending PDF file:', err);
-                res.status(500).json({ error: 'Failed to send PDF file' });
-              }
-              tmpFile.removeCallback();
-            });
-            console.log('PDF report sent');
-          });
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
+          res.send(Buffer.from(pdfBytes));
+          console.log('PDF report sent');
         } catch (e) {
           console.error('Error generating pdf file:', e);
           res.status(500).json({ error: 'Failed to generate pdf report' });
