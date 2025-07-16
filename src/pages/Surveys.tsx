@@ -135,7 +135,7 @@ const Surveys: React.FC = () => {
     };
 
     fetchAgentsAndCompanies();
-  }, []);
+  }, [user]);
 
   const handleAddSurvey = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
