@@ -66,6 +66,7 @@ const SurveyDetails: React.FC = () => {
 
   useEffect(() => {
     if (user) { // Ensure user context is loaded before trying to fetch
+        console.log('surveyId', surveyId);
         fetchSurveyDetails();
     } else if (!localStorage.getItem('authToken')) {
         setError("Please login to take the survey.");
