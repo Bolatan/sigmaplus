@@ -48,7 +48,7 @@ const EditSurvey: React.FC = () => {
         setFormData({
           title: data.title,
           description: data.description,
-          questions: data.questions || [],
+          questions: Array.isArray(data.questions) ? data.questions : [],
           agentId: data.agentId,
           companyIds: Array.isArray(data.companyIds) ? data.companyIds.map((id: any) => id.toString()) : [],
           projectId: data.projectId,
