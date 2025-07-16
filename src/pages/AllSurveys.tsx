@@ -200,6 +200,36 @@ const AllSurveys: React.FC = () => {
     }
   };
 
+  const handleActivateSurvey = async (surveyId: string) => {
+    setApiError(null);
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setApiError("Authentication required.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/surveys/${surveyId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: 'active' }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.msg || errorData.error || `Failed to activate survey: ${response.statusText}`);
+      }
+
+      fetchAllSurveys();
+    } catch (err: any) {
+      console.error('Error activating survey:', err);
+      setApiError(err.message || 'An unexpected error occurred.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {apiError && (
@@ -266,6 +296,15 @@ const AllSurveys: React.FC = () => {
                     >
                       Take Survey
                     </Button>
+                    {survey.status === 'draft' && (
+                      <Button
+                        variant="success"
+                        size="sm"
+                        onClick={() => handleActivateSurvey(survey.id)}
+                      >
+                        Activate
+                      </Button>
+                    )}
                     <Button
                       variant="danger"
                       size="sm"

@@ -22,7 +22,7 @@ const EditSurvey: React.FC = () => {
   const navigate = useNavigate();
   const [agents, setAgents] = useState<Record<string, unknown>[]>([]);
   const [companies, setCompanies] = useState<Record<string, unknown>[]>([]);
-  const [surveys, setSurveys] = useState<Record<string, unknown>[]>([]);
+  const [projects, setProjects] = useState<Record<string, unknown>[]>([]);
 
   useEffect(() => {
     const fetchSurvey = async () => {
@@ -49,7 +49,8 @@ const EditSurvey: React.FC = () => {
           description: data.description,
           questions: data.questions || [],
           agentId: data.agentId,
-          companyIds: data.companyIds,
+          companyIds: data.companyIds.map((id: any) => id.toString()),
+          projectId: data.projectId,
         });
       } catch (error) {
         setApiError((error as Error).message);
@@ -67,15 +68,15 @@ const EditSurvey: React.FC = () => {
       if (!token) return;
 
       try {
-        const [agentsRes, companiesRes, surveysRes] = await Promise.all([
+        const [agentsRes, companiesRes, projectsRes] = await Promise.all([
           fetch('/api/users?role=agent', { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch('/api/companies', { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch('/api/surveys', { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch('/api/projects', { headers: { 'Authorization': `Bearer ${token}` } }),
         ]);
 
         if (agentsRes.ok) setAgents((await agentsRes.json()).data || []);
         if (companiesRes.ok) setCompanies((await companiesRes.json()).data || []);
-        if (surveysRes.ok) setSurveys((await surveysRes.json()).data || []);
+        if (projectsRes.ok) setProjects((await projectsRes.json()).data || []);
       } catch (error) {
         console.error("Failed to fetch related data:", error);
       }
@@ -134,7 +135,7 @@ const EditSurvey: React.FC = () => {
           buttonText="Save Changes"
           agents={agents}
           companies={companies}
-          surveys={surveys}
+          projects={projects}
           user={user}
         />
       </CardContent>
