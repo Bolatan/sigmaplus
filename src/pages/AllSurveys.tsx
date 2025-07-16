@@ -22,6 +22,7 @@ const AllSurveys: React.FC = () => {
   });
   const [agents, setAgents] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
 
   const fetchAllSurveys = async () => {
     setIsLoading(true);
@@ -64,7 +65,41 @@ const AllSurveys: React.FC = () => {
   };
 
   useEffect(() => {
+    const fetchPrerequisites = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      try {
+        const agentsResponse = await fetch('/api/users?role=agent', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (agentsResponse.ok) {
+          const { data } = await agentsResponse.json();
+          setAgents(data || []);
+        }
+
+        const companiesResponse = await fetch('/api/companies', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (companiesResponse.ok) {
+          const { data } = await companiesResponse.json();
+          setCompanies(data || []);
+        }
+
+        const projectsResponse = await fetch('/api/projects', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (projectsResponse.ok) {
+          const { data } = await projectsResponse.json();
+          setProjects(data || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch prerequisites:", error);
+      }
+    };
+
     fetchAllSurveys();
+    fetchPrerequisites();
   }, [user]);
 
   const getStatusColor = (status: string) => {
@@ -220,14 +255,14 @@ const AllSurveys: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/surveys/edit/${survey.id}`)}
+                      onClick={() => navigate(`/surveys/${survey.id}/edit`)}
                     >
                       Edit
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/surveys/take/${survey.id}`)}
+                      onClick={() => navigate(`/surveys/${survey.id}/respond`)}
                     >
                       Take Survey
                     </Button>
@@ -259,7 +294,7 @@ const AllSurveys: React.FC = () => {
           buttonText="Create Survey"
           agents={agents}
           companies={companies}
-          surveys={[]}
+          projects={projects}
           user={user}
         />
       </Modal>
