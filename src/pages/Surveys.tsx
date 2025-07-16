@@ -314,7 +314,6 @@ const Surveys: React.FC = () => {
           agents={agents}
           companies={companies}
           projects={projects}
-          surveys={[]}
           user={user}
         />
       </Modal>
