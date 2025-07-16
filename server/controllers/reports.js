@@ -136,21 +136,7 @@ export const downloadReport = async (req, res) => {
 
     const survey = await db.collection('surveys').findOne({ _id: new ObjectId(report.surveyId) });
     const responses = await db.collection('responses').find({ surveyId: new ObjectId(report.surveyId) }).toArray();
-    const user = await db.collection('users').findOne({ _id: new ObjectId(report.generatedBy) });
-    const company = await db.collection('companies').findOne({ _id: new ObjectId(report.companyId) });
     const client = report.clientId ? await db.collection('users').findOne({ _id: new ObjectId(report.clientId) }) : null;
-
-    const reporting = new Reporting({
-      survey,
-      responses,
-      user,
-      company,
-      client,
-      title: report.title
-    });
-
-    const reportData = await reporting.generateReport();
-    report.sections = reportData.sections;
 
     const logo = fs.readFileSync('logo.png').toString('base64');
     const chart = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // Placeholder chart
@@ -197,28 +183,37 @@ export const downloadReport = async (req, res) => {
       case 'pdf': {
         try {
           console.log('Generating PDF report');
-          const pdfDoc = await PDFDocument.create();
-          const page = pdfDoc.addPage();
+          const doc = new PDFDocument();
+          const tmpFile = tmp.fileSync({ postfix: '.pdf' });
+          const stream = fs.createWriteStream(tmpFile.name);
+          doc.pipe(stream);
 
-          page.drawText(survey.title || 'No Title', { x: 50, y: 800, size: 25 });
+          doc.fontSize(25).text(survey.title || 'No Title', 50, 50);
 
           if (report.sections && Array.isArray(report.sections)) {
-            report.sections.forEach((section, index) => {
-              if (index > 0) pdfDoc.addPage();
-              const newPage = pdfDoc.getPage(index + 1);
-              newPage.drawText(section.title || 'No Section Title', { x: 50, y: 800, size: 20 });
+            report.sections.forEach((section) => {
+              doc.addPage();
+              doc.fontSize(20).text(section.title || 'No Section Title', 50, 50);
               if (section.content) {
-                newPage.drawText(String(section.content), { x: 50, y: 750, size: 12 });
+                doc.fontSize(12).text(String(section.content), 50, 100);
               }
             });
           }
 
-          const pdfBytes = await pdfDoc.save();
+          doc.end();
 
-          res.setHeader('Content-Type', 'application/pdf');
-          res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
-          res.send(Buffer.from(pdfBytes));
-          console.log('PDF report sent');
+          stream.on('finish', () => {
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=${report.title}.pdf`);
+            res.sendFile(tmpFile.name, (err) => {
+              if (err) {
+                console.error('Error sending PDF file:', err);
+                res.status(500).json({ error: 'Failed to send PDF file' });
+              }
+              tmpFile.removeCallback();
+            });
+            console.log('PDF report sent');
+          });
         } catch (e) {
           console.error('Error generating pdf file:', e);
           res.status(500).json({ error: 'Failed to generate pdf report' });
