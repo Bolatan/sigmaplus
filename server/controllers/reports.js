@@ -6,6 +6,7 @@ import Excel from 'exceljs';
 import fs from 'fs';
 import Reporting from '../reporting/index.js';
 import Presentation from '../reporting/presentation.js';
+import tmp from 'tmp';
 
 // @desc    Generate a new report
 // @route   POST /api/reports
