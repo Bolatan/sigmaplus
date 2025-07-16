@@ -229,8 +229,9 @@ export const downloadReport = async (req, res) => {
           res.sendFile(tmpFile.name, (err) => {
             if (err) {
               console.error('Error sending PDF file:', err);
-              res.status(500).json({ error: 'Failed to send PDF file' });
+              // Important to handle the error, maybe log it or send a different response
             }
+            // Cleanup the temporary file after sending
             tmpFile.removeCallback();
           });
           console.log('PDF report sent');
