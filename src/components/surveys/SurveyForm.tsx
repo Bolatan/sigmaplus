@@ -1,6 +1,10 @@
-import React, { useCallback } from 'react';
-import { Survey, SurveyQuestion } from '../../types';
-import { SurveyFormRenderer } from './SurveyFormRenderer';
+import React, { useState, useCallback } from 'react';
+import { Plus } from 'lucide-react';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import { Survey, SurveyQuestion, QuestionType } from '../../types';
+import { v4 as uuidv4 } from 'uuid';
+import { ConditionalLogicModal } from '../surveys/ConditionalLogicModal';
 
 interface SurveyFormData {
   title: string;
@@ -16,7 +20,7 @@ const SurveyForm: React.FC<{
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onCancel: () => void;
   buttonText: string;
-  companies: Record<string, unknown>[];
+  companies: { _id: string; name: string }[];
   surveys: Survey[];
   user: Record<string, unknown> | null;
 }> = React.memo(({ formData, onFormDataChange, onSubmit, onCancel, buttonText, companies, user }) => {
@@ -30,6 +34,35 @@ const SurveyForm: React.FC<{
     newQuestions[index] = { ...newQuestions[index], [field]: value };
     onFormDataChange({ ...formData, questions: newQuestions });
   }, [formData, onFormDataChange]);
+
+  const addQuestion = useCallback(() => {
+    const newQuestion: SurveyQuestion = {
+      id: uuidv4(),
+      text: '',
+      type: 'text',
+      isRequired: false,
+      options: []
+    };
+    onFormDataChange({ ...formData, questions: [...formData.questions, newQuestion] });
+  }, [formData, onFormDataChange]);
+
+  const removeQuestion = useCallback((index: number) => {
+    const newQuestions = formData.questions.filter((_, i) => i !== index);
+    onFormDataChange({ ...formData, questions: newQuestions });
+  }, [formData, onFormDataChange]);
+
+  const [isLogicModalOpen, setIsLogicModalOpen] = useState(false);
+  const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null);
+
+  const openLogicModal = (index: number) => {
+    setSelectedQuestionIndex(index);
+    setIsLogicModalOpen(true);
+  };
+
+  const closeLogicModal = () => {
+    setSelectedQuestionIndex(null);
+    setIsLogicModalOpen(false);
+  };
 
   if (!formData || !Array.isArray(formData.questions)) {
     return <div>Loading survey form...</div>;
