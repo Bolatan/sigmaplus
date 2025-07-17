@@ -116,14 +116,14 @@ const Surveys: React.FC = () => {
         }
 
         const projectsResponse = await fetch('/api/projects', {
-            headers: { 'Authorization': `Bearer ${token}` },
+          headers: { 'Authorization': `Bearer ${token}` },
         });
         if (projectsResponse.ok) {
-            const { data } = await projectsResponse.json();
-            setProjects(data || []);
+          const { data } = await projectsResponse.json();
+          setProjects(data || []);
         }
       } catch (error) {
-        console.error("Failed to fetch agents or companies:", error);
+        console.error("Failed to fetch agents, companies, or projects:", error);
       }
     };
 

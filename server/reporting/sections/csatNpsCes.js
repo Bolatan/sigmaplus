@@ -8,7 +8,7 @@ export default class CsatNpsCes {
     console.log('Generating CSAT, NPS, CES section...');
     return {
       title: 'CSAT, NPS, CES (Customer Effort Score)',
-      content: 'This section would contain data and analysis on CSAT, NPS, and CES.',
+      content: '...',
     };
   }
 }

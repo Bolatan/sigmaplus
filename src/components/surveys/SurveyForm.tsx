@@ -12,7 +12,6 @@ interface SurveyFormData {
   questions: SurveyQuestion[];
   agentId?: string;
   companyIds?: string[];
-  projectId?: string;
 }
 
 interface SurveyFormProps {
@@ -22,7 +21,6 @@ interface SurveyFormProps {
   onCancel: () => void;
   buttonText: string;
   companies: { _id: string; name: string }[];
-  projects: { _id: string; title: string }[];
   surveys: Survey[];
   user: Record<string, unknown> | null;
 }
@@ -34,7 +32,6 @@ const SurveyForm: React.FC<SurveyFormProps> = ({
   onCancel,
   buttonText,
   companies,
-  projects,
   user,
 }) => {
   const handleInputChange = useCallback(
@@ -115,19 +112,13 @@ const SurveyForm: React.FC<SurveyFormProps> = ({
               >
                 Assign to Project
               </label>
-              <select
+              {/* This should be a dropdown, but we don't have projects data yet */}
+              <Input
                 id="project"
                 value={formData.projectId || ''}
                 onChange={(e) => handleInputChange('projectId', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-              >
-                <option value="">Select a project</option>
-                {projects.map((project) => (
-                  <option key={project._id} value={project._id}>
-                    {project.title}
-                  </option>
-                ))}
-              </select>
+                placeholder="Enter Project ID"
+              />
             </div>
             <div>
               <label
@@ -136,26 +127,25 @@ const SurveyForm: React.FC<SurveyFormProps> = ({
               >
                 Assign to Company
               </label>
-              <div className="mt-1 space-y-2">
+              <select
+                id="company"
+                multiple
+                value={formData.companyIds || []}
+                onChange={(e) => {
+                  const selectedIds = Array.from(
+                    e.target.selectedOptions,
+                    (option) => option.value
+                  );
+                  handleInputChange('companyIds', selectedIds);
+                }}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+              >
                 {companies.map((company) => (
-                  <label key={company._id} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={(formData.companyIds || []).includes(company._id)}
-                      onChange={(e) => {
-                        const selectedIds = formData.companyIds || [];
-                        if (e.target.checked) {
-                          handleInputChange('companyIds', [...selectedIds, company._id]);
-                        } else {
-                          handleInputChange('companyIds', selectedIds.filter(id => id !== company._id));
-                        }
-                      }}
-                      className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50"
-                    />
-                    <span className="text-sm text-gray-700">{company.name}</span>
-                  </label>
+                  <option key={company._id} value={company._id}>
+                    {company.name}
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
           </>
         )}
