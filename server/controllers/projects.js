@@ -5,7 +5,7 @@ import { ObjectId } from 'mongodb';
 export const createProject = async (req, res, next) => {
   try {
     const { title, description } = req.body;
-    const { id: userId } = req.user;
+    const { id: userId, companyId } = req.user;
 
     const db = getDb();
 
@@ -13,6 +13,7 @@ export const createProject = async (req, res, next) => {
       title,
       description: description || '',
       createdBy: new ObjectId(userId),
+      companyId: new ObjectId(companyId),
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -92,7 +93,9 @@ export const deleteProject = async (req, res, next) => {
 export const getProjects = async (req, res, next) => {
   try {
     const db = getDb();
-    const projects = await db.collection('projects').find({}).toArray();
+    const { companyId } = req.user;
+    const query = { companyId: new ObjectId(companyId) };
+    const projects = await db.collection('projects').find(query).toArray();
     res.json({ status: 'success', data: projects });
   } catch (error) {
     console.error("Error in getProjects controller:", error);
@@ -104,12 +107,13 @@ export const getProjectById = async (req, res, next) => {
   try {
     const db = getDb();
     const { id } = req.params;
+    const { companyId } = req.user;
 
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid project ID format' });
     }
 
-    const project = await db.collection('projects').findOne({ _id: new ObjectId(id) });
+    const project = await db.collection('projects').findOne({ _id: new ObjectId(id), companyId: new ObjectId(companyId) });
 
     if (!project) {
       return res.status(404).json({ error: 'Project not found' });

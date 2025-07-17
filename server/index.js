@@ -77,33 +77,8 @@ app.use('/api/companies', companyRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/cron', cronRoutes);
 
-// --- Stats Routes ---
-// GET /api/stats/survey-statuses - Get counts of surveys by status
-app.get('/api/stats/survey-statuses', verifyToken, async (req, res) => {
-  try {
-    const db = getDb();
-    const surveyStatusStats = await db.collection('surveys').aggregate([
-      {
-        $group: {
-          _id: "$status", // Group by the status field
-          count: { $sum: 1 } // Count documents in each group
-        }
-      },
-      {
-        $project: {
-          _id: 0, // Exclude the default _id field
-          status: "$_id", // Rename _id to status
-          count: 1 // Include the count
-        }
-      }
-    ]).toArray();
-
-    res.json({ data: surveyStatusStats });
-  } catch (err) {
-    console.error("Failed to fetch survey status stats:", err);
-    res.status(500).json({ error: "Failed to fetch survey status statistics" });
-  }
-});
+import statsRoutes from './routes/stats.js';
+app.use('/api/stats', statsRoutes);
 
 
 // --- Protected API Routes (that are still in server/index.js) ---
