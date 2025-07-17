@@ -1,8 +1,4 @@
-import { useAuth } from '../context/AuthContext';
-
-const useApi = () => {
-  const { logout } = useAuth();
-
+const useApi = (logout: () => void) => {
   const apiFetch = async (url: string, options: RequestInit = {}) => {
     const token = localStorage.getItem('authToken');
     const headers = {
