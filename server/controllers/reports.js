@@ -6,7 +6,19 @@ import Excel from 'exceljs';
 import fs from 'fs';
 import Reporting from '../reporting/index.js';
 import Presentation from '../reporting/presentation.js';
-import { sanitizeFilename } from '../utils/sanitize.js';
+// Inline sanitize function since utils/sanitize.js doesn't exist
+const sanitizeFilename = (filename) => {
+  if (!filename || typeof filename !== 'string') {
+    return 'untitled';
+  }
+  return filename
+    .replace(/[<>:"/\\|?*]/g, '_')
+    .replace(/\s+/g, '_')
+    .replace(/_{2,}/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .substring(0, 100)
+    || 'untitled';
+};
 
 
 // @desc    Generate a new report
