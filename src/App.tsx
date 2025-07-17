@@ -51,7 +51,7 @@ const AppRoutes: React.FC = () => {
         </ProtectedRoute>
       } />
       <Route path="/surveys/:surveyId/edit" element={
-        <ProtectedRoute allowedRoles={['admin', 'agent']}>
+        <ProtectedRoute>
           <Layout>
             <EditSurvey />
           </Layout>

@@ -112,13 +112,21 @@ const SurveyForm: React.FC<SurveyFormProps> = ({
               >
                 Assign to Project
               </label>
-              {/* This should be a dropdown, but we don't have projects data yet */}
-              <Input
+              <select
                 id="project"
                 value={formData.projectId || ''}
                 onChange={(e) => handleInputChange('projectId', e.target.value)}
-                placeholder="Enter Project ID"
-              />
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+              >
+                <option value="" disabled>
+                  Select a project
+                </option>
+                {projects.map((project) => (
+                  <option key={project._id} value={project._id}>
+                    {project.title}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label

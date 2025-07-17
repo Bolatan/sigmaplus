@@ -138,7 +138,7 @@ export const downloadReport = async (req, res) => {
     const responses = await db.collection('responses').find({ surveyId: new ObjectId(report.surveyId) }).toArray();
     const client = report.clientId ? await db.collection('users').findOne({ _id: new ObjectId(report.clientId) }) : null;
 
-    const logo = fs.readFileSync('logo.png').toString('base64');
+    // const logo = fs.readFileSync('logo.png').toString('base64');
     const chart = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // Placeholder chart
 
     console.log('--- REPORT DATA ---');
