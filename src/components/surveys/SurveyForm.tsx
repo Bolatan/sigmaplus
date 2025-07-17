@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
@@ -51,8 +52,10 @@ const DraggableQuestion = ({ id, index, moveQuestion, children }) => {
   );
 };
 
+
 const SurveyForm = () => {
-  const [questions, setQuestions] = useState([]);
+  const [questions, setQuestions] = useState<SurveyMonkeyQuestion[]>([]);
+  const [surveyId, setSurveyId] = useState<string | null>(null);
 
   const addQuestion = (type) => {
     setQuestions([...questions, { type, text: '', id: Date.now() }]);
@@ -85,6 +88,7 @@ const SurveyForm = () => {
           <button onClick={() => addQuestion('ranking')} className="btn-primary mr-2">
             Add Ranking
           </button>
+
         </div>
         {questions.map((question, index) => (
           <DraggableQuestion key={question.id} id={question.id} index={index} moveQuestion={moveQuestion}>
