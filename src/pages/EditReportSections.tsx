@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom';
 import { Report as ReportType, Section } from '../types';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Trash2 } from 'lucide-react';
 
 const EditReportSections: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,26 +38,6 @@ const EditReportSections: React.FC = () => {
     if (report) {
       const newSections = [...report.sections];
       newSections[index] = { ...newSections[index], [field]: value };
-      setReport({ ...report, sections: newSections });
-    }
-  };
-
-  const handleAddSection = () => {
-    if (report) {
-      const newSection: Section = {
-        id: `new-${Date.now()}`,
-        title: 'New Section',
-        order: report.sections.length + 1,
-        content: '',
-      };
-      setReport({ ...report, sections: [...report.sections, newSection] });
-    }
-  };
-
-  const handleDeleteSection = (index: number) => {
-    if (report) {
-      const newSections = [...report.sections];
-      newSections.splice(index, 1);
       setReport({ ...report, sections: newSections });
     }
   };
@@ -105,9 +84,6 @@ const EditReportSections: React.FC = () => {
                 value={section.title}
                 onChange={(e) => handleSectionChange(index, 'title', e.target.value)}
               />
-              <Button variant="danger" size="sm" onClick={() => handleDeleteSection(index)}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
             </div>
             <textarea
               value={section.content.toString()}
@@ -119,7 +95,6 @@ const EditReportSections: React.FC = () => {
         ))}
       </div>
       <div className="mt-4 flex space-x-2">
-        <Button onClick={handleAddSection}>Add Section</Button>
         <Button variant="primary" onClick={handleSaveChanges}>Save Changes</Button>
       </div>
     </div>
