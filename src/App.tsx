@@ -20,6 +20,10 @@ import EditReportSections from './pages/EditReportSections';
 import AllSurveys from './pages/AllSurveys';
 import EditSurvey from './pages/EditSurvey';
 import MarketResearch from './pages/MarketResearch';
+import SurveyBuilder from './pages/SurveyBuilder';
+import AdvancedAnalytics from './pages/AdvancedAnalytics';
+import Collaboration from './pages/Collaboration';
+import MarketResearchTools from './pages/MarketResearchTools';
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = React.memo(({ children }) => {
@@ -118,11 +122,31 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         } />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/survey-builder" element={
+          <ProtectedRoute>
+            <SurveyBuilder />
+          </ProtectedRoute>
+        } />
+        <Route path="/advanced-analytics" element={
+          <ProtectedRoute>
+            <AdvancedAnalytics />
+          </ProtectedRoute>
+        } />
+        <Route path="/collaboration" element={
+          <ProtectedRoute>
+            <Collaboration />
+          </ProtectedRoute>
+        } />
+        <Route path="/market-research-tools" element={
+          <ProtectedRoute>
+            <MarketResearchTools />
+          </ProtectedRoute>
+        } />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Layout>
   );
-};
+}
 
 function App() {
   return (

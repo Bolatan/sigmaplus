@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Users, BarChart3, ClipboardList, TrendingUp, Building2, UserCheck, PieChart as PieChartIcon } from 'lucide-react';
 import { Card, CardContent } from '../components/ui/Card';
 import { DashboardCard } from '../components/dashboard/DashboardCard';
@@ -6,10 +7,10 @@ import { StatCard } from '../components/dashboard/StatCard';
 import { useAuth } from '../context/AuthContext';
 import useApi from '../hooks/useApi';
 import { UserRole } from '../types';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from 'chart.js';
-import { Pie } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title, BarElement, CategoryScale, LinearScale } from 'chart.js';
+import { Pie, Bar } from 'react-chartjs-2';
 
-ChartJS.register(ArcElement, Tooltip, Legend, Title);
+ChartJS.register(ArcElement, Tooltip, Legend, Title, BarElement, CategoryScale, LinearScale);
 
 interface DashboardStats {
   totalSurveys: number;
@@ -40,6 +41,14 @@ const Dashboard: React.FC = () => {
   const [surveyStatusChartData, setSurveyStatusChartData] = useState<any>(null);
   const [isSurveyStatusChartLoading, setIsSurveyStatusChartLoading] = useState(true);
   const [surveyStatusChartError, setSurveyStatusChartError] = useState<string | null>(null);
+
+  const [surveyResponsesChartData, setSurveyResponsesChartData] = useState<any>(null);
+  const [isSurveyResponsesChartLoading, setIsSurveyResponsesChartLoading] = useState(true);
+  const [surveyResponsesChartError, setSurveyResponsesChartError] = useState<string | null>(null);
+
+  const [reportTypesChartData, setReportTypesChartData] = useState<any>(null);
+  const [isReportTypesChartLoading, setIsReportTypesChartLoading] = useState(true);
+  const [reportTypesChartError, setReportTypesChartError] = useState<string | null>(null);
 
   const isAdmin = user?.role === UserRole.ADMIN;
 
@@ -133,6 +142,86 @@ const Dashboard: React.FC = () => {
 
     if (user) {
       fetchSurveyStatusData();
+    }
+  }, [user, api]);
+
+  useEffect(() => {
+    const fetchSurveyResponsesData = async () => {
+      if (!user) return;
+      setIsSurveyResponsesChartLoading(true);
+      setSurveyResponsesChartError(null);
+      try {
+        const result = await api('/stats/survey-responses');
+        const chartData = result.data || [];
+        if (chartData.length > 0) {
+          setSurveyResponsesChartData({
+            labels: chartData.map((d: any) => d.surveyTitle),
+            datasets: [{
+              label: 'Response Count',
+              data: chartData.map((d: any) => d.responseCount),
+              backgroundColor: 'rgba(54, 162, 235, 0.6)',
+              borderColor: 'rgba(54, 162, 235, 1)',
+              borderWidth: 1,
+            }]
+          });
+        } else {
+          setSurveyResponsesChartData(null);
+        }
+      } catch (err: any) {
+        console.error("Error fetching survey responses data:", err);
+        setSurveyResponsesChartError(err.message || 'Failed to load survey responses data.');
+      } finally {
+        setIsSurveyResponsesChartLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchSurveyResponsesData();
+    }
+  }, [user, api]);
+
+  useEffect(() => {
+    const fetchReportTypesData = async () => {
+      if (!user) return;
+      setIsReportTypesChartLoading(true);
+      setReportTypesChartError(null);
+      try {
+        const result = await api('/stats/report-types');
+        const chartData = result.data || [];
+        if (chartData.length > 0) {
+          setReportTypesChartData({
+            labels: chartData.map((d: any) => d.reportType),
+            datasets: [{
+              label: 'Report Count',
+              data: chartData.map((d: any) => d.count),
+              backgroundColor: [
+                'rgba(255, 99, 132, 0.6)',
+                'rgba(54, 162, 235, 0.6)',
+                'rgba(75, 192, 192, 0.6)',
+                'rgba(255, 206, 86, 0.6)',
+              ],
+              borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(255, 206, 86, 1)',
+              ],
+              borderWidth: 1,
+            }]
+          });
+        } else {
+          setReportTypesChartData(null);
+        }
+      } catch (err: any) {
+        console.error("Error fetching report types data:", err);
+        setReportTypesChartError(err.message || 'Failed to load report types distribution.');
+      } finally {
+        setIsReportTypesChartLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchReportTypesData();
     }
   }, [user, api]);
 
@@ -260,41 +349,77 @@ const Dashboard: React.FC = () => {
               </div>
             )}
           </DashboardCard>
-
           <DashboardCard
-            title="Market Share Distribution (Placeholder)"
-            variant="pie"
-          >
-            <div className="h-[300px] flex items-center justify-center p-4">
-              <div className="text-center text-gray-500">
-                <p className="text-lg">Sample Pie Chart</p>
-                <p className="text-sm">Showing market share by brand</p>
-              </div>
-            </div>
-          </DashboardCard>
-
-          <DashboardCard
-            title="Customer Satisfaction Score"
+            title="Survey Responses"
             variant="bar"
+            isLoading={isSurveyResponsesChartLoading}
           >
-            <div className="h-[300px] flex items-center justify-center p-4">
-              <div className="text-center text-gray-500">
-                <p className="text-lg">Sample Bar Chart</p>
-                <p className="text-sm">Showing CSAT scores by product category</p>
+            {surveyResponsesChartError && (
+              <div className="h-[300px] flex items-center justify-center p-4 text-red-500">
+                <p>{surveyResponsesChartError}</p>
               </div>
-            </div>
+            )}
+            {!isSurveyResponsesChartLoading && !surveyResponsesChartError && surveyResponsesChartData && (
+              <div className="h-[300px] p-4 flex justify-center items-center">
+                <Bar
+                  data={surveyResponsesChartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'top' as const,
+                      },
+                      title: {
+                        display: false,
+                        text: 'Survey Responses',
+                      },
+                    },
+                  }}
+                />
+              </div>
+            )}
+            {!isSurveyResponsesChartLoading && !surveyResponsesChartError && !surveyResponsesChartData && (
+              <div className="h-[300px] flex items-center justify-center p-4 text-gray-500">
+                  <p>No survey response data available.</p>
+              </div>
+            )}
           </DashboardCard>
-
           <DashboardCard
-            title="Regional Performance"
-            variant="heatmap"
+            title="Report Types"
+            variant="pie"
+            isLoading={isReportTypesChartLoading}
           >
-            <div className="h-[300px] flex items-center justify-center p-4">
-              <div className="text-center text-gray-500">
-                <p className="text-lg">Sample Heatmap</p>
-                <p className="text-sm">Showing brand performance by region</p>
+            {reportTypesChartError && (
+              <div className="h-[300px] flex items-center justify-center p-4 text-red-500">
+                <p>{reportTypesChartError}</p>
               </div>
-            </div>
+            )}
+            {!isReportTypesChartLoading && !reportTypesChartError && reportTypesChartData && (
+              <div className="h-[300px] p-4 flex justify-center items-center">
+                <Pie
+                  data={reportTypesChartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'top' as const,
+                      },
+                      title: {
+                        display: false,
+                        text: 'Report Types',
+                      },
+                    },
+                  }}
+                />
+              </div>
+            )}
+            {!isReportTypesChartLoading && !reportTypesChartError && !reportTypesChartData && (
+              <div className="h-[300px] flex items-center justify-center p-4 text-gray-500">
+                  <p>No report type data available.</p>
+              </div>
+            )}
           </DashboardCard>
         </div>
       )}
@@ -336,6 +461,21 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Link to="/survey-builder" className="bg-white p-4 rounded-lg shadow-md hover:bg-gray-50 text-center">
+          <h3 className="font-bold text-lg">Survey Builder</h3>
+        </Link>
+        <Link to="/advanced-analytics" className="bg-white p-4 rounded-lg shadow-md hover:bg-gray-50 text-center">
+          <h3 className="font-bold text-lg">Advanced Analytics & Reporting</h3>
+        </Link>
+        <Link to="/collaboration" className="bg-white p-4 rounded-lg shadow-md hover:bg-gray-50 text-center">
+          <h3 className="font-bold text-lg">Collaboration & Team Features</h3>
+        </Link>
+        <Link to="/market-research-tools" className="bg-white p-4 rounded-lg shadow-md hover:bg-gray-50 text-center">
+          <h3 className="font-bold text-lg">Market Research Tools</h3>
+        </Link>
+      </div>
     </div>
   );
 };

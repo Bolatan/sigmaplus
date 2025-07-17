@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { Survey, Question, Option } from '../../types/survey';
+import { SurveyService } from '../../services/SurveyService';
 
 const ItemTypes = {
   QUESTION: 'question',
@@ -52,20 +53,62 @@ const DraggableQuestion = ({ id, index, moveQuestion, children }) => {
   );
 };
 
-
 const SurveyForm = () => {
   const [questions, setQuestions] = useState<SignaPlusQuestion[]>([]);
   const [surveyId, setSurveyId] = useState<string | null>(null);
 
-  const addQuestion = (type) => {
-    setQuestions([...questions, { type, text: '', id: Date.now() }]);
+
+  const addQuestion = (type: Question['type']) => {
+    const newQuestion: Question = {
+      id: Date.now().toString(),
+      type,
+      text: '',
+      options: type === 'multiple-choice' ? [] : undefined,
+    };
+    setSurvey({
+      ...survey,
+      questions: [...survey.questions, newQuestion],
+    });
   };
 
-  const moveQuestion = (dragIndex, hoverIndex) => {
-    const newQuestions = [...questions];
+  const moveQuestion = (dragIndex: number, hoverIndex: number) => {
+    const newQuestions = [...survey.questions];
     const [removed] = newQuestions.splice(dragIndex, 1);
     newQuestions.splice(hoverIndex, 0, removed);
-    setQuestions(newQuestions);
+    setSurvey({ ...survey, questions: newQuestions });
+  };
+
+  const handleQuestionTextChange = (index: number, text: string) => {
+    const newQuestions = [...survey.questions];
+    newQuestions[index].text = text;
+    setSurvey({ ...survey, questions: newQuestions });
+  };
+
+  const addOption = (questionIndex: number) => {
+    const newQuestions = [...survey.questions];
+    const question = newQuestions[questionIndex];
+    if (question.options) {
+      question.options.push({ id: Date.now().toString(), text: '' });
+      setSurvey({ ...survey, questions: newQuestions });
+    }
+  };
+
+  const handleOptionTextChange = (
+    questionIndex: number,
+    optionIndex: number,
+    text: string
+  ) => {
+    const newQuestions = [...survey.questions];
+    const question = newQuestions[questionIndex];
+    if (question.options) {
+      question.options[optionIndex].text = text;
+      setSurvey({ ...survey, questions: newQuestions });
+    }
+  };
+
+  const handleSave = async () => {
+    await SurveyService.create({ ...survey, id: Date.now().toString() });
+    alert('Survey saved!');
   };
 
   return (
@@ -73,7 +116,27 @@ const SurveyForm = () => {
       <div>
         <h2>Create Survey</h2>
         <div className="mb-4">
-          <button onClick={() => addQuestion('multiple-choice')} className="btn-primary mr-2">
+          <input
+            type="text"
+            placeholder="Survey Title"
+            className="input mb-2"
+            value={survey.title}
+            onChange={(e) => setSurvey({ ...survey, title: e.target.value })}
+          />
+          <textarea
+            placeholder="Survey Description"
+            className="input mb-2"
+            value={survey.description}
+            onChange={(e) =>
+              setSurvey({ ...survey, description: e.target.value })
+            }
+          />
+        </div>
+        <div className="mb-4">
+          <button
+            onClick={() => addQuestion('multiple-choice')}
+            className="btn-primary mr-2"
+          >
             Add Multiple Choice
           </button>
           <button onClick={() => addQuestion('matrix')} className="btn-primary mr-2">
@@ -82,29 +145,55 @@ const SurveyForm = () => {
           <button onClick={() => addQuestion('text')} className="btn-primary mr-2">
             Add Text Entry
           </button>
-          <button onClick={() => addQuestion('star-rating')} className="btn-primary mr-2">
+          <button
+            onClick={() => addQuestion('star-rating')}
+            className="btn-primary mr-2"
+          >
             Add Star Rating
           </button>
           <button onClick={() => addQuestion('ranking')} className="btn-primary mr-2">
             Add Ranking
           </button>
-
         </div>
-        {questions.map((question, index) => (
-          <DraggableQuestion key={question.id} id={question.id} index={index} moveQuestion={moveQuestion}>
+        {survey.questions.map((question, index) => (
+          <DraggableQuestion
+            key={question.id}
+            id={question.id}
+            index={index}
+            moveQuestion={moveQuestion}
+          >
             <div className="card mb-4">
               <input
                 type="text"
                 placeholder="Enter your question"
                 className="input mb-2"
                 value={question.text}
-                onChange={(e) => {
-                  const newQuestions = [...questions];
-                  newQuestions[index].text = e.target.value;
-                  setQuestions(newQuestions);
-                }}
+                onChange={(e) => handleQuestionTextChange(index, e.target.value)}
               />
-              {question.type === 'multiple-choice' && <div>Multiple Choice Options</div>}
+              {question.type === 'multiple-choice' && (
+                <div>
+                  <h3>Options</h3>
+                  {question.options?.map((option, optionIndex) => (
+                    <div key={option.id} className="flex items-center mb-2">
+                      <input
+                        type="text"
+                        placeholder="Option"
+                        className="input mr-2"
+                        value={option.text}
+                        onChange={(e) =>
+                          handleOptionTextChange(index, optionIndex, e.target.value)
+                        }
+                      />
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => addOption(index)}
+                    className="btn-secondary"
+                  >
+                    Add Option
+                  </button>
+                </div>
+              )}
               {question.type === 'matrix' && <div>Matrix Options</div>}
               {question.type === 'text' && <div>Text Entry</div>}
               {question.type === 'star-rating' && <div>Star Rating</div>}
@@ -112,6 +201,11 @@ const SurveyForm = () => {
             </div>
           </DraggableQuestion>
         ))}
+        <div className="mt-8">
+          <button onClick={handleSave} className="btn-primary">
+            Save Survey
+          </button>
+        </div>
       </div>
     </DndProvider>
   );
