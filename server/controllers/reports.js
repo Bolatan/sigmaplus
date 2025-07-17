@@ -180,8 +180,8 @@ export const downloadReport = async (req, res) => {
           res.send(buffer);
           console.log('PPTX report sent');
         } catch (e) {
-          console.error('Error generating pptx file:', e);
-          res.status(500).json({ error: 'Failed to generate pptx report' });
+          console.error('Error generating pptx file:', e.message);
+          res.status(500).json({ error: 'Failed to generate pptx report', details: e.message });
         }
         break;
       }
@@ -224,17 +224,21 @@ export const downloadReport = async (req, res) => {
             });
           }
 
-          const pdfBytes = await pdfDoc.save();
+          pdfDoc.save().then(pdfBytes => {
+            const sanitizedTitle = sanitizeFilename(report.title);
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=${sanitizedTitle}.pdf`);
+            res.send(Buffer.from(pdfBytes));
+            console.log('PDF report sent');
+          }).catch(err => {
+            console.error('Error saving pdf file:', err.message);
+            res.status(500).json({ error: 'Failed to save pdf report', details: err.message });
+          });
+        }).catch(err => {
+          console.error('Error creating pdf document:', err.message);
+          res.status(500).json({ error: 'Failed to create pdf document', details: err.message });
+        });
 
-          const sanitizedTitle = sanitizeFilename(report.title);
-          res.setHeader('Content-Type', 'application/pdf');
-          res.setHeader('Content-Disposition', `attachment; filename=${sanitizedTitle}.pdf`);
-          res.send(Buffer.from(pdfBytes));
-          console.log('PDF report sent');
-        } catch (e) {
-          console.error('Error generating pdf file:', e);
-          res.status(500).json({ error: 'Failed to generate pdf report' });
-        }
         break;
       }
       default:
