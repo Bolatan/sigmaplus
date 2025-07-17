@@ -211,7 +211,7 @@ const Reports: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`/api/reports/${report.id}/download?format=${format}`, {
+      const response = await fetch(`/api/reports/${report.id}?format=${format}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
