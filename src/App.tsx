@@ -21,11 +21,15 @@ import AllSurveys from './pages/AllSurveys';
 import EditSurvey from './pages/EditSurvey';
 
 // Protected route component
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = React.memo(({ children }) => {
-  const { isAuthenticated } = useAuth();
+const ProtectedRoute: React.FC<{ children: React.ReactNode, allowedRoles?: string[] }> = React.memo(({ children, allowedRoles }) => {
+  const { isAuthenticated, user } = useAuth();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
+  }
+
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/" />;
   }
 
   return <>{children}</>;
@@ -42,7 +46,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/" element={
         <ProtectedRoute>
           <Layout>
-            {user?.role === 'client' ? <Navigate to="/client-dashboard" /> : <Dashboard />}
+            {user?.role === 'client' ? <ClientDashboard /> : <Dashboard />}
           </Layout>
         </ProtectedRoute>
       } />

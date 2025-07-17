@@ -156,7 +156,6 @@ const SurveyForm: React.FC<SurveyFormProps> = ({
               </select>
             </div>
           </>
-
         )}
         <div>
           <label
@@ -189,12 +188,6 @@ const SurveyForm: React.FC<SurveyFormProps> = ({
                 }
                 required
               />
-              {question.type === 'text' && (
-                <Input
-                  value={question.value as string || ''}
-                  onChange={(e) => handleQuestionChange(index, 'value', e.target.value)}
-                />
-              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Question Type
@@ -237,14 +230,6 @@ const SurveyForm: React.FC<SurveyFormProps> = ({
                   <span className="text-sm text-gray-700">Required</span>
                 </label>
               </div>
-              {question.type === 'textarea' && (
-                <textarea
-                  value={question.value as string || ''}
-                  onChange={(e) => handleQuestionChange(index, 'value', e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                  rows={3}
-                />
-              )}
               {(question.type === 'single-choice' ||
                 question.type === 'multiple-choice' ||
                 question.type === 'image-choice') && (
@@ -297,20 +282,19 @@ const SurveyForm: React.FC<SurveyFormProps> = ({
               {question.type === 'rating' && (
                 <div className="mt-2">
                   <Input
-                    label="Rating"
-                    type="range"
-                    value={question.value as number || 5}
+                    label="Max Rating"
+                    type="number"
+                    value={question.maxRating || 5}
                     onChange={(e) =>
                       handleQuestionChange(
                         index,
-                        'value',
+                        'maxRating',
                         parseInt(e.target.value, 10)
                       )
                     }
-                    min={1}
+                    min={2}
                     max={10}
                   />
-                  <span className="text-sm text-gray-700">{question.value || 5}</span>
                 </div>
               )}
               {question.type === 'file-upload' && (
