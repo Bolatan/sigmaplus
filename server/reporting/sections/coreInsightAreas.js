@@ -1,12 +1,42 @@
+import BrandAwarenessAndPerception from './brandAwarenessAndPerception.js';
+import BrandUsageAndPurchaseBehavior from './brandUsageAndPurchaseBehavior.js';
+import CustomerSatisfactionAndLoyalty from './customerSatisfactionAndLoyalty.js';
+import ChallengesAndImprovementOpportunities from './challengesAndImprovementOpportunities.js';
+import OutletDynamics from './outletDynamics.js';
+import ProductStockingAndRestocking from './productStockingAndRestocking.js';
+import SupplyMethodsAndBarriers from './supplyMethodsAndBarriers.js';
+import TradeMarginsAndPricing from './tradeMarginsAndPricing.js';
+import TradeCustomerLifecycleAndSupport from './tradeCustomerLifecycleAndSupport.js';
+import DriversOfPurchase from './driversOfPurchase.js';
+import MarketingChannelsAndAwarenessSources from './marketingChannelsAndAwarenessSources.js';
+import CsatNpsCes from './csatNpsCes.js';
 import { generateChart } from '../chartGenerator.js';
 
 export default class CoreInsightAreas {
   constructor(processedData) {
     this.processedData = processedData;
+    this.subSections = [
+      BrandAwarenessAndPerception,
+      BrandUsageAndPurchaseBehavior,
+      CustomerSatisfactionAndLoyalty,
+      ChallengesAndImprovementOpportunities,
+      OutletDynamics,
+      ProductStockingAndRestocking,
+      SupplyMethodsAndBarriers,
+      TradeMarginsAndPricing,
+      TradeCustomerLifecycleAndSupport,
+      DriversOfPurchase,
+      MarketingChannelsAndAwarenessSources,
+      CsatNpsCes,
+    ];
   }
 
   async generate() {
     console.log('Generating core insight areas section...');
+    const content = this.subSections.map(SubSection => {
+      const instance = new SubSection(this.processedData);
+      return instance.generate();
+    });
 
     const { summaryStatistics } = this.processedData;
 
@@ -33,57 +63,7 @@ export default class CoreInsightAreas {
 
     return {
       title: 'Core Insight Areas',
-      content: [
-        {
-          title: 'Brand Awareness & Perception',
-          content: '',
-        },
-        {
-          title: 'Brand Usage & Purchase Behavior',
-          content: '',
-        },
-        {
-          title: 'Customer Satisfaction & Loyalty Metrics',
-          content: '',
-        },
-        {
-          title: 'Challenges and Improvement Opportunities',
-          content: '',
-        },
-        {
-          title: 'Outlet Dynamics',
-          content: '',
-        },
-        {
-          title: 'Product Stocking, Restocking Behavior',
-          content: '',
-        },
-        {
-          title: 'Supply Methods and Barriers',
-          content: '',
-        },
-        {
-          title: 'Trade Margins & Pricing',
-          content: '',
-        },
-        {
-          title: 'Trade Customer Lifecycle & Support',
-          content: '',
-        },
-        {
-          title: 'Drivers of Purchase',
-          content: '',
-        },
-        {
-          title: 'Marketing Channels and Awareness Sources',
-          content: '',
-        },
-        {
-          title: 'CSAT, NPS, CES (Customer Effort Score)',
-          content: '',
-        },
-        ...charts,
-      ],
+      content: [...content, ...charts],
     };
   }
 }
