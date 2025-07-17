@@ -344,10 +344,6 @@ export const submitSurveyResponse = async (req, res, next) => {
     }
 
 
-    if (!responseData || typeof responseData !== 'object' || Object.keys(responseData).length === 0) {
-      throw new ApiError(400, 'Response data is missing or invalid.');
-    }
-
     const newResponse = {
       surveyId: surveyObjectId,
       userId: new ObjectId(userId),

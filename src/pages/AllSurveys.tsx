@@ -220,14 +220,22 @@ const AllSurveys: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/surveys/edit/${survey.id}`)}
+                      onClick={() => navigate(`/surveys/${survey.id}`)}
+                    >
+                      View Details
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/surveys/${survey.id}/edit`)}
+
                     >
                       Edit
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/surveys/take/${survey.id}`)}
+                      onClick={() => navigate(`/surveys/${survey.id}/respond`)}
                     >
                       Take Survey
                     </Button>
