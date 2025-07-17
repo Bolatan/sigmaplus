@@ -214,21 +214,16 @@ export const downloadReport = async (req, res) => {
             });
           }
 
-          pdfDoc.save().then(pdfBytes => {
-            const sanitizedTitle = sanitizeFilename(report.title);
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', `attachment; filename=${sanitizedTitle}.pdf`);
-            res.send(Buffer.from(pdfBytes));
-            console.log('PDF report sent');
-          }).catch(err => {
-            console.error('Error saving pdf file:', err.message);
-            res.status(500).json({ error: 'Failed to save pdf report', details: err.message });
-          });
-        }).catch(err => {
-          console.error('Error creating pdf document:', err.message);
+          const pdfBytes = await pdfDoc.save();
+          const sanitizedTitle = sanitizeFilename(report.title);
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `attachment; filename=${sanitizedTitle}.pdf`);
+          res.send(Buffer.from(pdfBytes));
+          console.log('PDF report sent');
+        } catch (err) {
+          console.error('Error creating/saving pdf document:', err.message);
           res.status(500).json({ error: 'Failed to create pdf document', details: err.message });
-        });
-
+        }
         break;
       }
       default:
@@ -246,8 +241,6 @@ export const downloadReport = async (req, res) => {
 // @route   PUT /api/reports/:id
 // @access  Private (Admin, Agent)
 export const updateReport = async (req, res) => {
-
-
   try {
     const db = getDb();
     const { id } = req.params;
@@ -282,7 +275,6 @@ export const updateReport = async (req, res) => {
 // @route   DELETE /api/reports/:id
 // @access  Private (Admin)
 export const deleteReport = async (req, res) => {
-
   try {
     const db = getDb();
     const { id } = req.params;
