@@ -19,6 +19,7 @@ import ProjectDetails from './pages/ProjectDetails';
 import EditReportSections from './pages/EditReportSections';
 import AllSurveys from './pages/AllSurveys';
 import EditSurvey from './pages/EditSurvey';
+import MarketResearch from './pages/MarketResearch';
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = React.memo(({ children }) => {
@@ -133,6 +134,13 @@ const AppRoutes: React.FC = () => {
         <ProtectedRoute>
           <Layout>
             <SurveyResponsePage />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/market-research" element={
+        <ProtectedRoute>
+          <Layout>
+            <MarketResearch />
           </Layout>
         </ProtectedRoute>
       } />
