@@ -205,8 +205,9 @@ export const downloadReport = async (req, res) => {
         break;
       }
       case 'pdf': {
-        console.log('Generating PDF report');
-        PDFDocument.create().then(pdfDoc => {
+        try {
+          console.log('Generating PDF report');
+          const pdfDoc = await PDFDocument.create();
           const page = pdfDoc.addPage();
           page.drawText(survey.title || 'No Title', { x: 50, y: 800, size: 25 });
 
@@ -223,20 +224,17 @@ export const downloadReport = async (req, res) => {
             });
           }
 
-          pdfDoc.save().then(pdfBytes => {
-            const sanitizedTitle = sanitizeFilename(report.title);
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', `attachment; filename=${sanitizedTitle}.pdf`);
-            res.send(Buffer.from(pdfBytes));
-            console.log('PDF report sent');
-          }).catch(err => {
-            console.error('Error saving pdf file:', err);
-            res.status(500).json({ error: 'Failed to save pdf report' });
-          });
-        }).catch(err => {
-          console.error('Error creating pdf document:', err);
-          res.status(500).json({ error: 'Failed to create pdf document' });
-        });
+          const pdfBytes = await pdfDoc.save();
+
+          const sanitizedTitle = sanitizeFilename(report.title);
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `attachment; filename=${sanitizedTitle}.pdf`);
+          res.send(Buffer.from(pdfBytes));
+          console.log('PDF report sent');
+        } catch (e) {
+          console.error('Error generating pdf file:', e);
+          res.status(500).json({ error: 'Failed to generate pdf report' });
+        }
         break;
       }
       default:
