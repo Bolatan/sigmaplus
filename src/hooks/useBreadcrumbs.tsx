@@ -20,8 +20,8 @@ export const useBreadcrumbs = () => {
         const path = `/${pathnames.slice(0, i + 1).join('/')}`;
         let label = pathnames[i].charAt(0).toUpperCase() + pathnames[i].slice(1);
 
-        if (pathnames[i] === 'projects' && params.projectId) {
-          // Hide breadcrumbs for project details page
+        if ((pathnames[i] === 'projects' && params.projectId) || pathnames[i] === 'reports') {
+          // Hide breadcrumbs for project details page and reports page
           return;
         }
 
