@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Users, BarChart3, ClipboardList, TrendingUp, Building2, UserCheck, PieChart as PieChartIcon } from 'lucide-react'; // Added PieChartIcon
+import { Users, BarChart3, ClipboardList, TrendingUp, Building2, UserCheck, PieChart as PieChartIcon } from 'lucide-react';
 import { Card, CardContent } from '../components/ui/Card';
 import { DashboardCard } from '../components/dashboard/DashboardCard';
 import { StatCard } from '../components/dashboard/StatCard';
 import { useAuth } from '../context/AuthContext';
+import useApi from '../hooks/useApi';
 import { UserRole } from '../types';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
@@ -25,93 +26,51 @@ interface DashboardStats {
 }
 
 const Dashboard: React.FC = () => {
-  const { user } = useAuth(); // Contains user role
-  const [stats, setStats] = useState<Partial<DashboardStats>>({ // Partial because users might be undefined
+  const { user } = useAuth();
+  const api = useApi();
+  const [stats, setStats] = useState<Partial<DashboardStats>>({
     totalSurveys: 0,
     totalResponses: 0,
     reportsGenerated: 0,
     averageCompletionRate: 0,
     totalCompanies: 0,
-    // surveyTrend: 0,
-    // responseTrend: 0,
-    // reportTrend: 0,
-    // completionRateTrend: 0
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const isAdmin = user?.role === UserRole.ADMIN;
-  // const isAgent = user?.role === UserRole.AGENT; // Available for role-specific dashboard views
-  // const isClient = user?.role === UserRole.CLIENT; // Available for role-specific dashboard views
-
-  // State for survey status chart
   const [surveyStatusChartData, setSurveyStatusChartData] = useState<any>(null);
   const [isSurveyStatusChartLoading, setIsSurveyStatusChartLoading] = useState(true);
   const [surveyStatusChartError, setSurveyStatusChartError] = useState<string | null>(null);
 
+  const isAdmin = user?.role === UserRole.ADMIN;
+
   useEffect(() => {
     const fetchDashboardData = async () => {
-      setIsLoading(true); // For overall page stats
-      setIsSurveyStatusChartLoading(true); // For chart
+      setIsLoading(true);
       setError(null);
-      setSurveyStatusChartError(null);
-
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        const authError = 'Authentication token not found. Please log in.';
-        setError(authError);
-        setSurveyStatusChartError(authError);
-        setIsLoading(false);
-        setIsSurveyStatusChartLoading(false);
-        return;
-      }
-
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      };
-
-      // For main stats
-      const finalStats: Partial<DashboardStats> = {
-        totalSurveys: 0,
-        totalResponses: 0,
-        reportsGenerated: 0,
-        averageCompletionRate: 0,
-        totalCompanies: 0, // This will be fetched globally
-      };
-
       try {
-        // Fetch all data first
-        const surveysResponse = await fetch('/api/surveys', { headers });
-        if (!surveysResponse.ok) throw new Error(`Surveys: ${surveysResponse.statusText}`);
-        const allSurveys = (await surveysResponse.json()).data || [];
+        const [surveysData, reportsData, companiesData, usersData] = await Promise.all([
+          api('/surveys'),
+          api('/reports'),
+          api('/companies'),
+          isAdmin ? api('/users') : Promise.resolve({ data: [] }),
+        ]);
 
-        const reportsResponse = await fetch('/api/reports', { headers });
-        if (!reportsResponse.ok) throw new Error(`Reports: ${reportsResponse.statusText}`);
-        const allReports = (await reportsResponse.json()).data || [];
+        const allSurveys = surveysData.data || [];
+        const allReports = reportsData.data || [];
+        const finalStats: Partial<DashboardStats> = {
+          totalCompanies: (companiesData.data || []).length,
+          totalUsers: (usersData.data || []).length,
+        };
 
-        const companiesResponse = await fetch('/api/companies', { headers });
-        if (!companiesResponse.ok) throw new Error(`Companies: ${companiesResponse.statusText}`);
-        finalStats.totalCompanies = ((await companiesResponse.json()).data || []).length;
-
-        if (isAdmin) {
-          const usersResponse = await fetch('/api/users', { headers });
-          if (!usersResponse.ok) throw new Error(`Users: ${usersResponse.statusText}`);
-          finalStats.totalUsers = ((await usersResponse.json()).data || []).length;
-        }
-
-        // Filter for clients
         let relevantSurveys = allSurveys;
         let relevantReports = allReports;
 
         if (user?.role === UserRole.CLIENT && user.companyId) {
-          const clientCompanyId = user.companyId.toString(); // Ensure comparison with string
+          const clientCompanyId = user.companyId.toString();
           relevantSurveys = allSurveys.filter((s: any) => s.companyId && s.companyId.toString() === clientCompanyId);
           relevantReports = allReports.filter((r: any) => r.companyId && r.companyId.toString() === clientCompanyId);
-          // Note: Reports need companyId field for this to work.
         }
 
-        // Calculate stats based on relevant (possibly filtered) data
         finalStats.totalSurveys = relevantSurveys.length;
         finalStats.totalResponses = relevantSurveys.reduce((acc: number, survey: any) => acc + (survey.responseCount || 0), 0);
         const completedSurveys = relevantSurveys.filter((survey: any) => survey.status === 'completed').length;
@@ -119,71 +78,38 @@ const Dashboard: React.FC = () => {
         finalStats.reportsGenerated = relevantReports.length;
 
         setStats(finalStats);
-
       } catch (err: any) {
         console.error('Error fetching dashboard stats:', err);
-        setError(err.message || 'Failed to load some dashboard data.');
-        // Set stats with what might have been fetched before error, or keep defaults
-        // but ensure client-specific data is not shown if filtering failed partially
-        setStats(prevStats => ({
-            ...prevStats, // keep any global stats like totalCompanies if fetched
-            totalSurveys: (user?.role === UserRole.CLIENT && user.companyId) ? 0 : prevStats.totalSurveys, // Reset client specific if error
-            totalResponses: (user?.role === UserRole.CLIENT && user.companyId) ? 0 : prevStats.totalResponses,
-            reportsGenerated: (user?.role === UserRole.CLIENT && user.companyId) ? 0 : prevStats.reportsGenerated,
-            averageCompletionRate: (user?.role === UserRole.CLIENT && user.companyId) ? 0 : prevStats.averageCompletionRate,
-         }));
+        setError(err.message || 'Failed to load dashboard data.');
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (user) { // Only fetch if user is loaded (to ensure role is available for isAdmin check)
-        fetchDashboardData(); // Corrected function name
-    } else if (!localStorage.getItem('authToken')) { // If no token at all, probably not logged in
-        setIsLoading(false);
-        setError('Please log in to view the dashboard.');
+    if (user) {
+      fetchDashboardData();
     }
-    // If there's a token but user isn't loaded yet from AuthContext, useEffect in AuthContext will handle it.
-    // The isLoading from AuthContext can also be used here for a more global loading state.
-  }, [isAdmin, user]); // Depend on user to ensure role is available and re-fetch if user changes.
+  }, [isAdmin, user, api]);
 
   useEffect(() => {
     const fetchSurveyStatusData = async () => {
-      // This fetch is independent of the main dashboard stats, so it runs in its own useEffect.
-      // It depends on the user being available to get the token.
       if (!user) return;
-
       setIsSurveyStatusChartLoading(true);
       setSurveyStatusChartError(null);
-
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        setSurveyStatusChartError('Authentication token not found.');
-        setIsSurveyStatusChartLoading(false);
-        return;
-      }
-
       try {
-        const response = await fetch('/api/stats/survey-statuses', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!response.ok) {
-          throw new Error(`Failed to fetch chart data: ${response.statusText}`);
-        }
-        const result = await response.json();
+        const result = await api('/stats/survey-statuses');
         const chartData = result.data || [];
-
         if (chartData.length > 0) {
           setSurveyStatusChartData({
-            labels: chartData.map((d: any) => d.status.charAt(0).toUpperCase() + d.status.slice(1)), // Capitalize status
+            labels: chartData.map((d: any) => d.status.charAt(0).toUpperCase() + d.status.slice(1)),
             datasets: [{
               label: 'Survey Count',
               data: chartData.map((d: any) => d.count),
               backgroundColor: [
-                'rgba(255, 99, 132, 0.6)', // Draft
-                'rgba(54, 162, 235, 0.6)', // Active
-                'rgba(75, 192, 192, 0.6)', // Completed
-                'rgba(255, 206, 86, 0.6)', // Archived/Other
+                'rgba(255, 99, 132, 0.6)',
+                'rgba(54, 162, 235, 0.6)',
+                'rgba(75, 192, 192, 0.6)',
+                'rgba(255, 206, 86, 0.6)',
               ],
               borderColor: [
                 'rgba(255, 99, 132, 1)',
@@ -195,9 +121,8 @@ const Dashboard: React.FC = () => {
             }]
           });
         } else {
-          setSurveyStatusChartData(null); // No data to show
+          setSurveyStatusChartData(null);
         }
-
       } catch (err: any) {
         console.error("Error fetching survey status data:", err);
         setSurveyStatusChartError(err.message || 'Failed to load survey status distribution.');
@@ -206,8 +131,10 @@ const Dashboard: React.FC = () => {
       }
     };
 
-    fetchSurveyStatusData();
-  }, [user]); // Re-run if the user object changes.
+    if (user) {
+      fetchSurveyStatusData();
+    }
+  }, [user, api]);
 
   // Combined loading state: true if this page is loading OR if auth context is still loading user
   const pageIsLoading = isLoading || (!user && !!localStorage.getItem('authToken'));
