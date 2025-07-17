@@ -54,12 +54,9 @@ const DraggableQuestion = ({ id, index, moveQuestion, children }) => {
 };
 
 const SurveyForm = () => {
-  const [survey, setSurvey] = useState<Survey>({
-    id: '',
-    title: '',
-    description: '',
-    questions: [],
-  });
+  const [questions, setQuestions] = useState<SignaPlusQuestion[]>([]);
+  const [surveyId, setSurveyId] = useState<string | null>(null);
+
 
   const addQuestion = (type: Question['type']) => {
     const newQuestion: Question = {
