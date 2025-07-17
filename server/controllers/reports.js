@@ -41,6 +41,10 @@ export const generateReport = async (req, res) => {
 
     const reportData = await reporting.generateReport();
 
+    console.log('--- SURVEY ID ---');
+    console.log(surveyId);
+    console.log('--- END SURVEY ID ---');
+
     const newReport = {
       title,
       surveyId: new ObjectId(surveyId),
@@ -201,8 +205,9 @@ export const downloadReport = async (req, res) => {
         break;
       }
       case 'pdf': {
-        console.log('Generating PDF report');
-        PDFDocument.create().then(pdfDoc => {
+        try {
+          console.log('Generating PDF report');
+          const pdfDoc = await PDFDocument.create();
           const page = pdfDoc.addPage();
           page.drawText(survey.title || 'No Title', { x: 50, y: 800, size: 25 });
 
@@ -233,6 +238,7 @@ export const downloadReport = async (req, res) => {
           console.error('Error creating pdf document:', err.message);
           res.status(500).json({ error: 'Failed to create pdf document', details: err.message });
         });
+
         break;
       }
       default:
@@ -312,4 +318,3 @@ export const generateAllReports = async () => {
   console.log('Generating all reports...');
   // This is a placeholder for the actual report generation logic
 };
-
