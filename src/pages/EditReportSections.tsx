@@ -39,9 +39,9 @@ const EditReportSections: React.FC = () => {
   const addChart = (type: Chart['type']) => {
     if (report) {
       const newSections = JSON.parse(JSON.stringify(report.sections));
-      newSections[sectionIndex].content[subSectionIndex].content = value;
-      setReport({ ...report, sections: newSections });
-
+      // newSections[sectionIndex].content[subSectionIndex].content = value;
+      // setReport({ ...report, sections: newSections });
+    }
   };
 
   const handleSaveChanges = async () => {
