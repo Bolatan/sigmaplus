@@ -147,11 +147,24 @@ const SurveyResponsePage: React.FC = () => {
           } else {
             newResponses[questionId] = [...currentAnswers, value as string];
           }
-        } else {
-          newResponses[questionId] = value as string;
-        }
-        return newResponses;
-      });
+          return newResponses;
+        });
+        break;
+      case 'range':
+        setResponses(prev => ({
+          ...prev,
+          [questionId]: parseInt(value as string, 10),
+        }));
+        break;
+      case 'text':
+      case 'textarea':
+      default:
+        setResponses(prev => ({
+          ...prev,
+          [questionId]: value as string,
+        }));
+        break;
+
     }
   };
 
