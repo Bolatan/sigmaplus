@@ -190,8 +190,9 @@ const Surveys: React.FC = () => {
   }, [triggerRefetch]);
 
   const filteredSurveys = surveys.filter(survey =>
-    (survey.title && survey.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (survey.description && survey.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    survey &&
+    ((survey.title && survey.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (survey.description && survey.description.toLowerCase().includes(searchTerm.toLowerCase())))
   );
 
   const formatDate = (dateString: string) => {
