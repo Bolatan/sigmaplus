@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Report as ReportType, Section } from '../types';
+import { Report as ReportType, Chart } from '../types/report';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { ReportingService } from '../services/ReportingService';
+import { Bar, Pie } from 'react-chartjs-2';
 
 const EditReportSections: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -12,18 +14,18 @@ const EditReportSections: React.FC = () => {
 
   useEffect(() => {
     const fetchReport = async () => {
+      if (!id) {
+        setError('Report ID not found in URL.');
+        setIsLoading(false);
+        return;
+      }
       try {
-        const token = localStorage.getItem('authToken');
-        const response = await fetch(`/api/reports/${id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        if (!response.ok) {
-          throw new Error('Failed to fetch report');
+        const fetchedReport = await ReportingService.getById(id);
+        if (fetchedReport) {
+          setReport(fetchedReport);
+        } else {
+          setError('Report not found.');
         }
-        const data = await response.json();
-        setReport(data.data);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -34,29 +36,18 @@ const EditReportSections: React.FC = () => {
     fetchReport();
   }, [id]);
 
-  const handleSectionChange = (sectionIndex: number, subSectionIndex: number, value: string) => {
+  const addChart = (type: Chart['type']) => {
     if (report) {
       const newSections = JSON.parse(JSON.stringify(report.sections));
       newSections[sectionIndex].content[subSectionIndex].content = value;
       setReport({ ...report, sections: newSections });
-    }
+
   };
 
   const handleSaveChanges = async () => {
     if (report) {
       try {
-        const token = localStorage.getItem('authToken');
-        const response = await fetch(`/api/reports/${id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ sections: report.sections }),
-        });
-        if (!response.ok) {
-          throw new Error('Failed to save changes');
-        }
+        await ReportingService.update(report.id, report);
         alert('Changes saved successfully!');
       } catch (err: any) {
         setError(err.message);
@@ -76,31 +67,27 @@ const EditReportSections: React.FC = () => {
     <div className="p-6">
       <h1 className="text-2xl font-bold">Edit Report Sections for "{report?.title}"</h1>
       <div className="mt-4 space-y-4">
-        {report?.sections.map((section, sectionIndex) => (
-          <div key={section.id} className="p-4 border rounded-md">
-            <h2 className="text-xl font-semibold">{section.title}</h2>
-            <div className="mt-4 space-y-4">
-              {Array.isArray(section.content) && section.content.map((subSection, subSectionIndex) => (
-                <div key={subSection.title} className="p-4 border rounded-md">
-                  <h3 className="text-lg font-medium">{subSection.title}</h3>
-                  {subSection.chart ? (
-                    <img src={`data:image/png;base64,${subSection.chart}`} alt={subSection.title} />
-                  ) : (
-                    <textarea
-                      value={subSection.content}
-                      onChange={(e) => handleSectionChange(sectionIndex, subSectionIndex, e.target.value)}
-                      className="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                      rows={4}
-                    />
-                  )}
-                </div>
-              ))}
+        {report?.charts.map((chart, chartIndex) => (
+          <div key={chart.id} className="p-4 border rounded-md">
+            <h2 className="text-xl font-semibold">Chart {chartIndex + 1}</h2>
+            <div>
+              {chart.type === 'bar' && <Bar data={chart.data} />}
+              {chart.type === 'pie' && <Pie data={chart.data} />}
+              {chart.type === 'line' && <p>Line chart not implemented yet</p>}
             </div>
           </div>
         ))}
       </div>
       <div className="mt-4 flex space-x-2">
-        <Button variant="primary" onClick={handleSaveChanges}>Save Changes</Button>
+        <Button variant="primary" onClick={() => addChart('bar')}>
+          Add Bar Chart
+        </Button>
+        <Button variant="primary" onClick={() => addChart('pie')}>
+          Add Pie Chart
+        </Button>
+        <Button variant="primary" onClick={handleSaveChanges}>
+          Save Changes
+        </Button>
       </div>
     </div>
   );
