@@ -164,7 +164,7 @@ const SurveyResponsePage: React.FC = () => {
       default:
         setResponses(prev => ({
           ...prev,
-          [questionId]: value,
+          [questionId]: value as string,
         }));
         break;
     }
