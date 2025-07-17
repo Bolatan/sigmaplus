@@ -28,3 +28,20 @@ product_satisfaction,customer_support_rating,location_city,location_state,demogr
 ```
 
 In this example, `product_satisfaction` and `customer_support_rating` are the unique identifiers for the survey questions. The other columns provide additional information about the respondents.
+
+## How to Use
+
+### Generating Reports
+
+1.  Navigate to the "Reports" page.
+2.  Click the "Generate Report" button.
+3.  Select the survey you want to generate a report for.
+4.  Enter a title and description for the report.
+5.  Click the "Generate Report" button.
+
+### Editing Report Sections
+
+1.  Navigate to the "Reports" page.
+2.  Click the "Edit Sections" button for the report you want to edit.
+3.  Enter the content for each section.
+4.  Click the "Save Changes" button.

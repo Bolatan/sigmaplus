@@ -34,10 +34,12 @@ const EditReportSections: React.FC = () => {
     fetchReport();
   }, [id]);
 
-  const handleSectionChange = (index: number, field: keyof Section, value: any) => {
+  const handleSectionChange = (sectionIndex: number, subSectionIndex: number, value: string) => {
     if (report) {
       const newSections = [...report.sections];
-      newSections[index] = { ...newSections[index], [field]: value };
+      const newSubSections = [...newSections[sectionIndex].content];
+      newSubSections[subSectionIndex] = { ...newSubSections[subSectionIndex], content: value };
+      newSections[sectionIndex] = { ...newSections[sectionIndex], content: newSubSections };
       setReport({ ...report, sections: newSections });
     }
   };
@@ -76,21 +78,26 @@ const EditReportSections: React.FC = () => {
     <div className="p-6">
       <h1 className="text-2xl font-bold">Edit Report Sections for "{report?.title}"</h1>
       <div className="mt-4 space-y-4">
-        {report?.sections.map((section, index) => (
+        {report?.sections.map((section, sectionIndex) => (
           <div key={section.id} className="p-4 border rounded-md">
-            <div className="flex justify-between items-center">
-              <Input
-                label="Section Title"
-                value={section.title}
-                onChange={(e) => handleSectionChange(index, 'title', e.target.value)}
-              />
+            <h2 className="text-xl font-semibold">{section.title}</h2>
+            <div className="mt-4 space-y-4">
+              {Array.isArray(section.content) && section.content.map((subSection, subSectionIndex) => (
+                <div key={subSection.title} className="p-4 border rounded-md">
+                  <h3 className="text-lg font-medium">{subSection.title}</h3>
+                  {subSection.chart ? (
+                    <img src={`data:image/png;base64,${subSection.chart}`} alt={subSection.title} />
+                  ) : (
+                    <textarea
+                      value={subSection.content}
+                      onChange={(e) => handleSectionChange(sectionIndex, subSectionIndex, e.target.value)}
+                      className="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                      rows={4}
+                    />
+                  )}
+                </div>
+              ))}
             </div>
-            <textarea
-              value={section.content.toString()}
-              onChange={(e) => handleSectionChange(index, 'content', e.target.value)}
-              className="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-              rows={4}
-            />
           </div>
         ))}
       </div>
