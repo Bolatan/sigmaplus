@@ -4,7 +4,8 @@ import { Survey } from '../types';
 import { BarChart3, PieChart } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DashboardCard } from '../components/dashboard/DashboardCard';
 import { StatCard } from '../components/dashboard/StatCard';
 import Heatmap from '../components/dashboard/Heatmap';
@@ -12,6 +13,55 @@ import Scorecard from '../components/dashboard/Scorecard';
 import Annotations from '../components/dashboard/Annotations';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
+
+const ItemTypes = {
+  CARD: 'card',
+}
+
+const DraggableItem = ({ id, index, moveItem, children }) => {
+  const ref = React.useRef(null);
+  const [, drop] = useDrop({
+    accept: ItemTypes.CARD,
+    hover(item: { id: string, index: number }, monitor) {
+      if (!ref.current) {
+        return;
+      }
+      const dragIndex = item.index;
+      const hoverIndex = index;
+      if (dragIndex === hoverIndex) {
+        return;
+      }
+      const hoverBoundingRect = ref.current?.getBoundingClientRect();
+      const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+      const clientOffset = monitor.getClientOffset();
+      const hoverClientY = clientOffset.y - hoverBoundingRect.top;
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+        return;
+      }
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
+        return;
+      }
+      moveItem(dragIndex, hoverIndex);
+      item.index = hoverIndex;
+    },
+  });
+
+  const [{ isDragging }, drag] = useDrag({
+    type: ItemTypes.CARD,
+    item: { id, index },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  drag(drop(ref));
+
+  return (
+    <div ref={ref} style={{ opacity: isDragging ? 0.5 : 1 }}>
+      {children}
+    </div>
+  );
+};
 
 const ClientDashboard: React.FC = () => {
   // ✅ ALL useState hooks moved to the top
@@ -111,16 +161,11 @@ const ClientDashboard: React.FC = () => {
     setIsEditingHeaders(false);
   };
 
-  const onDragEnd = (result: any) => {
-    if (!result.destination) {
-      return;
-    }
-
-    const items = Array.from(dashboardItems);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    setDashboardItems(items);
+const moveItem = (dragIndex: number, hoverIndex: number) => {
+    const newItems = [...dashboardItems];
+    const [removed] = newItems.splice(dragIndex, 1);
+    newItems.splice(hoverIndex, 0, removed);
+    setDashboardItems(newItems);
   };
 
   const brandStyles = {
@@ -138,200 +183,187 @@ const ClientDashboard: React.FC = () => {
   }
 
   return (
-    <DragDropContext onDragEnd={onDragEnd}>
-      <Droppable droppableId="dashboard">
-        {(provided) => (
-          <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-6" style={{ backgroundColor: brandStyles.secondaryColor, color: brandStyles.primaryColor }}>
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold">{user?.branding?.logoUrl ? <img src={user.branding.logoUrl} alt="Client Logo" className="h-10" /> : 'Client Dashboard'}</h1>
-              <p>Welcome to your dedicated client portal.</p>
-              <button
-                onClick={() => {
-                  const url = new URL(window.location.href);
-                  url.searchParams.set('filters', JSON.stringify({ region, timePeriod, demographics, outletType }));
-                  navigator.clipboard.writeText(url.toString());
-                }}
-                className="bg-blue-500 text-white px-4 py-2 rounded"
-              >
-                Share
-              </button>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:space-x-4">
-              <div className="flex-1">
-                <label htmlFor="region" className="block text-sm font-medium">Region</label>
-                <select id="region" name="region" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
-                  <option>All</option>
-                  <option>North</option>
-                  <option>South</option>
-                  <option>East</option>
-                  <option>West</option>
-                </select>
-              </div>
-              <div className="flex-1">
-                <label htmlFor="timePeriod" className="block text-sm font-medium">Time Period</label>
-                <select id="timePeriod" name="timePeriod" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
-                  <option>All Time</option>
-                  <option>Last 30 Days</option>
-                  <option>Last 90 Days</option>
-                  <option>Last Year</option>
-                </select>
-              </div>
-              <div className="flex-1">
-                <label htmlFor="demographics" className="block text-sm font-medium">Demographics</label>
-                <select id="demographics" name="demographics" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
-                  <option>All</option>
-                  <option>Age</option>
-                  <option>Gender</option>
-                  <option>Occupation</option>
-                  <option>Income</option>
-                </select>
-              </div>
-              <div className="flex-1">
-                <label htmlFor="outletType" className="block text-sm font-medium">Outlet Type</label>
-                <select id="outletType" name="outletType" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
-                  <option>All</option>
-                  <option>Retail</option>
-                  <option>Food Service</option>
-                  <option>Other</option>
-                </select>
-              </div>
-            </div>
-            {dashboardItems.map((item, index) => (
-              <Draggable key={item} draggableId={item} index={index}>
-                {(provided) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    {...provided.dragHandleProps}
-                  >
-                    {item === 'surveys' && (
-                      <DashboardCard title="Your Surveys" variant="bar">
-                        {surveys.length === 0 ? (
-                          <p>You do not have any surveys yet.</p>
-                        ) : (
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    {isEditingHeaders ? <input type="text" name="title" value={headers.title} onChange={handleHeaderChange} className="w-full" /> : headers.title}
-                                  </th>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    {isEditingHeaders ? <input type="text" name="status" value={headers.status} onChange={handleHeaderChange} className="w-full" /> : headers.status}
-                                  </th>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    {isEditingHeaders ? <input type="text" name="responses" value={headers.responses} onChange={handleHeaderChange} className="w-full" /> : headers.responses}
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-200">
-                                {surveys.map((survey) => (
-                                  <tr key={survey.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap">{survey.title}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{survey.status}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{survey.responseCount}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-                      </DashboardCard>
-                    )}
-                    {item === 'stats' && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <StatCard title="Total Surveys" value={surveys.length} icon={<BarChart3 className="h-6 w-6 text-primary-500" />} />
-                        <StatCard title="Total Responses" value={surveys.reduce((acc, s) => acc + s.responseCount, 0)} icon={<PieChart className="h-6 w-6 text-secondary-500" />} />
-                      </div>
-                    )}
-                    {item === 'chart' && (
-                      <div className="mt-8">
-                        <h2 className="text-xl font-semibold">Survey Responses</h2>
-                        <div className="mt-4">
-                          <select
-                            value={chartType}
-                            onChange={(e) => setChartType(e.target.value)}
-                            className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
-                          >
-                            <option value="bar">Bar Chart</option>
-                            <option value="pie">Pie Chart</option>
-                            <option value="heatmap">Heatmap</option>
-                            <option value="scorecard">Scorecard</option>
-                          </select>
-                        </div>
-                        <div className="mt-4">
-                          {chartType === 'bar' && (
-                            <Bar
-                              data={{
-                                labels: surveys.map((s) => s.title),
-                                datasets: [
-                                  {
-                                    label: 'Number of Responses',
-                                    data: surveys.map((s) => s.responseCount),
-                                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                                  },
-                                ],
-                              }}
-                            />
-                          )}
-                          {chartType === 'pie' && (
-                            <Pie
-                              data={{
-                                labels: surveys.map((s) => s.title),
-                                datasets: [
-                                  {
-                                    data: surveys.map((s) => s.responseCount),
-                                    backgroundColor: [
-                                      'rgba(255, 99, 132, 0.6)',
-                                      'rgba(54, 162, 235, 0.6)',
-                                      'rgba(255, 206, 86, 0.6)',
-                                      'rgba(75, 192, 192, 0.6)',
-                                      'rgba(153, 102, 255, 0.6)',
-                                      'rgba(255, 159, 64, 0.6)',
-                                    ],
-                                  },
-                                ],
-                              }}
-                            />
-                          )}
-                          {chartType === 'heatmap' && (
-                            <Heatmap
-                              data={{
-                                labels: surveys.map((s) => s.title),
-                                datasets: [
-                                  {
-                                    label: 'Number of Responses',
-                                    data: surveys.map((s) => s.responseCount),
-                                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
-                                  },
-                                ],
-                              }}
-                            />
-                          )}
-                          {chartType === 'scorecard' && (
-                            <Scorecard
-                              title="Total Responses"
-                              value={surveys.reduce((acc, s) => acc + s.responseCount, 0).toString()}
-                            />
-                          )}
-                        </div>
-                      </div>
-                    )}
+    <DndProvider backend={HTML5Backend}>
+      <div className="space-y-6" style={{ backgroundColor: brandStyles.secondaryColor, color: brandStyles.primaryColor }}>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">{user?.branding?.logoUrl ? <img src={user.branding.logoUrl} alt="Client Logo" className="h-10" /> : 'Client Dashboard'}</h1>
+          <p>Welcome to your dedicated client portal.</p>
+          <button
+            onClick={() => {
+              const url = new URL(window.location.href);
+              url.searchParams.set('filters', JSON.stringify({ region, timePeriod, demographics, outletType }));
+              navigator.clipboard.writeText(url.toString());
+            }}
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+          >
+            Share
+          </button>
+        </div>
+        <div className="flex flex-col sm:flex-row sm:space-x-4">
+          <div className="flex-1">
+            <label htmlFor="region" className="block text-sm font-medium">Region</label>
+            <select id="region" name="region" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+              <option>All</option>
+              <option>North</option>
+              <option>South</option>
+              <option>East</option>
+              <option>West</option>
+            </select>
+          </div>
+          <div className="flex-1">
+            <label htmlFor="timePeriod" className="block text-sm font-medium">Time Period</label>
+            <select id="timePeriod" name="timePeriod" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+              <option>All Time</option>
+              <option>Last 30 Days</option>
+              <option>Last 90 Days</option>
+              <option>Last Year</option>
+            </select>
+          </div>
+          <div className="flex-1">
+            <label htmlFor="demographics" className="block text-sm font-medium">Demographics</label>
+            <select id="demographics" name="demographics" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+              <option>All</option>
+              <option>Age</option>
+              <option>Gender</option>
+              <option>Occupation</option>
+              <option>Income</option>
+            </select>
+          </div>
+          <div className="flex-1">
+            <label htmlFor="outletType" className="block text-sm font-medium">Outlet Type</label>
+            <select id="outletType" name="outletType" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+              <option>All</option>
+              <option>Retail</option>
+              <option>Food Service</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        {dashboardItems.map((item, index) => (
+          <DraggableItem key={item} id={item} index={index} moveItem={moveItem}>
+            {item === 'surveys' && (
+              <DashboardCard title="Your Surveys" variant="bar">
+                {surveys.length === 0 ? (
+                  <p>You do not have any surveys yet.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {isEditingHeaders ? <input type="text" name="title" value={headers.title} onChange={handleHeaderChange} className="w-full" /> : headers.title}
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {isEditingHeaders ? <input type="text" name="status" value={headers.status} onChange={handleHeaderChange} className="w-full" /> : headers.status}
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {isEditingHeaders ? <input type="text" name="responses" value={headers.responses} onChange={handleHeaderChange} className="w-full" /> : headers.responses}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {surveys.map((survey) => (
+                          <tr key={survey.id}>
+                            <td className="px-6 py-4 whitespace-nowrap">{survey.title}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">{survey.status}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">{survey.responseCount}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
-              </Draggable>
-            ))}
-            {provided.placeholder}
-          </div>
-        )}
-      </Droppable>
+              </DashboardCard>
+            )}
+            {item === 'stats' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <StatCard title="Total Surveys" value={surveys.length} icon={<BarChart3 className="h-6 w-6 text-primary-500" />} />
+                <StatCard title="Total Responses" value={surveys.reduce((acc, s) => acc + s.responseCount, 0)} icon={<PieChart className="h-6 w-6 text-secondary-500" />} />
+              </div>
+            )}
+            {item === 'chart' && (
+              <div className="mt-8">
+                <h2 className="text-xl font-semibold">Survey Responses</h2>
+                <div className="mt-4">
+                  <select
+                    value={chartType}
+                    onChange={(e) => setChartType(e.target.value)}
+                    className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
+                  >
+                    <option value="bar">Bar Chart</option>
+                    <option value="pie">Pie Chart</option>
+                    <option value="heatmap">Heatmap</option>
+                    <option value="scorecard">Scorecard</option>
+                  </select>
+                </div>
+                <div className="mt-4">
+                  {chartType === 'bar' && (
+                    <Bar
+                      data={{
+                        labels: surveys.map((s) => s.title),
+                        datasets: [
+                          {
+                            label: 'Number of Responses',
+                            data: surveys.map((s) => s.responseCount),
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                          },
+                        ],
+                      }}
+                    />
+                  )}
+                  {chartType === 'pie' && (
+                    <Pie
+                      data={{
+                        labels: surveys.map((s) => s.title),
+                        datasets: [
+                          {
+                            data: surveys.map((s) => s.responseCount),
+                            backgroundColor: [
+                              'rgba(255, 99, 132, 0.6)',
+                              'rgba(54, 162, 235, 0.6)',
+                              'rgba(255, 206, 86, 0.6)',
+                              'rgba(75, 192, 192, 0.6)',
+                              'rgba(153, 102, 255, 0.6)',
+                              'rgba(255, 159, 64, 0.6)',
+                            ],
+                          },
+                        ],
+                      }}
+                    />
+                  )}
+                  {chartType === 'heatmap' && (
+                    <Heatmap
+                      data={{
+                        labels: surveys.map((s) => s.title),
+                        datasets: [
+                          {
+                            label: 'Number of Responses',
+                            data: surveys.map((s) => s.responseCount),
+                            backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                          },
+                        ],
+                      }}
+                    />
+                  )}
+                  {chartType === 'scorecard' && (
+                    <Scorecard
+                      title="Total Responses"
+                      value={surveys.reduce((acc, s) => acc + s.responseCount, 0).toString()}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+          </DraggableItem>
+        ))}
+      </div>
       <Annotations
         annotations={annotations}
         onAddAnnotation={(text, x, y) => {
           setAnnotations([...annotations, { id: Date.now().toString(), text, x, y }]);
         }}
       />
-    </DragDropContext>
+    </DndProvider>
   );
 };
 
