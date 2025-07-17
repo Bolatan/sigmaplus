@@ -278,72 +278,123 @@ export const downloadReport = async (req, res) => {
           const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
           
           // Add first page
-          const page = pdfDoc.addPage();
+          let currentPage = pdfDoc.addPage();
+          let y = 800; // Start position
 
-          const logoImageBytes = fs.readFileSync('./logo.png');
-          const logoImage = await pdfDoc.embedPng(logoImageBytes);
-          const logoDims = logoImage.scale(0.5);
+          // Add logo if available
+          try {
+            const logoImageBytes = fs.readFileSync('./logo.png');
+            const logoImage = await pdfDoc.embedPng(logoImageBytes);
+            const logoDims = logoImage.scale(0.5);
 
-          page.drawImage(logoImage, {
-            x: 50,
-            y: 750,
-            width: logoDims.width,
-            height: logoDims.height,
+            currentPage.drawImage(logoImage, {
+              x: 50,
+              y: 750,
+              width: logoDims.width,
+              height: logoDims.height,
+            });
+            y = 700; // Adjust starting position after logo
+          } catch (logoError) {
+            console.error('Logo not found, continuing without logo:', logoError.message);
+            y = 750; // Use higher starting position if no logo
+          }
+
+          // Add title
+          currentPage.drawText(survey?.title || 'No Title', { 
+            x: 50, 
+            y, 
+            size: 25,
+            font: boldFont
           });
-
-          page.drawText(survey.title || 'No Title', { x: 50, y: 700, size: 25 });
-
+          y -= 50;
 
           if (report.sections && Array.isArray(report.sections)) {
             console.log('--- SECTIONS ---');
             console.log(JSON.stringify(report.sections, null, 2));
             console.log('--- END SECTIONS ---');
-            let y = 650;
-            report.sections.forEach((section, sectionIndex) => {
-              const currentPage = y < 100 ? pdfDoc.addPage() : page;
-              if (y < 100) y = 800;
+            
+            for (let sectionIndex = 0; sectionIndex < report.sections.length; sectionIndex++) {
+              const section = report.sections[sectionIndex];
+              
+              // Check if we need a new page
+              if (y < 100) {
+                currentPage = pdfDoc.addPage();
+                y = 800;
+              }
 
-              currentPage.drawText(`${String.fromCharCode(97 + sectionIndex)}. ${section.title}` || 'No Section Title', { x: 50, y, size: 20 });
+              // Add section title
+              currentPage.drawText(`${String.fromCharCode(97 + sectionIndex)}. ${section.title || 'No Section Title'}`, { 
+                x: 50, 
+                y, 
+                size: 20,
+                font: boldFont
+              });
               y -= 30;
 
               if (Array.isArray(section.content)) {
-                section.content.forEach((subSection) => {
+                for (let i = 0; i < section.content.length; i++) {
+                  const subSection = section.content[i];
+                  
                   if (y < 100) {
-                    pdfDoc.addPage();
+                    currentPage = pdfDoc.addPage();
                     y = 800;
                   }
-                  currentPage.drawText(`  • ${subSection.title}` || 'No Sub-Section Title', { x: 70, y, size: 15 });
+                  
+                  // Add subsection title
+                  currentPage.drawText(`  • ${subSection.title || 'No Sub-Section Title'}`, { 
+                    x: 70, 
+                    y, 
+                    size: 15,
+                    font: boldFont
+                  });
                   y -= 20;
 
+                  // Add subsection content
                   if (subSection.content) {
                     if (y < 100) {
-                      pdfDoc.addPage();
+                      currentPage = pdfDoc.addPage();
                       y = 800;
                     }
-                    currentPage.drawText(String(subSection.content), { x: 90, y, size: 12 });
-                    y -= 20;
+                    
+                    // Wrap text to fit within page width
+                    const wrappedLines = wrapText(String(subSection.content), 450, font, 12);
+                    for (const line of wrappedLines) {
+                      if (y < 50) {
+                        currentPage = pdfDoc.addPage();
+                        y = 800;
+                      }
+                      currentPage.drawText(line, { x: 90, y, size: 12, font });
+                      y -= 15;
+                    }
+                    y -= 10; // Extra spacing after content
                   }
+                  
+                  // Add chart if available
                   if (subSection.chart) {
-                    if (y < 200) {
-                      pdfDoc.addPage();
+                    if (y < 250) {
+                      currentPage = pdfDoc.addPage();
                       y = 800;
                     }
-                    const chartImage = await pdfDoc.embedPng(Buffer.from(subSection.chart, 'base64'));
-                    const chartDims = chartImage.scale(0.5);
-                    currentPage.drawImage(chartImage, {
-                      x: 90,
-                      y: y - chartDims.height,
-                      width: chartDims.width,
-                      height: chartDims.height,
-                    });
-                    y -= chartDims.height + 20;
+                    try {
+                      const chartImage = await pdfDoc.embedPng(Buffer.from(subSection.chart, 'base64'));
+                      const chartDims = chartImage.scale(0.5);
+                      currentPage.drawImage(chartImage, {
+                        x: 90,
+                        y: y - chartDims.height,
+                        width: chartDims.width,
+                        height: chartDims.height,
+                      });
+                      y -= chartDims.height + 20;
+                    } catch (chartError) {
+                      console.error('Error embedding chart:', chartError.message);
+                      // Continue without the chart
+                    }
                   }
-
-                });
+                }
               }
               
-              currentY -= 25; // Extra spacing between sections
-            });
+              y -= 25; // Extra spacing between sections
+            }
           }
 
           const pdfBytes = await pdfDoc.save();
