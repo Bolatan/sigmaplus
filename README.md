@@ -41,7 +41,9 @@ In this example, `product_satisfaction` and `customer_support_rating` are the un
 
 ### Editing Report Sections
 
+Admins and agents can edit the content of a report by following these steps:
+
 1.  Navigate to the "Reports" page.
-2.  Click the "Edit Sections" button for the report you want to edit.
-3.  Enter the content for each section.
-4.  Click the "Save Changes" button.
+2.  Click the "Edit Sections" button for the report you want to edit. This will take you to a page where you can see all the sections and sub-sections of the report.
+3.  For each section and sub-section, there is a text area where you can enter the content.
+4.  After you have entered the content for all the sections, click the "Save Changes" button to save your changes.

@@ -41,7 +41,7 @@ function wrapText(text, maxWidth, font, fontSize) {
 export const generateReport = async (req, res) => {
   try {
     const db = getDb();
-    const { surveyId, title, clientId } = req.body;
+    const { surveyId, title, clientId, sections } = req.body;
     const reportsCollection = db.collection('reports');
 
     if (!ObjectId.isValid(surveyId) || (clientId && !ObjectId.isValid(clientId))) {
@@ -62,7 +62,8 @@ export const generateReport = async (req, res) => {
       user,
       company,
       client,
-      title
+      title,
+      sections,
     });
 
     const reportData = await reporting.generateReport();
@@ -278,100 +279,66 @@ export const downloadReport = async (req, res) => {
           
           // Add first page
           const page = pdfDoc.addPage();
-          const { width, height } = page.getSize();
-          
-          // Draw title
-          const title = survey?.title || 'Survey Report';
-          page.drawText(title, { 
-            x: 50, 
-            y: height - 50, 
-            size: 25,
-            font: boldFont,
-            color: rgb(0, 0, 0)
+
+          const logoImageBytes = fs.readFileSync('./logo.png');
+          const logoImage = await pdfDoc.embedPng(logoImageBytes);
+          const logoDims = logoImage.scale(0.5);
+
+          page.drawImage(logoImage, {
+            x: 50,
+            y: 750,
+            width: logoDims.width,
+            height: logoDims.height,
           });
 
-          // Add report metadata
-          let currentY = height - 100;
-          if (report.title) {
-            page.drawText(`Report: ${report.title}`, { 
-              x: 50, 
-              y: currentY, 
-              size: 14,
-              font: font,
-              color: rgb(0, 0, 0)
-            });
-            currentY -= 25;
-          }
+          page.drawText(survey.title || 'No Title', { x: 50, y: 700, size: 25 });
 
-          if (company?.name) {
-            page.drawText(`Company: ${company.name}`, { 
-              x: 50, 
-              y: currentY, 
-              size: 12,
-              font: font,
-              color: rgb(0, 0, 0)
-            });
-            currentY -= 20;
-          }
-
-          if (report.createdAt) {
-            page.drawText(`Generated: ${new Date(report.createdAt).toLocaleDateString()}`, { 
-              x: 50, 
-              y: currentY, 
-              size: 12,
-              font: font,
-              color: rgb(0, 0, 0)
-            });
-            currentY -= 40;
-          }
 
           if (report.sections && Array.isArray(report.sections)) {
             console.log('--- SECTIONS ---');
             console.log(JSON.stringify(report.sections, null, 2));
             console.log('--- END SECTIONS ---');
-            
-            let currentPage = page;
-            
-            report.sections.forEach((section, index) => {
-              // Check if we need a new page for section title
-              if (currentY < 100) {
-                currentPage = pdfDoc.addPage();
-                currentY = height - 50;
-              }
-              
-              // Draw section title
-              const sectionTitle = section.title || `Section ${index + 1}`;
-              currentPage.drawText(sectionTitle, { 
-                x: 50, 
-                y: currentY, 
-                size: 18,
-                font: boldFont,
-                color: rgb(0, 0, 0)
-              });
-              
-              currentY -= 30; // Move down for content
-              
-              // Draw section content
-              if (section.content) {
-                const content = String(section.content);
-                const maxWidth = width - 100; // Leave margins
-                const lines = wrapText(content, maxWidth, font, 12);
-                
-                lines.forEach(line => {
-                  if (currentY < 50) {
-                    currentPage = pdfDoc.addPage();
-                    currentY = height - 50;
+            let y = 650;
+            report.sections.forEach((section, sectionIndex) => {
+              const currentPage = y < 100 ? pdfDoc.addPage() : page;
+              if (y < 100) y = 800;
+
+              currentPage.drawText(`${String.fromCharCode(97 + sectionIndex)}. ${section.title}` || 'No Section Title', { x: 50, y, size: 20 });
+              y -= 30;
+
+              if (Array.isArray(section.content)) {
+                section.content.forEach((subSection) => {
+                  if (y < 100) {
+                    pdfDoc.addPage();
+                    y = 800;
                   }
-                  
-                  currentPage.drawText(line, { 
-                    x: 50, 
-                    y: currentY, 
-                    size: 12,
-                    font: font,
-                    color: rgb(0, 0, 0)
-                  });
-                  
-                  currentY -= 18; // Line spacing
+                  currentPage.drawText(`  • ${subSection.title}` || 'No Sub-Section Title', { x: 70, y, size: 15 });
+                  y -= 20;
+
+                  if (subSection.content) {
+                    if (y < 100) {
+                      pdfDoc.addPage();
+                      y = 800;
+                    }
+                    currentPage.drawText(String(subSection.content), { x: 90, y, size: 12 });
+                    y -= 20;
+                  }
+                  if (subSection.chart) {
+                    if (y < 200) {
+                      pdfDoc.addPage();
+                      y = 800;
+                    }
+                    const chartImage = await pdfDoc.embedPng(Buffer.from(subSection.chart, 'base64'));
+                    const chartDims = chartImage.scale(0.5);
+                    currentPage.drawImage(chartImage, {
+                      x: 90,
+                      y: y - chartDims.height,
+                      width: chartDims.width,
+                      height: chartDims.height,
+                    });
+                    y -= chartDims.height + 20;
+                  }
+
                 });
               }
               
