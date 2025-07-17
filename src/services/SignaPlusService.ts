@@ -1,20 +1,20 @@
-// TODO: Connect this service to the real SurveyMonkey API
+// TODO: Connect this service to the real SignaPlus API
 
-export interface SurveyMonkeyQuestion {
+export interface SignaPlusQuestion {
   id: string;
   text: string;
   type: 'star' | 'ranking' | 'matrix' | 'multiple-choice' | 'open-ended';
   options?: string[];
 }
 
-export interface SurveyMonkeySurvey {
+export interface SignaPlusSurvey {
   id: string;
   title: string;
-  questions: SurveyMonkeyQuestion[];
+  questions: SignaPlusQuestion[];
 }
 
-export class SurveyMonkeyService {
-  private static surveys: SurveyMonkeySurvey[] = [
+export class SignaPlusService {
+  private static surveys: SignaPlusSurvey[] = [
     {
       id: '1',
       title: 'Customer Satisfaction Survey',
@@ -40,10 +40,10 @@ export class SurveyMonkeyService {
     },
   ];
 
-  static async createSurveyWithAI(prompt: string): Promise<SurveyMonkeySurvey> {
+  static async createSurveyWithAI(prompt: string): Promise<SignaPlusSurvey> {
     console.log(`Creating survey with AI using prompt: ${prompt}`);
-    const newSurvey: SurveyMonkeySurvey = {
-      id: String(SurveyMonkeyService.surveys.length + 1),
+    const newSurvey: SignaPlusSurvey = {
+      id: String(SignaPlusService.surveys.length + 1),
       title: 'New Survey',
       questions: [
         {
@@ -54,12 +54,12 @@ export class SurveyMonkeyService {
         },
       ],
     };
-    SurveyMonkeyService.surveys.push(newSurvey);
+    SignaPlusService.surveys.push(newSurvey);
     return newSurvey;
   }
 
-  static async getSurvey(id: string): Promise<SurveyMonkeySurvey | undefined> {
-    return SurveyMonkeyService.surveys.find((survey) => survey.id === id);
+  static async getSurvey(id: string): Promise<SignaPlusSurvey | undefined> {
+    return SignaPlusService.surveys.find((survey) => survey.id === id);
   }
 
   static async addConditionalLogic(
