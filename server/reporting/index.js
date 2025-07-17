@@ -1,4 +1,8 @@
 import DataProcessor from './dataProcessor.js';
+import StudyOverview from './sections/studyOverview.js';
+import RespondentProfile from './sections/respondentProfile.js';
+import ExecutiveSummary from './sections/executiveSummary.js';
+import CoreInsightAreas from './sections/coreInsightAreas.js';
 import BrandAwarenessAndPerception from './sections/brandAwarenessAndPerception.js';
 import BrandUsageAndPurchaseBehavior from './sections/brandUsageAndPurchaseBehavior.js';
 import CustomerSatisfactionAndLoyalty from './sections/customerSatisfactionAndLoyalty.js';
@@ -11,6 +15,7 @@ import DriversOfPurchase from './sections/driversOfPurchase.js';
 import MarketingChannelsAndAwarenessSources from './sections/marketingChannelsAndAwarenessSources.js';
 import CsatNpsCes from './sections/csatNpsCes.js';
 import RegionalAndOutletLevelFindings from './sections/regionalAndOutletLevelFindings.js';
+import Recommendations from './sections/recommendations.js';
 import Presentation from './presentation.js';
 
 export default class Reporting {
@@ -25,6 +30,10 @@ export default class Reporting {
 
     // 2. Generate each section
     const sections = [
+      new StudyOverview(processedData).generate(),
+      new RespondentProfile(processedData).generate(),
+      new ExecutiveSummary(processedData).generate(),
+      new CoreInsightAreas(processedData).generate(),
       new BrandAwarenessAndPerception(processedData).generate(),
       new BrandUsageAndPurchaseBehavior(processedData).generate(),
       new CustomerSatisfactionAndLoyalty(processedData).generate(),
@@ -37,6 +46,7 @@ export default class Reporting {
       new MarketingChannelsAndAwarenessSources(processedData).generate(),
       new CsatNpsCes(processedData).generate(),
       new RegionalAndOutletLevelFindings(processedData).generate(),
+      new Recommendations(processedData).generate(),
     ];
 
     return {
