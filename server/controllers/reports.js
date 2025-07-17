@@ -6,6 +6,96 @@ import Excel from 'exceljs';
 import fs from 'fs';
 import Reporting from '../reporting/index.js';
 import Presentation from '../reporting/presentation.js';
+import { sanitizeFilename } from '../utils/sanitize.js';
+
+
+// @desc    Generate a new report
+// @route   POST /api/reports
+// @access  Private (Admin, Agent)
+export const generateReport = async (req, res) => {
+  try {
+    const db = getDb();
+    const { surveyId, title, clientId } = req.body;
+    const reportsCollection = db.collection('reports');
+
+    if (!ObjectId.isValid(surveyId) || (clientId && !ObjectId.isValid(clientId))) {
+      return res.status(400).json({ error: 'Invalid ID format' });
+    }
+
+    const survey = await db.collection('surveys').findOne({ _id: new ObjectId(surveyId) });
+    if (!survey) return res.status(404).json({ error: 'Survey not found' });
+
+    const responses = await db.collection('responses').find({ surveyId: new ObjectId(surveyId) }).toArray();
+    const user = await db.collection('users').findOne({ _id: new ObjectId(req.user.id) });
+    const company = await db.collection('companies').findOne({ _id: new ObjectId(req.user.companyId) });
+    const client = clientId ? await db.collection('users').findOne({ _id: new ObjectId(clientId) }) : null;
+
+    const reporting = new Reporting({
+      survey,
+      responses,
+      user,
+      company,
+      client,
+      title
+    });
+
+    const reportData = await reporting.generateReport();
+
+    console.log('--- SURVEY ID ---');
+    console.log(surveyId);
+    console.log('--- END SURVEY ID ---');
+
+    const newReport = {
+      title,
+      surveyId: new ObjectId(surveyId),
+      companyId: req.user.companyId,
+      generatedBy: new ObjectId(req.user.id),
+      clientId: client ? new ObjectId(clientId) : null,
+      createdAt: new Date(),
+      status: 'completed',
+      ...reportData,
+    };
+
+    const result = await reportsCollection.insertOne(newReport);
+    res.status(201).json({ data: { ...newReport, _id: result.insertedId } });
+  } catch (err) {
+    console.error('Failed to generate report:', err);
+    res.status(500).json({ error: 'Failed to generate report' });
+  }
+};
+
+
+// @desc    Get all reports
+// @route   GET /api/reports
+// @access  Private (Admins, Agents, Clients)
+export const getReports = async (req, res) => {
+  try {
+    const db = getDb();
+    const reportsCollection = db.collection('reports');
+    let query = {};
+
+    // Role-based filtering
+    if (req.user.role === 'client' && req.user.companyId) {
+      query.companyId = new ObjectId(req.user.companyId);
+    }
+    // Agents might have specific access rules, e.g., by surveys they manage
+    // For now, they can see all reports, but this can be refined.
+
+    const reports = await reportsCollection.find(query).toArray();
+    res.json({ data: reports });
+  } catch (err) {
+    console.error('Failed to fetch reports:', err);
+    res.status(500).json({ error: 'Failed to fetch reports from database' });
+  }
+};
+
+// @desc    Get a single report by ID
+// @route   GET /api/reports/:id
+// @access  Private
+export const getReportById = async (req, res) => {
+  try {
+    const db = getDb();
+=======
 // Inline sanitize function since utils/sanitize.js doesn't exist
 const sanitizeFilename = (filename) => {
   if (!filename || typeof filename !== 'string') {
@@ -104,9 +194,7 @@ export const getReports = async (req, res) => {
 // @desc    Get a single report by ID
 // @route   GET /api/reports/:id
 // @access  Private
-export const getReportById = async (req, res) => {
-  try {
-    const db = getDb();
+
     const { id } = req.params;
 
     if (!ObjectId.isValid(id)) {
@@ -161,13 +249,6 @@ export const downloadReport = async (req, res) => {
     const company = await db.collection('companies').findOne({ _id: new ObjectId(report.companyId) });
     const client = report.clientId ? await db.collection('users').findOne({ _id: new ObjectId(report.clientId) }) : null;
 
-    // Add debugging for survey
-    console.log('--- DEBUG INFO ---');
-    console.log('Report:', report ? 'Found' : 'NULL');
-    console.log('Survey:', survey ? 'Found' : 'NULL');
-    console.log('Survey title:', survey?.title);
-    console.log('Report title:', report?.title);
-    console.log('--- END DEBUG INFO ---');
 
     const reporting = new Reporting({
       survey,
