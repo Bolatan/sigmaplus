@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Users, BarChart3, ClipboardList, TrendingUp, Building2, UserCheck, PieChart as PieChartIcon } from 'lucide-react';
 import { Card, CardContent } from '../components/ui/Card';
 import { DashboardCard } from '../components/dashboard/DashboardCard';
@@ -336,6 +337,21 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Link to="/survey-builder" className="bg-white p-4 rounded-lg shadow-md hover:bg-gray-50 text-center">
+          <h3 className="font-bold text-lg">Survey Builder</h3>
+        </Link>
+        <Link to="/advanced-analytics" className="bg-white p-4 rounded-lg shadow-md hover:bg-gray-50 text-center">
+          <h3 className="font-bold text-lg">Advanced Analytics & Reporting</h3>
+        </Link>
+        <Link to="/collaboration" className="bg-white p-4 rounded-lg shadow-md hover:bg-gray-50 text-center">
+          <h3 className="font-bold text-lg">Collaboration & Team Features</h3>
+        </Link>
+        <Link to="/market-research-tools" className="bg-white p-4 rounded-lg shadow-md hover:bg-gray-50 text-center">
+          <h3 className="font-bold text-lg">Market Research Tools</h3>
+        </Link>
+      </div>
     </div>
   );
 };
