@@ -49,6 +49,7 @@ export interface SurveyQuestion {
   maxRating?: number; // For rating
   allowedFileTypes?: string; // For file-upload
   videoUrl?: string; // For video
+  value?: string | number;
 }
 
 export interface Survey {
