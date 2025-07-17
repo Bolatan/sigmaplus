@@ -20,21 +20,9 @@ export const useBreadcrumbs = () => {
         const path = `/${pathnames.slice(0, i + 1).join('/')}`;
         let label = pathnames[i].charAt(0).toUpperCase() + pathnames[i].slice(1);
 
-        if (pathnames[i] === 'projects' && params.projectId) {
-          try {
-            const token = localStorage.getItem('authToken');
-            const response = await fetch(`/api/projects/${params.projectId}`, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-              },
-            });
-            if (response.ok) {
-              const project = await response.json();
-              label = project.data.title;
-            }
-          } catch (error) {
-            console.error('Failed to fetch project details:', error);
-          }
+        if ((pathnames[i] === 'projects' && params.projectId) || pathnames[i] === 'reports') {
+          // Hide breadcrumbs for project details page and reports page
+          return;
         }
 
         newBreadcrumbs.push({ label, path });

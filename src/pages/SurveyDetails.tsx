@@ -43,7 +43,7 @@ const SurveyDetails: React.FC = () => {
       }
 
       const surveyData = await response.json();
-      const surveyFromApi = surveyData.data || surveyData;
+      const surveyFromApi = surveyData.data ? surveyData.data : surveyData;
 
       if (!surveyFromApi || !surveyFromApi._id) {
           throw new Error("Fetched survey data is invalid or missing ID.");
@@ -106,6 +106,33 @@ const SurveyDetails: React.FC = () => {
     }
   }, [navigate]);
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8 px-4 text-center">
+        <p className="text-red-500">{error}</p>
+        <Button onClick={() => fetchSurveyDetails()} className="mt-4">
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
+  if (!survey) {
+    return (
+      <div className="container mx-auto py-8 px-4 text-center">
+        <p>No survey data found.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-8 px-4">
       <Card className="max-w-2xl mx-auto">
@@ -157,7 +184,7 @@ const SurveyDetails: React.FC = () => {
           {survey.questions && survey.questions.length > 0 ? (
             survey.questions.map((q, index) => (
               <div key={q.id || `q-${index}`} className="mb-6">
-                <label htmlFor={q.id || `q-input-${index}`} className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor={q.id || `q-input-${index}`} className="block text-sm font--medium text-gray-700 mb-1">
                   {index + 1}. {q.text}
                 </label>
                 <p className="text-sm text-gray-500">Type: {q.type}</p>

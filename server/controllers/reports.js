@@ -8,6 +8,32 @@ import Reporting from '../reporting/index.js';
 import Presentation from '../reporting/presentation.js';
 import { sanitizeFilename } from '../utils/sanitize.js';
 
+// Helper function to wrap text for PDF
+function wrapText(text, maxWidth, font, fontSize) {
+  const words = text.split(' ');
+  const lines = [];
+  let currentLine = '';
+  
+  words.forEach(word => {
+    const testLine = currentLine + (currentLine ? ' ' : '') + word;
+    const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+    
+    if (testWidth <= maxWidth) {
+      currentLine = testLine;
+    } else {
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      currentLine = word;
+    }
+  });
+  
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+  
+  return lines;
+}
 
 // @desc    Generate a new report
 // @route   POST /api/reports
@@ -64,7 +90,6 @@ export const generateReport = async (req, res) => {
     res.status(500).json({ error: 'Failed to generate report' });
   }
 };
-
 
 // @desc    Get all reports
 // @route   GET /api/reports
@@ -150,18 +175,7 @@ export const downloadReport = async (req, res) => {
     const company = await db.collection('companies').findOne({ _id: new ObjectId(report.companyId) });
     const client = report.clientId ? await db.collection('users').findOne({ _id: new ObjectId(report.clientId) }) : null;
 
-    const reporting = new Reporting({
-      survey,
-      responses,
-      user,
-      company,
-      client,
-      title: report.title
-    });
-
-    const reportData = await reporting.generateReport();
-    report.sections = reportData.sections;
-
+    // const logo = fs.readFileSync('logo.png').toString('base64');
     const chart = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // Placeholder chart
 
     console.log('--- REPORT DATA ---');
@@ -174,41 +188,96 @@ export const downloadReport = async (req, res) => {
           console.log('Generating PPTX report');
           const presentation = new Presentation({ sections: report.sections || [] });
           const pptx = presentation.generate();
-          const buffer = await pptx.write();
+          
+          // Get buffer from pptx - different methods depending on pptxgenjs version
+          let buffer;
+          if (typeof pptx.write === 'function') {
+            buffer = await pptx.write();
+          } else if (typeof pptx.writeFile === 'function') {
+            buffer = await pptx.writeFile({ outputType: 'buffer' });
+          } else if (typeof pptx.stream === 'function') {
+            buffer = await pptx.stream();
+          } else {
+            // Fallback: try to get buffer directly
+            buffer = pptx;
+          }
+          
+          // Ensure buffer is a Buffer instance
+          if (!Buffer.isBuffer(buffer)) {
+            buffer = Buffer.from(buffer);
+          }
+          
           const sanitizedTitle = sanitizeFilename(report.title);
-          res.setHeader('Content-Disposition', `attachment; filename=${sanitizedTitle}.pptx`);
+          res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}.pptx"`);
           res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
-          res.send(buffer);
+          res.setHeader('Content-Length', buffer.length);
+          res.end(buffer);
           console.log('PPTX report sent');
         } catch (e) {
-          console.error('Error generating pptx file:', e);
-          res.status(500).json({ error: 'Failed to generate pptx report' });
+          console.error('Error generating pptx file:', e.message);
+          console.error('Stack trace:', e.stack);
+          res.status(500).json({ error: 'Failed to generate pptx report', details: e.message });
         }
         break;
       }
       case 'xlsx': {
-        const workbook = new Excel.Workbook();
-        const worksheet = workbook.addWorksheet('Report');
+        try {
+          console.log('Generating XLSX report');
+          const workbook = new Excel.Workbook();
+          const worksheet = workbook.addWorksheet('Report');
 
-        worksheet.columns = [
-          { header: 'ID', key: 'id', width: 30 },
-          { header: 'Title', key: 'title', width: 30 },
-          { header: 'Description', key: 'description', width: 50 },
-        ];
+          // Add more comprehensive report data
+          worksheet.columns = [
+            { header: 'Field', key: 'field', width: 30 },
+            { header: 'Value', key: 'value', width: 50 },
+          ];
 
-        worksheet.addRow({id: report._id, title: report.title, description: report.description});
+          // Add report metadata
+          worksheet.addRow({ field: 'Report ID', value: report._id.toString() });
+          worksheet.addRow({ field: 'Title', value: report.title });
+          worksheet.addRow({ field: 'Description', value: report.description || 'No description' });
+          worksheet.addRow({ field: 'Survey Title', value: survey?.title || 'N/A' });
+          worksheet.addRow({ field: 'Company', value: company?.name || 'N/A' });
+          worksheet.addRow({ field: 'Generated By', value: user?.name || user?.email || 'N/A' });
+          worksheet.addRow({ field: 'Generated Date', value: new Date(report.createdAt).toLocaleDateString() });
+          worksheet.addRow({ field: '', value: '' }); // Empty row
 
-        const buffer = await workbook.xlsx.writeBuffer();
-        const sanitizedTitle = sanitizeFilename(report.title);
-        res.setHeader('Content-Disposition', `attachment; filename=${sanitizedTitle}.xlsx`);
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.send(buffer);
+          // Add sections data
+          if (report.sections && Array.isArray(report.sections)) {
+            worksheet.addRow({ field: 'SECTIONS', value: '' });
+            report.sections.forEach((section, index) => {
+              worksheet.addRow({ field: `Section ${index + 1}`, value: section.title || 'No title' });
+              worksheet.addRow({ field: `Content ${index + 1}`, value: section.content || 'No content' });
+              worksheet.addRow({ field: '', value: '' }); // Empty row
+            });
+          }
+
+          const buffer = await workbook.xlsx.writeBuffer();
+          
+          // Ensure buffer is a Buffer instance
+          const finalBuffer = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+          
+          const sanitizedTitle = sanitizeFilename(report.title);
+          res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}.xlsx"`);
+          res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+          res.setHeader('Content-Length', finalBuffer.length);
+          res.end(finalBuffer);
+          console.log('XLSX report sent');
+        } catch (e) {
+          console.error('Error generating xlsx file:', e.message);
+          console.error('Stack trace:', e.stack);
+          res.status(500).json({ error: 'Failed to generate xlsx report', details: e.message });
+        }
         break;
       }
       case 'pdf': {
         try {
           console.log('Generating PDF report');
           const pdfDoc = await PDFDocument.create();
+          const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+          const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+          
+          // Add first page
           const page = pdfDoc.addPage();
 
           const logoImageBytes = fs.readFileSync('./logo.png');
@@ -223,6 +292,7 @@ export const downloadReport = async (req, res) => {
           });
 
           page.drawText(survey.title || 'No Title', { x: 50, y: 700, size: 25 });
+
 
           if (report.sections && Array.isArray(report.sections)) {
             console.log('--- SECTIONS ---');
@@ -268,21 +338,30 @@ export const downloadReport = async (req, res) => {
                     });
                     y -= chartDims.height + 20;
                   }
+
                 });
               }
+              
+              currentY -= 25; // Extra spacing between sections
             });
           }
 
           const pdfBytes = await pdfDoc.save();
-
           const sanitizedTitle = sanitizeFilename(report.title);
+          
+          // Set proper headers
           res.setHeader('Content-Type', 'application/pdf');
-          res.setHeader('Content-Disposition', `attachment; filename=${sanitizedTitle}.pdf`);
-          res.send(Buffer.from(pdfBytes));
-          console.log('PDF report sent');
-        } catch (e) {
-          console.error('Error generating pdf file:', e);
-          res.status(500).json({ error: 'Failed to generate pdf report' });
+          res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}.pdf"`);
+          res.setHeader('Content-Length', pdfBytes.length);
+          
+          // Send as proper buffer
+          res.end(Buffer.from(pdfBytes));
+          console.log('PDF report sent successfully');
+          
+        } catch (err) {
+          console.error('Error creating/saving pdf document:', err.message);
+          console.error('Stack trace:', err.stack);
+          res.status(500).json({ error: 'Failed to create pdf document', details: err.message });
         }
         break;
       }
@@ -296,13 +375,10 @@ export const downloadReport = async (req, res) => {
   }
 };
 
-
 // @desc    Update a report's metadata (e.g., title, sections)
 // @route   PUT /api/reports/:id
 // @access  Private (Admin, Agent)
 export const updateReport = async (req, res) => {
-
-
   try {
     const db = getDb();
     const { id } = req.params;
@@ -337,7 +413,6 @@ export const updateReport = async (req, res) => {
 // @route   DELETE /api/reports/:id
 // @access  Private (Admin)
 export const deleteReport = async (req, res) => {
-
   try {
     const db = getDb();
     const { id } = req.params;
