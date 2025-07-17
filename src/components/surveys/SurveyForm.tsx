@@ -21,6 +21,7 @@ interface SurveyFormProps {
   onCancel: () => void;
   buttonText: string;
   companies: { _id: string; name: string }[];
+  projects: { _id: string; title: string }[];
   surveys: Survey[];
   user: Record<string, unknown> | null;
 }
@@ -32,6 +33,7 @@ const SurveyForm: React.FC<SurveyFormProps> = ({
   onCancel,
   buttonText,
   companies,
+  projects,
   user,
 }) => {
   const handleInputChange = useCallback(
