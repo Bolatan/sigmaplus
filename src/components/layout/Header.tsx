@@ -16,6 +16,9 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-10 h-16 flex items-center justify-between px-4 md:px-6">
       <div className="flex items-center">
+        <Link to="/" className="mr-4">
+          <img src="/logo.png" alt="Logo" className="h-8" />
+        </Link>
         <Button
           variant="ghost"
           size="sm"
