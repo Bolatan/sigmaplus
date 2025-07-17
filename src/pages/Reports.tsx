@@ -6,31 +6,25 @@ import { Input } from '../components/ui/Input';
 import { Card, CardContent } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
-import { Report as ReportType } from '../types'; // Import the global Report type
-
-// Remove local Report interface if it's now fully covered by global ReportType
-// interface Report {
-//   id: string;
-//   title: string;
-//   description: string;
-//   surveyId: string;
-//   surveyName?: string; // Added to local to match, but global type is better
-//   status: 'draft' | 'published';
-//   createdAt: string;
-//   updatedAt: string;
-// }
+import { Report as ReportType, Section } from '../types';
 
 const Reports: React.FC = () => {
-  const [reports, setReports] = useState<ReportType[]>([]); // Use imported ReportType
+  const [reports, setReports] = useState<ReportType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false); // State for detail modal
-  const [selectedReportForDetail, setSelectedReportForDetail] = useState<ReportType | null>(null); // State for selected report
-  const [newReport, setNewReport] = useState({ // This state is for the "Add Report" form
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedReportForDetail, setSelectedReportForDetail] = useState<ReportType | null>(null);
+  const [newReport, setNewReport] = useState<{
+    title: string;
+    description: string;
+    surveyId: string;
+    sections: Section[];
+  }>({
     title: '',
     description: '',
-    surveyId: '', // This will hold the ID of the selected survey
+    surveyId: '',
+    sections: [],
   });
   const [availableSurveys, setAvailableSurveys] = useState<Array<{ id: string; title: string }>>([]);
   const [isLoadingSurveys, setIsLoadingSurveys] = useState(false);
@@ -39,11 +33,9 @@ const Reports: React.FC = () => {
   const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch reports when component mounts
     fetchReports();
   }, []);
 
-  // Fetch available surveys when the "Add Report" modal is opened
   useEffect(() => {
     if (isAddModalOpen) {
       fetchAvailableSurveys();
@@ -54,12 +46,11 @@ const Reports: React.FC = () => {
     setIsLoadingSurveys(true);
     const token = localStorage.getItem('authToken');
     if (!token) {
-      // Handle not authenticated - perhaps set an error specific to survey loading
       setIsLoadingSurveys(false);
       return;
     }
     try {
-      const response = await fetch('/api/surveys', { // Assuming /api/surveys returns all surveys user can see
+      const response = await fetch('/api/surveys', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (!response.ok) throw new Error('Failed to fetch surveys for dropdown.');
@@ -67,7 +58,6 @@ const Reports: React.FC = () => {
       setAvailableSurveys((data.data || data || []).map((s: any) => ({ id: s._id || s.id, title: s.title })));
     } catch (error) {
       console.error("Error fetching available surveys:", error);
-      // Set an error state for survey loading if needed
     } finally {
       setIsLoadingSurveys(false);
     }
@@ -78,10 +68,6 @@ const Reports: React.FC = () => {
     setApiError(null);
     try {
       const token = localStorage.getItem('authToken');
-      // If VITE_API_URL is just the base (e.g. http://localhost:5000), then /api/reports is correct.
-      // If VITE_API_URL includes /api, then it might become /api/api/reports.
-      // Assuming VITE_API_URL is base, so constructing path as /api/reports.
-      // For local mock server, we'll use /api/reports directly.
       const apiUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/reports` : '/api/reports';
 
       const headers: HeadersInit = {
@@ -101,7 +87,6 @@ const Reports: React.FC = () => {
           const errorData = await response.json();
           errorMessage = errorData.message || errorData.error || errorMessage;
         } catch (e) {
-          // If response is not JSON, use the status text
           errorMessage = response.statusText || errorMessage;
         }
         throw new Error(errorMessage);
@@ -113,11 +98,10 @@ const Reports: React.FC = () => {
         id: r._id,
       }));
       setReports(fetchedReports);
-      console.log('Fetched from /api/reports:', fetchedReports);
     } catch (error: any) {
       console.error('Error fetching reports:', error);
       setApiError(error.message || 'Failed to fetch reports');
-      setReports([]); // Clear reports on error
+      setReports([]);
     } finally {
       setIsLoading(false);
     }
@@ -125,7 +109,7 @@ const Reports: React.FC = () => {
 
   const handleGenerateReport = async (e: React.FormEvent) => {
     e.preventDefault();
-    setApiError(null); // Clear previous errors
+    setApiError(null);
 
     const token = localStorage.getItem('authToken');
     if (!token) {
@@ -133,21 +117,17 @@ const Reports: React.FC = () => {
       return;
     }
 
-    // Basic validation
     if (!newReport.title || !newReport.description || !newReport.surveyId) {
       setApiError("Title, description, and survey selection are required.");
       return;
     }
 
-    // Prepare the payload for the backend
-    // Assuming the backend will generate id, createdAt, updatedAt, status, surveyName
     const reportPayload = {
       title: newReport.title,
       description: newReport.description,
       surveyId: newReport.surveyId,
-      companyId: user?.companyId, // Get companyId from the logged-in user context
-      // sections: [], // Initialize sections if needed, or let backend handle it
-      // status: 'draft', // Backend might set a default status
+      companyId: user?.companyId,
+      sections: newReport.sections,
     };
 
     try {
@@ -167,30 +147,33 @@ const Reports: React.FC = () => {
           const errorData = await response.json();
           errorMessage = errorData.message || errorData.error || errorMessage;
         } catch (parseError) {
-          // If response is not JSON, use the status text
           errorMessage = response.statusText || errorMessage;
         }
         throw new Error(errorMessage);
       }
 
-      // Optionally, you can use the response from POST if it returns the created report
-      // const createdReport = await response.json();
-
-      // Close modal and reset form
       setIsAddModalOpen(false);
       setNewReport({
         title: '',
         description: '',
         surveyId: '',
+        sections: [],
       });
 
-      // Refetch reports to update the list with the new one
       await fetchReports();
 
     } catch (error: any) {
       console.error('Error generating report:', error);
       setApiError(error.message || 'Failed to generate report. Please try again.');
     }
+  };
+
+  const handleSectionChange = (sectionIndex: number, subSectionIndex: number, value: string) => {
+    const newSections = [...newReport.sections];
+    const newSubSections = [...newSections[sectionIndex].content];
+    newSubSections[subSectionIndex] = { ...newSubSections[subSectionIndex], content: value };
+    newSections[sectionIndex] = { ...newSections[sectionIndex], content: newSubSections };
+    setNewReport({ ...newReport, sections: newSections });
   };
 
   const filteredReports = reports.filter(report =>
@@ -326,8 +309,6 @@ const Reports: React.FC = () => {
               <div className="flex items-center text-sm text-gray-500 mt-4">
                 <FileText className="h-4 w-4 mr-1" />
                 <span>Created {formatDate(report.createdAt)}</span>
-                {/* Optionally display companyId if relevant for current user */}
-                {/* {report.companyId && <span className="ml-2 text-xs">Company: {report.companyId}</span>} */}
               </div>
 
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
@@ -370,7 +351,7 @@ const Reports: React.FC = () => {
                     size="sm"
                     leftIcon={<Edit className="h-4 w-4" />}
                   >
-                    Edit Sections
+                    Edit Report
                   </Button>
                 </Link>
               </div>
@@ -379,7 +360,6 @@ const Reports: React.FC = () => {
         ))}
       </div>
 
-      {/* Add New Report Modal */}
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
@@ -429,6 +409,29 @@ const Reports: React.FC = () => {
             <p className="text-xs text-gray-500 mt-1">No surveys available or failed to load.</p>
           )}
         </div>
+        <div>
+          <h2 className="text-xl font-semibold">Report Sections</h2>
+          <div className="mt-4 space-y-4">
+            {newReport.sections.map((section, sectionIndex) => (
+              <div key={section.id} className="p-4 border rounded-md">
+                <h3 className="text-lg font-semibold">{section.title}</h3>
+                <div className="mt-4 space-y-4">
+                  {Array.isArray(section.content) && section.content.map((subSection, subSectionIndex) => (
+                    <div key={subSection.title} className="p-4 border rounded-md">
+                      <h4 className="text-md font-medium">{subSection.title}</h4>
+                      <textarea
+                        value={subSection.content}
+                        onChange={(e) => handleSectionChange(sectionIndex, subSectionIndex, e.target.value)}
+                        className="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                        rows={4}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
           <div className="flex justify-end space-x-2 mt-6">
             <Button
               variant="outline"
@@ -446,7 +449,6 @@ const Reports: React.FC = () => {
         </form>
       </Modal>
 
-      {/* View Report Details Modal */}
       {selectedReportForDetail && (
         <Modal
           isOpen={isDetailModalOpen}

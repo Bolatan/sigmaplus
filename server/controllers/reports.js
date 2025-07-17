@@ -15,7 +15,7 @@ import { sanitizeFilename } from '../utils/sanitize.js';
 export const generateReport = async (req, res) => {
   try {
     const db = getDb();
-    const { surveyId, title, clientId } = req.body;
+    const { surveyId, title, clientId, sections } = req.body;
     const reportsCollection = db.collection('reports');
 
     if (!ObjectId.isValid(surveyId) || (clientId && !ObjectId.isValid(clientId))) {
@@ -36,7 +36,8 @@ export const generateReport = async (req, res) => {
       user,
       company,
       client,
-      title
+      title,
+      sections,
     });
 
     const reportData = await reporting.generateReport();
@@ -209,17 +210,65 @@ export const downloadReport = async (req, res) => {
           console.log('Generating PDF report');
           const pdfDoc = await PDFDocument.create();
           const page = pdfDoc.addPage();
-          page.drawText(survey.title || 'No Title', { x: 50, y: 800, size: 25 });
+
+          const logoImageBytes = fs.readFileSync('./logo.png');
+          const logoImage = await pdfDoc.embedPng(logoImageBytes);
+          const logoDims = logoImage.scale(0.5);
+
+          page.drawImage(logoImage, {
+            x: 50,
+            y: 750,
+            width: logoDims.width,
+            height: logoDims.height,
+          });
+
+          page.drawText(survey.title || 'No Title', { x: 50, y: 700, size: 25 });
 
           if (report.sections && Array.isArray(report.sections)) {
             console.log('--- SECTIONS ---');
             console.log(JSON.stringify(report.sections, null, 2));
             console.log('--- END SECTIONS ---');
-            report.sections.forEach((section, index) => {
-              const currentPage = index === 0 ? page : pdfDoc.addPage();
-              currentPage.drawText(section.title || 'No Section Title', { x: 50, y: 800, size: 20 });
-              if (section.content) {
-                currentPage.drawText(String(section.content), { x: 50, y: 750, size: 12 });
+            let y = 650;
+            report.sections.forEach((section, sectionIndex) => {
+              const currentPage = y < 100 ? pdfDoc.addPage() : page;
+              if (y < 100) y = 800;
+
+              currentPage.drawText(`${String.fromCharCode(97 + sectionIndex)}. ${section.title}` || 'No Section Title', { x: 50, y, size: 20 });
+              y -= 30;
+
+              if (Array.isArray(section.content)) {
+                section.content.forEach((subSection) => {
+                  if (y < 100) {
+                    pdfDoc.addPage();
+                    y = 800;
+                  }
+                  currentPage.drawText(`  • ${subSection.title}` || 'No Sub-Section Title', { x: 70, y, size: 15 });
+                  y -= 20;
+
+                  if (subSection.content) {
+                    if (y < 100) {
+                      pdfDoc.addPage();
+                      y = 800;
+                    }
+                    currentPage.drawText(String(subSection.content), { x: 90, y, size: 12 });
+                    y -= 20;
+                  }
+                  if (subSection.chart) {
+                    if (y < 200) {
+                      pdfDoc.addPage();
+                      y = 800;
+                    }
+                    const chartImage = await pdfDoc.embedPng(Buffer.from(subSection.chart, 'base64'));
+                    const chartDims = chartImage.scale(0.5);
+                    currentPage.drawImage(chartImage, {
+                      x: 90,
+                      y: y - chartDims.height,
+                      width: chartDims.width,
+                      height: chartDims.height,
+                    });
+                    y -= chartDims.height + 20;
+                  }
+                });
               }
             });
           }
