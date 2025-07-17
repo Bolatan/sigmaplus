@@ -149,17 +149,7 @@ export const downloadReport = async (req, res) => {
     const company = await db.collection('companies').findOne({ _id: new ObjectId(report.companyId) });
     const client = report.clientId ? await db.collection('users').findOne({ _id: new ObjectId(report.clientId) }) : null;
 
-    const reporting = new Reporting({
-      survey,
-      responses,
-      user,
-      company,
-      client,
-      title: report.title
-    });
-
-    const reportData = await reporting.generateReport();
-    report.sections = reportData.sections;
+    // const logo = fs.readFileSync('logo.png').toString('base64');
 
     const chart = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // Placeholder chart
 

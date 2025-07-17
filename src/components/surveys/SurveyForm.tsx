@@ -104,36 +104,59 @@ const SurveyForm: React.FC<SurveyFormProps> = ({
           />
         </div>
         {(user?.role === 'admin' || user?.role === 'agent') && (
-          <div>
-            <label
-              htmlFor="company"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Assign to Company
-            </label>
-            <select
-              id="company"
-              multiple
-              value={formData.companyIds || []}
-              onChange={(e) => {
-                const selectedIds = Array.from(
-                  e.target.selectedOptions,
-                  (option) => option.value
-                );
-                handleInputChange('companyIds', selectedIds);
-              }}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-            >
-              <option value="" disabled>
-                Select companies
-              </option>
-              {companies.map((company) => (
-                <option key={company._id} value={company._id}>
-                  {company.name}
+          <>
+            <div>
+              <label
+                htmlFor="project"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Assign to Project
+              </label>
+              <select
+                id="project"
+                value={formData.projectId || ''}
+                onChange={(e) => handleInputChange('projectId', e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+              >
+                <option value="" disabled>
+                  Select a project
                 </option>
-              ))}
-            </select>
-          </div>
+                {projects.map((project) => (
+                  <option key={project._id} value={project._id}>
+                    {project.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label
+                htmlFor="company"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Assign to Company
+              </label>
+              <select
+                id="company"
+                multiple
+                value={formData.companyIds || []}
+                onChange={(e) => {
+                  const selectedIds = Array.from(
+                    e.target.selectedOptions,
+                    (option) => option.value
+                  );
+                  handleInputChange('companyIds', selectedIds);
+                }}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+              >
+                {companies.map((company) => (
+                  <option key={company._id} value={company._id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </>
+
         )}
         <div>
           <label
