@@ -176,8 +176,8 @@ export const downloadReport = async (req, res) => {
           res.send(buffer);
           console.log('PPTX report sent');
         } catch (e) {
-          console.error('Error generating pptx file:', e);
-          res.status(500).json({ error: 'Failed to generate pptx report' });
+          console.error('Error generating pptx file:', e.message);
+          res.status(500).json({ error: 'Failed to generate pptx report', details: e.message });
         }
         break;
       }
@@ -226,12 +226,12 @@ export const downloadReport = async (req, res) => {
             res.send(Buffer.from(pdfBytes));
             console.log('PDF report sent');
           }).catch(err => {
-            console.error('Error saving pdf file:', err);
-            res.status(500).json({ error: 'Failed to save pdf report' });
+            console.error('Error saving pdf file:', err.message);
+            res.status(500).json({ error: 'Failed to save pdf report', details: err.message });
           });
         }).catch(err => {
-          console.error('Error creating pdf document:', err);
-          res.status(500).json({ error: 'Failed to create pdf document' });
+          console.error('Error creating pdf document:', err.message);
+          res.status(500).json({ error: 'Failed to create pdf document', details: err.message });
         });
         break;
       }
