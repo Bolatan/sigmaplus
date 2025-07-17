@@ -95,106 +95,6 @@ export const getReports = async (req, res) => {
 export const getReportById = async (req, res) => {
   try {
     const db = getDb();
-=======
-// Inline sanitize function since utils/sanitize.js doesn't exist
-const sanitizeFilename = (filename) => {
-  if (!filename || typeof filename !== 'string') {
-    return 'untitled';
-  }
-  return filename
-    .replace(/[<>:"/\\|?*]/g, '_')
-    .replace(/\s+/g, '_')
-    .replace(/_{2,}/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .substring(0, 100)
-    || 'untitled';
-};
-
-
-// @desc    Generate a new report
-// @route   POST /api/reports
-// @access  Private (Admin, Agent)
-export const generateReport = async (req, res) => {
-  try {
-    const db = getDb();
-    const { surveyId, title, clientId } = req.body;
-    const reportsCollection = db.collection('reports');
-
-    if (!ObjectId.isValid(surveyId) || (clientId && !ObjectId.isValid(clientId))) {
-      return res.status(400).json({ error: 'Invalid ID format' });
-    }
-
-    const survey = await db.collection('surveys').findOne({ _id: new ObjectId(surveyId) });
-    if (!survey) return res.status(404).json({ error: 'Survey not found' });
-
-    const responses = await db.collection('responses').find({ surveyId: new ObjectId(surveyId) }).toArray();
-    const user = await db.collection('users').findOne({ _id: new ObjectId(req.user.id) });
-    const company = await db.collection('companies').findOne({ _id: new ObjectId(req.user.companyId) });
-    const client = clientId ? await db.collection('users').findOne({ _id: new ObjectId(clientId) }) : null;
-
-    const reporting = new Reporting({
-      survey,
-      responses,
-      user,
-      company,
-      client,
-      title
-    });
-
-    const reportData = await reporting.generateReport();
-
-    console.log('--- SURVEY ID ---');
-    console.log(surveyId);
-    console.log('--- END SURVEY ID ---');
-
-    const newReport = {
-      title,
-      surveyId: new ObjectId(surveyId),
-      companyId: req.user.companyId,
-      generatedBy: new ObjectId(req.user.id),
-      clientId: client ? new ObjectId(clientId) : null,
-      createdAt: new Date(),
-      status: 'completed',
-      ...reportData,
-    };
-
-    const result = await reportsCollection.insertOne(newReport);
-    res.status(201).json({ data: { ...newReport, _id: result.insertedId } });
-  } catch (err) {
-    console.error('Failed to generate report:', err);
-    res.status(500).json({ error: 'Failed to generate report' });
-  }
-};
-
-
-// @desc    Get all reports
-// @route   GET /api/reports
-// @access  Private (Admins, Agents, Clients)
-export const getReports = async (req, res) => {
-  try {
-    const db = getDb();
-    const reportsCollection = db.collection('reports');
-    let query = {};
-
-    // Role-based filtering
-    if (req.user.role === 'client' && req.user.companyId) {
-      query.companyId = new ObjectId(req.user.companyId);
-    }
-    // Agents might have specific access rules, e.g., by surveys they manage
-    // For now, they can see all reports, but this can be refined.
-
-    const reports = await reportsCollection.find(query).toArray();
-    res.json({ data: reports });
-  } catch (err) {
-    console.error('Failed to fetch reports:', err);
-    res.status(500).json({ error: 'Failed to fetch reports from database' });
-  }
-};
-
-// @desc    Get a single report by ID
-// @route   GET /api/reports/:id
-// @access  Private
-
     const { id } = req.params;
 
     if (!ObjectId.isValid(id)) {
@@ -248,7 +148,6 @@ export const downloadReport = async (req, res) => {
     const user = await db.collection('users').findOne({ _id: new ObjectId(report.generatedBy) });
     const company = await db.collection('companies').findOne({ _id: new ObjectId(report.companyId) });
     const client = report.clientId ? await db.collection('users').findOne({ _id: new ObjectId(report.clientId) }) : null;
-
 
     const reporting = new Reporting({
       survey,
@@ -306,56 +205,35 @@ export const downloadReport = async (req, res) => {
         break;
       }
       case 'pdf': {
-        console.log('Generating PDF report');
-        
-        // Add null checks and validation
-        if (!survey) {
-          console.error('Survey not found for PDF generation');
-          return res.status(404).json({ error: 'Survey not found' });
-        }
-        
-        if (!report) {
-          console.error('Report not found for PDF generation');
-          return res.status(404).json({ error: 'Report not found' });
-        }
-        
         try {
+          console.log('Generating PDF report');
           const pdfDoc = await PDFDocument.create();
           const page = pdfDoc.addPage();
-          
-          // Safe access to survey title with fallback
-          const surveyTitle = survey?.title || report?.title || 'Untitled Survey';
-          page.drawText(surveyTitle, { x: 50, y: 800, size: 25 });
+          page.drawText(survey.title || 'No Title', { x: 50, y: 800, size: 25 });
 
           if (report.sections && Array.isArray(report.sections)) {
             console.log('--- SECTIONS ---');
             console.log(JSON.stringify(report.sections, null, 2));
             console.log('--- END SECTIONS ---');
-            
             report.sections.forEach((section, index) => {
               const currentPage = index === 0 ? page : pdfDoc.addPage();
-              
-              // Safe access to section title with fallback
-              const sectionTitle = section?.title || `Section ${index + 1}`;
-              currentPage.drawText(sectionTitle, { x: 50, y: 800, size: 20 });
-              
-              if (section?.content) {
+              currentPage.drawText(section.title || 'No Section Title', { x: 50, y: 800, size: 20 });
+              if (section.content) {
                 currentPage.drawText(String(section.content), { x: 50, y: 750, size: 12 });
               }
             });
           }
 
           const pdfBytes = await pdfDoc.save();
-          const sanitizedTitle = sanitizeFilename(report?.title || 'report');
-          
+
+          const sanitizedTitle = sanitizeFilename(report.title);
           res.setHeader('Content-Type', 'application/pdf');
           res.setHeader('Content-Disposition', `attachment; filename=${sanitizedTitle}.pdf`);
           res.send(Buffer.from(pdfBytes));
           console.log('PDF report sent');
-          
-        } catch (err) {
-          console.error('Error creating pdf document:', err);
-          res.status(500).json({ error: 'Failed to create pdf document' });
+        } catch (e) {
+          console.error('Error generating pdf file:', e);
+          res.status(500).json({ error: 'Failed to generate pdf report' });
         }
         break;
       }
@@ -374,6 +252,8 @@ export const downloadReport = async (req, res) => {
 // @route   PUT /api/reports/:id
 // @access  Private (Admin, Agent)
 export const updateReport = async (req, res) => {
+
+
   try {
     const db = getDb();
     const { id } = req.params;
@@ -408,6 +288,7 @@ export const updateReport = async (req, res) => {
 // @route   DELETE /api/reports/:id
 // @access  Private (Admin)
 export const deleteReport = async (req, res) => {
+
   try {
     const db = getDb();
     const { id } = req.params;
