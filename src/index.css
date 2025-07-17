@@ -6,12 +6,11 @@
 
 body {
   font-family: 'Roboto', sans-serif;
-  background-color: #f0f0f0;
-  color: #333;
+  background-color: #f7f7f7;
 }
 
 .btn-primary {
-  background-color: #00bf6f;
+  background-color: #00b47e;
   color: #fff;
   border-radius: 5px;
   padding: 10px 20px;
@@ -39,6 +38,6 @@ body {
 
 .input:focus {
   outline: none;
-  border-color: #00bf6f;
-  box-shadow: 0 0 0 2px rgba(0, 191, 111, 0.2);
+  border-color: #00b47e;
+  box-shadow: 0 0 0 2px rgba(0, 180, 126, 0.2);
 }
