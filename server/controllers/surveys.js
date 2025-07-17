@@ -119,32 +119,32 @@ export const getSurveyById = async (req, res, next) => {
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
     if (!ObjectId.isValid(surveyId)) {
-      throw new ApiError(404, 'Survey not found (invalid ID format)');
+      return next(new ApiError(404, 'Survey not found (invalid ID format)'));
     }
 
     const survey = await db.collection('surveys').findOne({ _id: new ObjectId(surveyId) });
 
     if (!survey) {
-      throw new ApiError(404, 'Survey not found');
+      return next(new ApiError(404, 'Survey not found'));
     }
 
     if (userRole === 'admin') {
       // Admin can access any survey, so no further checks.
     } else if (userRole === 'client') {
       if (!userCompanyId || !survey.companyIds || !survey.companyIds.some(id => id.toString() === userCompanyId.toString())) {
-        throw new ApiError(403, 'Not authorized to access this survey');
+        return next(new ApiError(403, 'Not authorized to access this survey'));
       }
     } else if (userRole === 'agent') {
       const isCreator = survey.createdBy.toString() === userId.toString();
       const isAgent = survey.agentId && survey.agentId.toString() === userId.toString();
       if (!isCreator && !isAgent) {
-        throw new ApiError(403, 'Not authorized to access this survey');
+        return next(new ApiError(403, 'Not authorized to access this survey'));
       }
     }
     res.json({ status: 'success', data: survey });
   } catch (error) {
     console.error("Error in getSurveyById controller:", error);
-    next(error);
+    next(new ApiError(500, 'An unexpected error occurred while fetching the survey.'));
   }
 };
 
