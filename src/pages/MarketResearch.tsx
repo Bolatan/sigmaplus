@@ -2,22 +2,35 @@ import React from 'react';
 
 const MarketResearch = () => {
   return (
-    <div className="card">
-      <h2 className="text-2xl font-bold mb-4">Market Research</h2>
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold">Global Survey Panels</h3>
-        <p>Access our global network of survey respondents to get insights from your target audience.</p>
-        <button className="btn-primary mt-2">Access Panels</button>
-      </div>
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold">Demographic Analysis</h3>
-        <p>Get detailed breakdowns of your survey data by age, gender, location, and more.</p>
-        <button className="btn-primary mt-2">Analyze Demographics</button>
-      </div>
-      <div>
-        <h3 className="text-lg font-semibold">Sample Reports</h3>
-        <p>Preview reports for feature importance and price optimization studies.</p>
-        <button className="btn-primary mt-2">View Sample Reports</button>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-4xl font-bold text-center mb-12">Market Research Tools</h1>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Panel Services Card */}
+        <div className="card bg-white shadow-lg rounded-lg overflow-hidden">
+          <div className="p-6">
+            <h3 className="text-2xl font-bold mb-4">Panel Services</h3>
+            <p className="text-gray-700 mb-6">Access to global survey panels for market research.</p>
+            <button className="btn-primary w-full">Learn More</button>
+          </div>
+        </div>
+
+        {/* Demographic Analysis Card */}
+        <div className="card bg-white shadow-lg rounded-lg overflow-hidden">
+          <div className="p-6">
+            <h3 className="text-2xl font-bold mb-4">Demographic Analysis</h3>
+            <p className="text-gray-700 mb-6">Advanced demographic breakdowns and targeting.</p>
+            <button className="btn-primary w-full">Learn More</button>
+          </div>
+        </div>
+
+        {/* Sample Reports Card */}
+        <div className="card bg-white shadow-lg rounded-lg overflow-hidden">
+          <div className="p-6">
+            <h3 className="text-2xl font-bold mb-4">Sample Reports</h3>
+            <p className="text-gray-700 mb-6">Preview capabilities for feature importance and price optimization studies.</p>
+            <button className="btn-primary w-full">Learn More</button>
+          </div>
+        </div>
       </div>
     </div>
   );
