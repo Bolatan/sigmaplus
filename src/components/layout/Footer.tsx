@@ -53,7 +53,7 @@ const Footer: React.FC = () => {
               <li><a href="#" className="hover:underline">Online Quizzes</a></li>
               <li><a href="#" className="hover:underline">Free Survey Templates</a></li>
               <li><a href="#" className="hover:underline">Survey Best Practices</a></li>
-              <li><a href="#" className="hover:underline">SurveyMonkey vs. Google Forms</a></li>
+              <li><a href="#" className="hover:underline">SignaPlus vs. Google Forms</a></li>
             </ul>
           </div>
         </div>
