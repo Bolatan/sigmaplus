@@ -344,6 +344,10 @@ export const submitSurveyResponse = async (req, res, next) => {
     }
 
 
+    if (!userId) {
+      throw new ApiError(401, 'User not authenticated.');
+    }
+
     const newResponse = {
       surveyId: surveyObjectId,
       userId: new ObjectId(userId),
