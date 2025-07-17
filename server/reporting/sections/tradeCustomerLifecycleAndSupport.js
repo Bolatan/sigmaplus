@@ -8,7 +8,7 @@ export default class TradeCustomerLifecycleAndSupport {
     console.log('Generating trade customer lifecycle and support section...');
     return {
       title: 'Trade Customer Lifecycle & Support',
-      content: '...',
+      content: 'This section would contain data and analysis on trade customer lifecycle and support.',
     };
   }
 }

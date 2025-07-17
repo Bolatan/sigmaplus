@@ -65,8 +65,14 @@ const SurveyDetails: React.FC = () => {
   }, [surveyId]);
 
   useEffect(() => {
-    fetchSurveyDetails();
-  }, [surveyId, fetchSurveyDetails]);
+    if (user) { // Ensure user context is loaded before trying to fetch
+        fetchSurveyDetails();
+    } else if (!localStorage.getItem('authToken')) {
+        setError("Please login to take the survey.");
+        setIsLoading(false);
+    }
+    // If token exists but user is null, AuthContext is loading, page will show its own loader.
+  }, [surveyId, user, fetchSurveyDetails]);
 
   const handleDelete = useCallback(async (surveyId: string) => {
     if (!window.confirm('Are you sure you want to delete this survey?')) {
@@ -110,23 +116,22 @@ const SurveyDetails: React.FC = () => {
 
   if (error) {
     return (
-      <div className="text-center py-12">
-        <h3 className="text-lg font-medium text-red-600 mb-2">
-          Error
-        </h3>
-        <p className="text-gray-500">
-          {error}
-        </p>
+      <div className="container mx-auto py-8 px-4 text-center">
+        <p className="text-red-500">{error}</p>
+        <Button onClick={() => navigate('/surveys')} className="mt-4">
+          Back to Surveys
+        </Button>
       </div>
     );
   }
 
   if (!survey) {
     return (
-      <div className="text-center py-12">
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
-          Survey not found
-        </h3>
+      <div className="container mx-auto py-8 px-4 text-center">
+        <p>Survey not found.</p>
+        <Button onClick={() => navigate('/surveys')} className="mt-4">
+          Back to Surveys
+        </Button>
       </div>
     );
   }
@@ -136,13 +141,13 @@ const SurveyDetails: React.FC = () => {
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>{survey?.title}</CardTitle>
+            <CardTitle>{survey.title}</CardTitle>
             <div className="flex space-x-2">
-              {(user?.role === 'admin' || user?.role === 'agent') && survey && (
+              {(user?.role === 'admin' || user?.role === 'agent') && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => navigate(`/surveys/${survey?.id}/edit`)}
+                  onClick={() => navigate(`/surveys/${survey.id}/edit`)}
                 >
                   Edit
                 </Button>
@@ -150,7 +155,7 @@ const SurveyDetails: React.FC = () => {
               <Button
                 variant="primary"
                 size="sm"
-                onClick={() => navigate(`/surveys/${survey?.id}/respond`)}
+                onClick={() => navigate(`/surveys/${survey.id}/respond`)}
               >
                 Take Survey
               </Button>
@@ -158,28 +163,21 @@ const SurveyDetails: React.FC = () => {
                 <Button
                   variant="danger"
                   size="sm"
-                  onClick={() => handleDelete(survey?.id)}
+                  onClick={() => handleDelete(survey.id)}
                 >
                   Delete
                 </Button>
               )}
-               <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => navigate('/projects')}
-                >
-                Create Survey
-                </Button>
             </div>
           </div>
-          {survey?.description && <CardDescription>{survey.description}</CardDescription>}
+          {survey.description && <CardDescription>{survey.description}</CardDescription>}
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-500 mb-4">Survey ID: {survey?.id}</p>
-          <p className="text-sm text-gray-500 mb-6">Status: {survey?.status}</p>
+          <p className="text-sm text-gray-500 mb-4">Survey ID: {survey.id}</p>
+          <p className="text-sm text-gray-500 mb-6">Status: {survey.status}</p>
 
           <h3 className="text-lg font-semibold mb-4 border-t pt-4">Questions</h3>
-          {survey?.questions && survey.questions.length > 0 ? (
+          {survey.questions && survey.questions.length > 0 ? (
             survey.questions.map((q, index) => (
               <div key={q.id || `q-${index}`} className="mb-6">
                 <label htmlFor={q.id || `q-input-${index}`} className="block text-sm font-medium text-gray-700 mb-1">

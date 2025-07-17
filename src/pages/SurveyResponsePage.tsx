@@ -135,15 +135,12 @@ const SurveyResponsePage: React.FC = () => {
   };
 
   const handleInputChange = (questionId: string, value: string | File, questionType: SurveyQuestion['type']) => {
-    switch (questionType) {
-      case 'file-upload':
-        if (value instanceof File) {
-          handleFileUpload(questionId, value);
-        }
-        break;
-      case 'multiple-choice':
-        setResponses(prev => {
-          const newResponses = { ...prev };
+    if (questionType === 'file-upload' && value instanceof File) {
+      handleFileUpload(questionId, value);
+    } else {
+      setResponses(prev => {
+        const newResponses = { ...prev };
+        if (questionType === 'multiple-choice') {
           const currentAnswers = (newResponses[questionId] || []) as string[];
           if (currentAnswers.includes(value as string)) {
             newResponses[questionId] = currentAnswers.filter(ans => ans !== value);
@@ -167,6 +164,7 @@ const SurveyResponsePage: React.FC = () => {
           [questionId]: value as string,
         }));
         break;
+
     }
   };
 

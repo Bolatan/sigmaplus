@@ -8,7 +8,7 @@ export default class SupplyMethodsAndBarriers {
     console.log('Generating supply methods and barriers section...');
     return {
       title: 'Supply Methods and Barriers',
-      content: '...',
+      content: 'This section would contain data and analysis on supply methods and barriers.',
     };
   }
 }
