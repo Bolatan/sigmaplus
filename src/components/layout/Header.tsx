@@ -6,7 +6,7 @@ const Header: React.FC = () => {
       <div className="container mx-auto px-4 py-2 flex justify-between items-center">
         <div className="flex items-center space-x-8">
           <a href="/" className="text-2xl font-bold text-gray-800">
-            SurveyMonkey
+            <img src="/logo.png" alt="SurveyMonkey Logo" className="h-8" />
           </a>
           <nav className="hidden md:flex space-x-8">
             <a href="#" className="text-gray-600 hover:text-gray-800">
