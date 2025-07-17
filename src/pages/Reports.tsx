@@ -6,29 +6,19 @@ import { Input } from '../components/ui/Input';
 import { Card, CardContent } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
-import { Report as ReportType, Section } from '../types';
+import { Report as ReportType } from '../types/report';
+import { ReportingService } from '../services/ReportingService';
 
 const Reports: React.FC = () => {
   const [reports, setReports] = useState<ReportType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [selectedReportForDetail, setSelectedReportForDetail] = useState<ReportType | null>(null);
   const [newReport, setNewReport] = useState<{
     title: string;
-    description: string;
-    surveyId: string;
-    sections: Section[];
   }>({
     title: '',
-    description: '',
-    surveyId: '',
-    sections: [],
   });
-  const [availableSurveys, setAvailableSurveys] = useState<Array<{ id: string; title: string }>>([]);
-  const [isLoadingSurveys, setIsLoadingSurveys] = useState(false);
-
   const { user } = useAuth();
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -36,67 +26,11 @@ const Reports: React.FC = () => {
     fetchReports();
   }, []);
 
-  useEffect(() => {
-    if (isAddModalOpen) {
-      fetchAvailableSurveys();
-    }
-  }, [isAddModalOpen]);
-
-  const fetchAvailableSurveys = async () => {
-    setIsLoadingSurveys(true);
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setIsLoadingSurveys(false);
-      return;
-    }
-    try {
-      const response = await fetch('/api/surveys', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error('Failed to fetch surveys for dropdown.');
-      const data = await response.json();
-      setAvailableSurveys((data.data || data || []).map((s: any) => ({ id: s._id || s.id, title: s.title })));
-    } catch (error) {
-      console.error("Error fetching available surveys:", error);
-    } finally {
-      setIsLoadingSurveys(false);
-    }
-  };
-
   const fetchReports = async () => {
     setIsLoading(true);
     setApiError(null);
     try {
-      const token = localStorage.getItem('authToken');
-      const apiUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/reports` : '/api/reports';
-
-      const headers: HeadersInit = {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        };
-
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const response = await fetch(apiUrl, { headers });
-      
-      if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch (e) {
-          errorMessage = response.statusText || errorMessage;
-        }
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
-      const fetchedReports = (data.data || data || []).map((r: any) => ({
-        ...r,
-        id: r._id,
-      }));
+      const fetchedReports = await ReportingService.getAll();
       setReports(fetchedReports);
     } catch (error: any) {
       console.error('Error fetching reports:', error);
@@ -111,132 +45,33 @@ const Reports: React.FC = () => {
     e.preventDefault();
     setApiError(null);
 
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setApiError("Authentication token not found. Please log in again.");
+    if (!newReport.title) {
+      setApiError('Title is required.');
       return;
     }
 
-    if (!newReport.title || !newReport.description || !newReport.surveyId) {
-      setApiError("Title, description, and survey selection are required.");
-      return;
-    }
-
-    const reportPayload = {
+    const reportPayload: ReportType = {
+      id: Date.now().toString(),
       title: newReport.title,
-      description: newReport.description,
-      surveyId: newReport.surveyId,
-      companyId: user?.companyId,
-      sections: newReport.sections,
+      charts: [],
     };
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/reports` : '/api/reports';
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(reportPayload),
-      });
-
-      if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch (parseError) {
-          errorMessage = response.statusText || errorMessage;
-        }
-        throw new Error(errorMessage);
-      }
-
+      await ReportingService.create(reportPayload);
       setIsAddModalOpen(false);
       setNewReport({
         title: '',
-        description: '',
-        surveyId: '',
-        sections: [],
       });
-
       await fetchReports();
-
     } catch (error: any) {
       console.error('Error generating report:', error);
       setApiError(error.message || 'Failed to generate report. Please try again.');
     }
   };
 
-  const handleSectionChange = (sectionIndex: number, subSectionIndex: number, value: string) => {
-    const newSections = [...newReport.sections];
-    const newSubSections = [...newSections[sectionIndex].content];
-    newSubSections[subSectionIndex] = { ...newSubSections[subSectionIndex], content: value };
-    newSections[sectionIndex] = { ...newSections[sectionIndex], content: newSubSections };
-    setNewReport({ ...newReport, sections: newSections });
-  };
-
-  const filteredReports = reports.filter(report =>
-    report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    report.description.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredReports = reports.filter((report) =>
+    report.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const handleViewDetails = (report: ReportType) => {
-    setSelectedReportForDetail(report);
-    setIsDetailModalOpen(true);
-  };
-
-  const handleDownloadReport = async (report: ReportType, format: 'pdf' | 'pptx' = 'pdf') => {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setApiError('Authentication required to download reports.');
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/reports/${report.id}/download?format=${format}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to download report.');
-      }
-
-      const blob = await response.blob();
-      const href = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = href;
-      const fileName = `${report.title.replace(/[^a-zA-Z0-9_.-]/g, '_').substring(0, 50) || 'report'}.${format}`;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(href);
-    } catch (error: any) {
-      setApiError(error.message || 'An unexpected error occurred while downloading the report.');
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return 'bg-gray-100 text-gray-800';
-      case 'published':
-        return 'bg-success-100 text-success-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
 
   if (isLoading) {
     return (
