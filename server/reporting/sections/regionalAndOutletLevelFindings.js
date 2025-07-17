@@ -4,11 +4,15 @@ export default class RegionalAndOutletLevelFindings {
   }
 
   generate() {
-    // Placeholder for regional and outlet-level findings section generation
     console.log('Generating regional and outlet-level findings section...');
     return {
       title: 'Regional and Outlet-Level Findings',
-      content: 'This section would contain data and analysis on regional and outlet-level findings.',
+      content: [
+        {
+          title: 'Comparisons and heatmaps by state or zone',
+          content: '',
+        },
+      ],
     };
   }
 }

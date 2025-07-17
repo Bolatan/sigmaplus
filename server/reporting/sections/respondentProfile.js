@@ -7,7 +7,32 @@ export default class RespondentProfile {
     console.log('Generating respondent profile section...');
     return {
       title: 'Respondent Profile',
-      content: '',
+      content: [
+        {
+          title: 'Location',
+          content: '',
+        },
+        {
+          title: 'Gender',
+          content: '',
+        },
+        {
+          title: 'Age',
+          content: '',
+        },
+        {
+          title: 'Occupation',
+          content: '',
+        },
+        {
+          title: 'Income',
+          content: '',
+        },
+        {
+          title: 'Outlet type',
+          content: '',
+        },
+      ],
     };
   }
 }

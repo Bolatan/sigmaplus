@@ -7,7 +7,24 @@ export default class StudyOverview {
     console.log('Generating study overview section...');
     return {
       title: 'Study Overview',
-      content: '',
+      content: [
+        {
+          title: 'Project name',
+          content: '',
+        },
+        {
+          title: 'Background',
+          content: '',
+        },
+        {
+          title: 'Objectives',
+          content: '',
+        },
+        {
+          title: 'Methodology',
+          content: '',
+        },
+      ],
     };
   }
 }
