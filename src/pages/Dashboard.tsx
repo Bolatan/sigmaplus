@@ -8,6 +8,7 @@ import useApi from '../hooks/useApi';
 import { UserRole } from '../types';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
+import SurveyCharts from '../components/dashboard/SurveyCharts';
 
 ChartJS.register(ArcElement, Tooltip, Legend, Title);
 
@@ -223,80 +224,7 @@ const Dashboard: React.FC = () => {
 
       {/* Charts and Visualizations */}
       {!isAgent && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-          <DashboardCard
-            title="Survey Status Distribution"
-            variant="pie" // Or use a new variant if DashboardCard's icon logic is tied to it
-            isLoading={isSurveyStatusChartLoading}
-          >
-            {surveyStatusChartError && (
-              <div className="h-[300px] flex items-center justify-center p-4 text-red-500">
-                <p>{surveyStatusChartError}</p>
-              </div>
-            )}
-            {!isSurveyStatusChartLoading && !surveyStatusChartError && surveyStatusChartData && (
-              <div className="h-[300px] p-4 flex justify-center items-center"> {/* Ensure chart has height */}
-                <Pie
-                  data={surveyStatusChartData}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        position: 'top' as const,
-                      },
-                      title: {
-                        display: false, // Title is on DashboardCard
-                        text: 'Survey Statuses',
-                      },
-                    },
-                  }}
-                />
-              </div>
-            )}
-            {!isSurveyStatusChartLoading && !surveyStatusChartError && !surveyStatusChartData && (
-              <div className="h-[300px] flex items-center justify-center p-4 text-gray-500">
-                  <p>No survey status data available.</p>
-              </div>
-            )}
-          </DashboardCard>
-
-          <DashboardCard
-            title="Market Share Distribution (Placeholder)"
-            variant="pie"
-          >
-            <div className="h-[300px] flex items-center justify-center p-4">
-              <div className="text-center text-gray-500">
-                <p className="text-lg">Sample Pie Chart</p>
-                <p className="text-sm">Showing market share by brand</p>
-              </div>
-            </div>
-          </DashboardCard>
-
-          <DashboardCard
-            title="Customer Satisfaction Score"
-            variant="bar"
-          >
-            <div className="h-[300px] flex items-center justify-center p-4">
-              <div className="text-center text-gray-500">
-                <p className="text-lg">Sample Bar Chart</p>
-                <p className="text-sm">Showing CSAT scores by product category</p>
-              </div>
-            </div>
-          </DashboardCard>
-
-          <DashboardCard
-            title="Regional Performance"
-            variant="heatmap"
-          >
-            <div className="h-[300px] flex items-center justify-center p-4">
-              <div className="text-center text-gray-500">
-                <p className="text-lg">Sample Heatmap</p>
-                <p className="text-sm">Showing brand performance by region</p>
-              </div>
-            </div>
-          </DashboardCard>
-        </div>
+        <SurveyCharts />
       )}
 
       {/* Recent Activity */}

@@ -1,10 +1,11 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/layout/Layout';
 import CookieConsent from 'react-cookie-consent';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Hero from './components/layout/Hero';
 
 import Reports from './pages/Reports';
 import Users from './pages/Users';
@@ -17,9 +18,10 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import Projects from './pages/Projects';
 import ProjectDetails from './pages/ProjectDetails';
 import EditReportSections from './pages/EditReportSections';
-import AllSurveys from './pages/AllSurveys';
+import SurveyList from './pages/SurveyList';
 import EditSurvey from './pages/EditSurvey';
 import MarketResearch from './pages/MarketResearch';
+import Surveys from './pages/Surveys';
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = React.memo(({ children }) => {
@@ -34,9 +36,13 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = React.memo(({ ch
 
 const AppRoutes: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
+  const location = useLocation();
+
+  const showHero = location.pathname === '/';
 
   return (
     <Layout>
+      {showHero && <Hero />}
       <Routes>
         <Route path="/login" element={
           isAuthenticated ? <Navigate to="/" /> : <Login />
@@ -53,7 +59,12 @@ const AppRoutes: React.FC = () => {
         } />
         <Route path="/surveys" element={
           <ProtectedRoute>
-            <AllSurveys />
+            <SurveyList />
+          </ProtectedRoute>
+        } />
+        <Route path="/surveys/new" element={
+          <ProtectedRoute>
+            <Surveys />
           </ProtectedRoute>
         } />
         <Route path="/reports/:id/edit" element={
