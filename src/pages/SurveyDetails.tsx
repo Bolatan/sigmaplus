@@ -43,7 +43,7 @@ const SurveyDetails: React.FC = () => {
       }
 
       const surveyData = await response.json();
-      const surveyFromApi = surveyData.data || surveyData;
+      const surveyFromApi = surveyData.data ? surveyData.data : surveyData;
 
       if (!surveyFromApi || !surveyFromApi._id) {
           throw new Error("Fetched survey data is invalid or missing ID.");
