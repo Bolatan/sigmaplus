@@ -36,10 +36,8 @@ const EditReportSections: React.FC = () => {
 
   const handleSectionChange = (sectionIndex: number, subSectionIndex: number, value: string) => {
     if (report) {
-      const newSections = [...report.sections];
-      const newSubSections = [...newSections[sectionIndex].content];
-      newSubSections[subSectionIndex] = { ...newSubSections[subSectionIndex], content: value };
-      newSections[sectionIndex] = { ...newSections[sectionIndex], content: newSubSections };
+      const newSections = JSON.parse(JSON.stringify(report.sections));
+      newSections[sectionIndex].content[subSectionIndex].content = value;
       setReport({ ...report, sections: newSections });
     }
   };

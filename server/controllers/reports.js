@@ -174,6 +174,7 @@ export const downloadReport = async (req, res) => {
     const user = await db.collection('users').findOne({ _id: new ObjectId(report.generatedBy) });
     const company = await db.collection('companies').findOne({ _id: new ObjectId(report.companyId) });
     const client = report.clientId ? await db.collection('users').findOne({ _id: new ObjectId(report.clientId) }) : null;
+    const project = survey.projectId ? await db.collection('projects').findOne({ _id: new ObjectId(survey.projectId) }) : null;
 
     // const logo = fs.readFileSync('logo.png').toString('base64');
     const chart = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; // Placeholder chart
@@ -285,27 +286,25 @@ export const downloadReport = async (req, res) => {
           try {
             const logoImageBytes = fs.readFileSync('./logo.png');
             const logoImage = await pdfDoc.embedPng(logoImageBytes);
-            const logoDims = logoImage.scale(0.5);
+            const logoDims = logoImage.scale(0.25);
 
             currentPage.drawImage(logoImage, {
               x: 50,
-              y: 750,
+              y: 780,
               width: logoDims.width,
               height: logoDims.height,
             });
-            y = 700; // Adjust starting position after logo
           } catch (logoError) {
             console.error('Logo not found, continuing without logo:', logoError.message);
-            y = 750; // Use higher starting position if no logo
           }
 
-          // Add title
-          currentPage.drawText(survey?.title || 'No Title', { 
-            x: 50, 
-            y, 
-            size: 25,
-            font: boldFont
-          });
+          // Add title and other info
+          y = 750;
+          currentPage.drawText(survey?.title || 'No Title', { x: 50, y, size: 25, font: boldFont });
+          y -= 30;
+          currentPage.drawText(`Project: ${project?.name || 'N/A'}`, { x: 50, y, size: 15, font });
+          y -= 20;
+          currentPage.drawText(`Company: ${company?.name || 'N/A'}`, { x: 50, y, size: 15, font });
           y -= 50;
 
           if (report.sections && Array.isArray(report.sections)) {

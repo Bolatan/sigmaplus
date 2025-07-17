@@ -18,14 +18,18 @@ export default class Reporting {
     const processedData = dataProcessor.process();
 
     // 2. Generate each section
-    const sections = this.clientData.sections || [
-      new StudyOverview(processedData).generate(),
-      new RespondentProfile(processedData).generate(),
-      new ExecutiveSummary(processedData).generate(),
-      new CoreInsightAreas(processedData).generate(),
-      new RegionalAndOutletLevelFindings(processedData).generate(),
-      new Recommendations(processedData).generate(),
+    const sectionGenerators = [
+      new StudyOverview(processedData),
+      new RespondentProfile(processedData),
+      new ExecutiveSummary(processedData),
+      new CoreInsightAreas(processedData),
+      new RegionalAndOutletLevelFindings(processedData),
+      new Recommendations(processedData),
     ];
+
+    const sections = await Promise.all(
+      (this.clientData.sections || sectionGenerators).map(generator => generator.generate())
+    );
 
     return {
       sections,
