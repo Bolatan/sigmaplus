@@ -119,10 +119,8 @@ const AppRoutes: React.FC = () => {
         <Route path="/market-research" element={
           <ProtectedRoute>
             <MarketResearch />
-          </Layout>
-        </ProtectedRoute>
-      } />
-      } />
+          </ProtectedRoute>
+        } />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/survey-builder" element={
         <ProtectedRoute>
