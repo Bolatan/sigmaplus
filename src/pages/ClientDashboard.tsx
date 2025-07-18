@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import useApi from '../hooks/useApi';
 import { Survey } from '../types';
 import { BarChart3, PieChart } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
@@ -84,26 +85,14 @@ const ClientDashboard: React.FC = () => {
   const [dashboardItems, setDashboardItems] = useState(['stats', 'surveys', 'chart']);
 
   const { user } = useAuth();
+  const api = useApi();
 
   useEffect(() => {
     const fetchSurveys = async () => {
       setIsLoading(true);
       setError(null);
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        setError('Authentication token not found.');
-        setIsLoading(false);
-        return;
-      }
-
       try {
-        const response = await fetch('/api/surveys', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) {
-          throw new Error('Failed to fetch surveys.');
-        }
-        const { data } = await response.json();
+        const { data } = await api('/surveys');
         setSurveys(data || []);
         setFilteredSurveys(data || []);
       } catch (err: any) {
@@ -116,7 +105,7 @@ const ClientDashboard: React.FC = () => {
     if (user) {
       fetchSurveys();
     }
-  }, [user]);
+  }, [user, api]);
 
   useEffect(() => {
     let newFilteredSurveys = [...surveys];
@@ -187,7 +176,14 @@ const moveItem = (dragIndex: number, hoverIndex: number) => {
       <div className="space-y-6" style={{ backgroundColor: brandStyles.secondaryColor, color: brandStyles.primaryColor }}>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">{user?.branding?.logoUrl ? <img src={user.branding.logoUrl} alt="Client Logo" className="h-10" /> : 'Client Dashboard'}</h1>
-          <p>Welcome to your dedicated client portal.</p>
+          <div className="text-sm text-gray-500">
+            {new Date().toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </div>
           <button
             onClick={() => {
               const url = new URL(window.location.href);
