@@ -10,7 +10,7 @@
     "build": "tsc && vite build",
     "lint": "eslint src --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "test": "react-scripts test --watchAll=false src/components/surveys/SurveyForm.test.tsx"
+    "test": "react-scripts test --watchAll=false"
   },
   "dependencies": {
     "@eslint/js": "^9.31.0",

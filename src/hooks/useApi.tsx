@@ -1,28 +1,54 @@
-const useApi = (logout: () => void) => {
-  const apiFetch = async (url: string, options: RequestInit = {}) => {
-    const token = localStorage.getItem('authToken');
-    const headers = {
-      ...options.headers,
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    };
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
 
-    const response = await fetch(`/api${url}`, { ...options, headers });
+type ApiState<T> = {
+  data: T | null;
+  loading: boolean;
+  error: Error | null;
+};
 
-    if (response.status === 401) {
-      logout();
-      throw new Error('Unauthorized');
+const useApi = <T>(url: string, options: RequestInit = {}) => {
+  const [state, setState] = useState<ApiState<T>>({
+    data: null,
+    loading: true,
+    error: null,
+  });
+  const { logout } = useAuth();
+
+  const apiFetch = useCallback(async () => {
+    setState((prevState) => ({ ...prevState, loading: true }));
+    try {
+      const token = localStorage.getItem('authToken');
+      const headers = {
+        ...options.headers,
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      };
+
+      const response = await fetch(`/api${url}`, { ...options, headers });
+
+      if (response.status === 401) {
+        logout();
+        throw new Error('Unauthorized');
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'An error occurred');
+      }
+
+      const data = await response.json();
+      setState({ data, loading: false, error: null });
+    } catch (error: any) {
+      setState({ data: null, loading: false, error });
     }
+  }, [url, options, logout]);
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'An error occurred');
-    }
+  useEffect(() => {
+    apiFetch();
+  }, [apiFetch]);
 
-    return response.json();
-  };
-
-  return apiFetch;
+  return state;
 };
 
 export default useApi;

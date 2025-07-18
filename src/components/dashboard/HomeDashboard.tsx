@@ -1,5 +1,5 @@
 import React from 'react';
-import { useApi } from '../../hooks/useApi';
+import useApi from '../../hooks/useApi';
 import { Survey, Report } from '../../types';
 import { Bar, Pie } from 'react-chartjs-2';
 import {
