@@ -31,6 +31,15 @@ const MarketResearch = () => {
             <button className="btn-primary w-full">Learn More</button>
           </div>
         </div>
+
+        {/* Advanced Analytics Card */}
+        <div className="card bg-white shadow-lg rounded-lg overflow-hidden">
+          <div className="p-6">
+            <h3 className="text-2xl font-bold mb-4">Advanced Analytics</h3>
+            <p className="text-gray-700 mb-6">Gain deeper insights with predictive modeling and AI-driven analysis.</p>
+            <button className="btn-primary w-full">Learn More</button>
+          </div>
+        </div>
       </div>
     </div>
   );
