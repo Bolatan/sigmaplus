@@ -25,6 +25,7 @@ import Surveys from './pages/Surveys';
 import SurveyBuilderPage from './pages/SurveyBuilder';
 import AdvancedAnalyticsPage from './pages/AdvancedAnalytics';
 import CollaborationPage from './pages/Collaboration';
+import MultiSurveyDashboard from './pages/MultiSurveyDashboard';
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = React.memo(({ children }) => {
@@ -142,6 +143,11 @@ const AppRoutes: React.FC = () => {
         <Route path="/collaboration" element={
           <ProtectedRoute>
             <CollaborationPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/multi-survey-dashboard" element={
+          <ProtectedRoute>
+            <MultiSurveyDashboard />
           </ProtectedRoute>
         } />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
