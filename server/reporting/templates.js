@@ -1,108 +1,45 @@
 export const defaultTemplate = {
   sections: [
     {
-      id: 'study-overview',
       title: 'Study Overview',
       content: [
-        {
-          title: 'Project name, background, objectives, methodology',
-          content: '',
-        },
+        { title: 'Project name, background, objectives, methodology' },
       ],
     },
     {
-      id: 'respondent-profile',
       title: 'Respondent Profile',
       content: [
-        {
-          title: 'Location, gender, age, occupation, income, outlet type',
-          content: '',
-        },
+        { title: 'Location, gender, age, occupation, income, outlet type' },
       ],
     },
     {
-      id: 'executive-summary',
       title: 'Executive Summary',
-      content: [
-        {
-          title: 'Key highlights and topline insights',
-          content: '',
-        },
-      ],
+      content: [{ title: 'Key highlights and topline insights' }],
     },
     {
-      id: 'core-insight-areas',
       title: 'Core Insight Areas',
       content: [
-        {
-          title: 'Brand Awareness & Perception',
-          content: '',
-        },
-        {
-          title: 'Brand Usage & Purchase Behavior',
-          content: '',
-        },
-        {
-          title: 'Customer Satisfaction & Loyalty Metrics',
-          content: '',
-        },
-        {
-          title: 'Challenges and Improvement Opportunities',
-          content: '',
-        },
-        {
-          title: 'Outlet Dynamics',
-          content: '',
-        },
-        {
-          title: 'Product Stocking, Restocking Behavior',
-          content: '',
-        },
-        {
-          title: 'Supply Methods and Barriers',
-          content: '',
-        },
-        {
-          title: 'Trade Margins & Pricing',
-          content: '',
-        },
-        {
-          title: 'Trade Customer Lifecycle & Support',
-          content: '',
-        },
-        {
-          title: 'Drivers of Purchase',
-          content: '',
-        },
-        {
-          title: 'Marketing Channels and Awareness Sources',
-          content: '',
-        },
-        {
-          title: 'CSAT, NPS, CES (Customer Effort Score)',
-          content: '',
-        },
+        { title: 'Brand Awareness & Perception' },
+        { title: 'Brand Usage & Purchase Behavior' },
+        { title: 'Customer Satisfaction & Loyalty Metrics' },
+        { title: 'Challenges and Improvement Opportunities' },
+        { title: 'Outlet Dynamics' },
+        { title: 'Product Stocking, Restocking Behavior' },
+        { title: 'Supply Methods and Barriers' },
+        { title: 'Trade Margins & Pricing' },
+        { title: 'Trade Customer Lifecycle & Support' },
+        { title: 'Drivers of Purchase' },
+        { title: 'Marketing Channels and Awareness Sources' },
+        { title: 'CSAT, NPS, CES (Customer Effort Score)' },
       ],
     },
     {
-      id: 'regional-and-outlet-level-findings',
       title: 'Regional and Outlet-Level Findings',
-      content: [
-        {
-          title: 'Comparisons and heatmaps by state or zone',
-          content: '',
-        },
-      ],
+      content: [{ title: 'Comparisons and heatmaps by state or zone' }],
     },
     {
-      id: 'recommendations',
       title: 'Recommendations',
-      content: [
-        {
-          title: 'Strategic actions based on key insights',
-          content: '',
-        },
-      ],
+      content: [{ title: 'Strategic actions based on key insights' }],
     },
   ],
 };
