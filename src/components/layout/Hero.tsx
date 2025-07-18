@@ -16,6 +16,7 @@ const Hero: React.FC = () => {
           <Link to="/advanced-analytics" className="text-primary-500 hover:underline">Advanced Analytics & Reporting</Link>
           <Link to="/collaboration" className="text-primary-500 hover:underline">Collaboration & Team Features</Link>
           <Link to="/market-research" className="text-primary-500 hover:underline">Market Research Tools</Link>
+
         </div>
         <Link
           to="/signup"
