@@ -5,7 +5,7 @@ import Layout from './components/layout/Layout';
 import CookieConsent from 'react-cookie-consent';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import Hero from './components/layout/Hero';
+import HomePage from './pages/Home';
 
 import Reports from './pages/Reports';
 import Users from './pages/Users';
@@ -36,22 +36,20 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = React.memo(({ ch
 
 const AppRoutes: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
-  const location = useLocation();
-
-  const showHero = location.pathname === '/';
 
   return (
-    <Layout>
-      {showHero && <Hero />}
-      <Routes>
-        <Route path="/login" element={
-          isAuthenticated ? <Navigate to="/" /> : <Login />
-        } />
-        <Route path="/" element={
-          <ProtectedRoute>
-            {user?.role === 'client' ? <Navigate to="/client-dashboard" /> : <Dashboard />}
-          </ProtectedRoute>
-        } />
+    <Routes>
+      <Route path="/login" element={
+        isAuthenticated ? <Navigate to="/dashboard" /> : <Login />
+      } />
+      <Route path="/" element={
+        isAuthenticated ? <Navigate to="/dashboard" /> : <HomePage />
+      } />
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          {user?.role === 'client' ? <Navigate to="/client-dashboard" /> : <Dashboard />}
+        </ProtectedRoute>
+      } />
         <Route path="/surveys/:surveyId/edit" element={
           <ProtectedRoute>
             <EditSurvey />
@@ -139,7 +137,9 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <Layout>
+          <AppRoutes />
+        </Layout>
         <CookieConsent>
           This website uses cookies to enhance the user experience.
         </CookieConsent>
