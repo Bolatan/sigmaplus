@@ -13,7 +13,7 @@ const Hero: React.FC = () => {
         <div className="flex justify-center space-x-4 mb-8">
           <a href="/survey-builder" className="text-primary-500 hover:underline">Survey Builder</a>
           <a href="/advanced-analytics" className="text-primary-500 hover:underline">Advanced Analytics & Reporting</a>
-          <a href="/collaboration-features" className="text-primary-500 hover:underline">Collaboration & Team Features</a>
+          <a href="/collaboration" className="text-primary-500 hover:underline">Collaboration & Team Features</a>
           <a href="/market-research" className="text-primary-500 hover:underline">Market Research Tools</a>
         </div>
         <a
