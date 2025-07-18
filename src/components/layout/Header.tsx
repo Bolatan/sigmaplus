@@ -10,17 +10,20 @@ const Header: React.FC = () => {
             <span className="text-2xl font-bold text-gray-800">SignaPlus</span>
           </a>
           <nav className="hidden md:flex space-x-8">
-            <a href="/survey-builder" className="text-gray-600 hover:text-gray-800">
-              Survey Builder
+            <a href="#" className="text-gray-600 hover:text-gray-800">
+              Products
             </a>
-            <a href="/advanced-analytics" className="text-gray-600 hover:text-gray-800">
-              Advanced Analytics & Reporting
+            <a href="#" className="text-gray-600 hover:text-gray-800">
+              Templates
             </a>
-            <a href="/collaboration" className="text-gray-600 hover:text-gray-800">
-              Collaboration & Team Features
+            <a href="#" className="text-gray-600 hover:text-gray-800">
+              Pricing
             </a>
-            <a href="/market-research" className="text-gray-600 hover:text-gray-800">
-              Market Research Tools
+            <a href="#" className="text-gray-600 hover:text-gray-800">
+              Enterprise
+            </a>
+            <a href="#" className="text-gray-600 hover:text-gray-800">
+              Resources
             </a>
           </nav>
         </div>
