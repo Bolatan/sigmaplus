@@ -10,8 +10,16 @@ const Header: React.FC = () => {
             <span className="text-2xl font-bold text-gray-800">SignaPlus</span>
           </a>
           <nav className="hidden md:flex space-x-8">
-            <a href="#" className="text-gray-600 hover:text-gray-800">
-              Products
+
+            <a href="/surveys" className="text-gray-600 hover:text-gray-800">
+              Surveys
+            </a>
+            <a href="/reports" className="text-gray-600 hover:text-gray-800">
+              Reports
+            </a>
+            <a href="/survey-builder" className="text-gray-600 hover:text-gray-800">
+              Survey Builder
+
             </a>
             <a href="#" className="text-gray-600 hover:text-gray-800">
               Templates

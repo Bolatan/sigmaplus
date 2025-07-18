@@ -58,7 +58,7 @@ const Footer: React.FC = () => {
           </div>
         </div>
         <div className="mt-12 border-t border-gray-700 pt-8 flex justify-between items-center">
-          <p>&copy; {new Date().getFullYear()} SurveyMonkey</p>
+          <p>&copy; {new Date().getFullYear()} SignaPlus</p>
           <div className="flex space-x-4">
             <a href="#" className="hover:underline">Privacy notice</a>
             <a href="#" className="hover:underline">Terms of use</a>

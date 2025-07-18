@@ -26,6 +26,7 @@ import AdvancedAnalytics from './pages/AdvancedAnalytics';
 import CollaborationFeatures from './pages/CollaborationFeatures';
 import Surveys from './pages/Surveys';
 
+
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = React.memo(({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -101,11 +102,7 @@ const AppRoutes: React.FC = () => {
           If you intend to have separate "Surveys" and "Projects" pages, you will need to
           create a new Surveys.tsx file and component.
         */}
-        <Route path="/reports" element={
-          <ProtectedRoute>
-            <Reports />
-          </ProtectedRoute>
-        } />
+        <Route path="/reports" element={<Reports />} />
         <Route path="/users" element={
           <ProtectedRoute>
             {user?.role === 'admin' ? <Users /> : <Navigate to="/" />}
@@ -144,6 +141,11 @@ const AppRoutes: React.FC = () => {
         <Route path="/collaboration-features" element={
           <ProtectedRoute>
             <CollaborationFeatures />
+          </ProtectedRoute>
+        } />
+        <Route path="/multi-survey-dashboard" element={
+          <ProtectedRoute>
+            <MultiSurveyDashboard />
           </ProtectedRoute>
         } />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
