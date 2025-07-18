@@ -41,7 +41,7 @@ function wrapText(text, maxWidth, font, fontSize) {
 export const generateReport = async (req, res) => {
   try {
     const db = getDb();
-    const { surveyId, title, clientId, sections } = req.body;
+    const { surveyId, title, clientId, template } = req.body;
     const reportsCollection = db.collection('reports');
 
     if (!ObjectId.isValid(surveyId) || (clientId && !ObjectId.isValid(clientId))) {
@@ -55,6 +55,7 @@ export const generateReport = async (req, res) => {
     const user = await db.collection('users').findOne({ _id: new ObjectId(req.user.id) });
     const company = await db.collection('companies').findOne({ _id: new ObjectId(req.user.companyId) });
     const client = clientId ? await db.collection('users').findOne({ _id: new ObjectId(clientId) }) : null;
+    const project = survey.projectId ? await db.collection('projects').findOne({ _id: new ObjectId(survey.projectId) }) : null;
 
     const reporting = new Reporting({
       survey,
@@ -63,7 +64,8 @@ export const generateReport = async (req, res) => {
       company,
       client,
       title,
-      sections,
+      template,
+      project,
     });
 
     const reportData = await reporting.generateReport();

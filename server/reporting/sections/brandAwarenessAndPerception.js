@@ -1,14 +1,31 @@
+import { getChartData } from '../utils.js';
+
 export default class BrandAwarenessAndPerception {
-  constructor(processedData) {
+  constructor(processedData, generateChart) {
     this.processedData = processedData;
+    this.generateChart = generateChart;
   }
 
-  generate() {
-    // Placeholder for brand awareness and perception section generation
-    console.log('Generating brand awareness and perception section...');
+  async generate() {
+    const { responses, survey } = this.processedData;
+
+    const brandAwarenessData = getChartData(responses, survey, 'brand_awareness');
+    const brandPerceptionData = getChartData(responses, survey, 'brand_perception');
+
     return {
       title: 'Brand Awareness & Perception',
-      content: 'This section would contain data and analysis on brand awareness and perception.',
+      content: [
+        {
+          title: 'Brand Awareness',
+          content: 'Chart showing brand awareness levels.',
+          chart: await this.generateChart(brandAwarenessData),
+        },
+        {
+          title: 'Brand Perception',
+          content: 'Chart showing brand perception.',
+          chart: await this.generateChart(brandPerceptionData),
+        },
+      ],
     };
   }
 }

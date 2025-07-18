@@ -1,14 +1,25 @@
+import { getChartData } from '../utils.js';
+
 export default class OutletDynamics {
-  constructor(processedData) {
+  constructor(processedData, generateChart) {
     this.processedData = processedData;
+    this.generateChart = generateChart;
   }
 
-  generate() {
-    // Placeholder for outlet dynamics section generation
-    console.log('Generating outlet dynamics section...');
+  async generate() {
+    const { responses, survey } = this.processedData;
+
+    const outletDynamicsData = getChartData(responses, survey, 'outlet_dynamics');
+
     return {
       title: 'Outlet Dynamics',
-      content: 'This section would contain data and analysis on outlet dynamics.',
+      content: [
+        {
+          title: 'Outlet Dynamics',
+          content: 'Chart showing outlet dynamics.',
+          chart: await this.generateChart(outletDynamicsData),
+        },
+      ],
     };
   }
 }

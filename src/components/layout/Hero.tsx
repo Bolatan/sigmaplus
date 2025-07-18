@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Hero: React.FC = () => {
   return (
@@ -11,17 +12,18 @@ const Hero: React.FC = () => {
           AI-powered surveys that engage your audience. Insights that drive growth.
         </p>
         <div className="flex justify-center space-x-4 mb-8">
-          <a href="/survey-builder" className="text-primary-500 hover:underline">Survey Builder</a>
-          <a href="/advanced-analytics" className="text-primary-500 hover:underline">Advanced Analytics & Reporting</a>
-          <a href="/collaboration-features" className="text-primary-500 hover:underline">Collaboration & Team Features</a>
-          <a href="/market-research" className="text-primary-500 hover:underline">Market Research Tools</a>
+          <Link to="/survey-builder" className="text-primary-500 hover:underline">Survey Builder</Link>
+          <Link to="/advanced-analytics" className="text-primary-500 hover:underline">Advanced Analytics & Reporting</Link>
+          <Link to="/collaboration" className="text-primary-500 hover:underline">Collaboration & Team Features</Link>
+          <Link to="/market-research" className="text-primary-500 hover:underline">Market Research Tools</Link>
+
         </div>
-        <a
-          href="/signup"
+        <Link
+          to="/signup"
           className="bg-primary-500 text-white px-8 py-4 rounded-full font-bold hover:bg-primary-600"
         >
           Get started free
-        </a>
+        </Link>
       </div>
     </section>
   );
