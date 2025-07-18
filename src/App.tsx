@@ -26,7 +26,6 @@ import SurveyBuilderPage from './pages/SurveyBuilder';
 import AdvancedAnalyticsPage from './pages/AdvancedAnalytics';
 import CollaborationPage from './pages/Collaboration';
 
-
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = React.memo(({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -133,19 +132,16 @@ const AppRoutes: React.FC = () => {
         <Route path="/survey-builder" element={
           <ProtectedRoute>
             <SurveyBuilderPage />
-
           </ProtectedRoute>
         } />
         <Route path="/advanced-analytics" element={
           <ProtectedRoute>
             <AdvancedAnalyticsPage />
-
           </ProtectedRoute>
         } />
         <Route path="/collaboration" element={
           <ProtectedRoute>
             <CollaborationPage />
-
           </ProtectedRoute>
         } />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
