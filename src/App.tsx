@@ -22,6 +22,9 @@ import SurveyList from './pages/SurveyList';
 import EditSurvey from './pages/EditSurvey';
 import MarketResearch from './pages/MarketResearch';
 import Surveys from './pages/Surveys';
+import SurveyBuilderPage from './pages/SurveyBuilder';
+import AdvancedAnalyticsPage from './pages/AdvancedAnalytics';
+import CollaborationPage from './pages/Collaboration';
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = React.memo(({ children }) => {
@@ -124,6 +127,21 @@ const AppRoutes: React.FC = () => {
         <Route path="/market-research" element={
           <ProtectedRoute>
             <MarketResearch />
+          </ProtectedRoute>
+        } />
+        <Route path="/survey-builder" element={
+          <ProtectedRoute>
+            <SurveyBuilderPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/advanced-analytics" element={
+          <ProtectedRoute>
+            <AdvancedAnalyticsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/collaboration" element={
+          <ProtectedRoute>
+            <CollaborationPage />
           </ProtectedRoute>
         } />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
