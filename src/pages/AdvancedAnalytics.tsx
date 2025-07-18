@@ -1,15 +1,24 @@
 import React from 'react';
-import Layout from '../components/layout/Layout';
 
-const AdvancedAnalyticsPage: React.FC = () => {
+const AdvancedAnalytics: React.FC = () => {
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold">Advanced Analytics & Reporting</h1>
-        <p className="mt-4 text-lg">This is the placeholder page for Advanced Analytics & Reporting.</p>
+    <div className="flex h-screen">
+      <div className="w-1/4 bg-gray-200 p-4">
+        <h2 className="text-xl font-bold mb-4">Reports</h2>
+        <ul>
+          <li className="cursor-pointer p-2 hover:bg-gray-300">Report 1</li>
+          <li className="cursor-pointer p-2 hover:bg-gray-300">Report 2</li>
+          <li className="cursor-pointer p-2 hover:bg-gray-300">Report 3</li>
+        </ul>
       </div>
-    </Layout>
+      <div className="w-3/4 p-4">
+        <h1 className="text-3xl font-bold mb-4">Advanced Analytics & Reporting</h1>
+        <div>
+          <p>Select a report to view.</p>
+        </div>
+      </div>
+    </div>
   );
 };
 
-export default AdvancedAnalyticsPage;
+export default AdvancedAnalytics;
