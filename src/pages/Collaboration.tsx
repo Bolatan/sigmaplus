@@ -1,5 +1,3 @@
-import React from 'react';
-import Layout from '../components/layout/Layout';
 
 const CollaborationPage: React.FC = () => {
   return (
@@ -20,3 +18,4 @@ const CollaborationPage: React.FC = () => {
 };
 
 export default CollaborationPage;
+

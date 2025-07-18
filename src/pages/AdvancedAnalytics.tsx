@@ -1,7 +1,6 @@
 import React from 'react';
-import Layout from '../components/layout/Layout';
 
-const AdvancedAnalyticsPage: React.FC = () => {
+const AdvancedAnalytics: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -16,9 +15,16 @@ const AdvancedAnalyticsPage: React.FC = () => {
         <p className="mb-4">Export to various formats including Excel, CSV, and PDF.</p>
         <h2 className="text-2xl font-bold mb-2">AI Text Analysis</h2>
         <p>Automated sentiment analysis and text summarization.</p>
+
       </div>
-    </Layout>
+      <div className="w-3/4 p-4">
+        <h1 className="text-3xl font-bold mb-4">Advanced Analytics & Reporting</h1>
+        <div>
+          <p>Select a report to view.</p>
+        </div>
+      </div>
+    </div>
   );
 };
 
-export default AdvancedAnalyticsPage;
+export default AdvancedAnalytics;
