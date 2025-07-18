@@ -1,31 +1,14 @@
-import { getChartData } from '../utils.js';
-
 export default class MarketingChannelsAndAwarenessSources {
-  constructor(processedData, generateChart) {
+  constructor(processedData) {
     this.processedData = processedData;
-    this.generateChart = generateChart;
   }
 
-  async generate() {
-    const { responses, survey } = this.processedData;
-
-    const marketingChannelsData = getChartData(responses, survey, 'marketing_channels');
-    const awarenessSourcesData = getChartData(responses, survey, 'awareness_sources');
-
+  generate() {
+    // Placeholder for marketing channels and awareness sources section generation
+    console.log('Generating marketing channels and awareness sources section...');
     return {
       title: 'Marketing Channels and Awareness Sources',
-      content: [
-        {
-          title: 'Marketing Channels',
-          content: 'Chart showing marketing channels.',
-          chart: await this.generateChart(marketingChannelsData),
-        },
-        {
-          title: 'Awareness Sources',
-          content: 'Chart showing awareness sources.',
-          chart: await this.generateChart(awarenessSourcesData),
-        },
-      ],
+      content: 'This section would contain data and analysis on marketing channels and awareness sources.',
     };
   }
 }

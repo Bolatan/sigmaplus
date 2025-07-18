@@ -1,31 +1,14 @@
-import { getChartData } from '../utils.js';
-
 export default class ProductStockingAndRestocking {
-  constructor(processedData, generateChart) {
+  constructor(processedData) {
     this.processedData = processedData;
-    this.generateChart = generateChart;
   }
 
-  async generate() {
-    const { responses, survey } = this.processedData;
-
-    const stockingData = getChartData(responses, survey, 'product_stocking');
-    const restockingData = getChartData(responses, survey, 'product_restocking');
-
+  generate() {
+    // Placeholder for product stocking and restocking behavior section generation
+    console.log('Generating product stocking and restocking behavior section...');
     return {
       title: 'Product Stocking, Restocking Behavior',
-      content: [
-        {
-          title: 'Product Stocking',
-          content: 'Chart showing product stocking behavior.',
-          chart: await this.generateChart(stockingData),
-        },
-        {
-          title: 'Product Restocking',
-          content: 'Chart showing product restocking behavior.',
-          chart: await this.generateChart(restockingData),
-        },
-      ],
+      content: 'This section would contain data and analysis on product stocking and restocking behavior.',
     };
   }
 }

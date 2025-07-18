@@ -1,29 +1,28 @@
 export default class StudyOverview {
-  constructor(processedData, generateChart) {
+  constructor(processedData) {
     this.processedData = processedData;
-    this.generateChart = generateChart;
   }
 
   generate() {
-    const { project } = this.processedData;
+    console.log('Generating study overview section...');
     return {
       title: 'Study Overview',
       content: [
         {
           title: 'Project name',
-          content: project?.name || 'N/A',
+          content: '',
         },
         {
           title: 'Background',
-          content: project?.background || 'N/A',
+          content: '',
         },
         {
           title: 'Objectives',
-          content: project?.objectives || 'N/A',
+          content: '',
         },
         {
           title: 'Methodology',
-          content: project?.methodology || 'N/A',
+          content: '',
         },
       ],
     };
