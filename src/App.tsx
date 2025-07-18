@@ -5,7 +5,7 @@ import Layout from './components/layout/Layout';
 import CookieConsent from 'react-cookie-consent';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import Hero from './components/layout/Hero';
+import HomePage from './pages/Home';
 
 import Reports from './pages/Reports';
 import Users from './pages/Users';
@@ -21,14 +21,11 @@ import EditReportSections from './pages/EditReportSections';
 import SurveyList from './pages/SurveyList';
 import EditSurvey from './pages/EditSurvey';
 import MarketResearch from './pages/MarketResearch';
-import SurveyBuilder from './pages/SurveyBuilder';
-import AdvancedAnalytics from './pages/AdvancedAnalytics';
-import CollaborationFeatures from './pages/CollaborationFeatures';
 import Surveys from './pages/Surveys';
-import SurveyBuilder from './pages/SurveyBuilder';
-import AdvancedAnalytics from './pages/AdvancedAnalytics';
-import Collaboration from './pages/Collaboration';
-
+import SurveyBuilderPage from './pages/SurveyBuilder';
+import AdvancedAnalyticsPage from './pages/AdvancedAnalytics';
+import CollaborationPage from './pages/Collaboration';
+import MultiSurveyAnalysis from './pages/MultiSurveyAnalysis';
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = React.memo(({ children }) => {
@@ -43,22 +40,20 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = React.memo(({ ch
 
 const AppRoutes: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
-  const location = useLocation();
-
-  const showHero = location.pathname === '/';
 
   return (
-    <Layout>
-      {showHero && <Hero />}
-      <Routes>
-        <Route path="/login" element={
-          isAuthenticated ? <Navigate to="/" /> : <Login />
-        } />
-        <Route path="/" element={
-          <ProtectedRoute>
-            {user?.role === 'client' ? <Navigate to="/client-dashboard" /> : <Dashboard />}
-          </ProtectedRoute>
-        } />
+    <Routes>
+      <Route path="/login" element={
+        isAuthenticated ? <Navigate to="/dashboard" /> : <Login />
+      } />
+      <Route path="/" element={
+        isAuthenticated ? <Navigate to="/dashboard" /> : <HomePage />
+      } />
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          {user?.role === 'client' ? <Navigate to="/client-dashboard" /> : <Dashboard />}
+        </ProtectedRoute>
+      } />
         <Route path="/surveys/:surveyId/edit" element={
           <ProtectedRoute>
             <EditSurvey />
@@ -105,7 +100,11 @@ const AppRoutes: React.FC = () => {
           If you intend to have separate "Surveys" and "Projects" pages, you will need to
           create a new Surveys.tsx file and component.
         */}
-        <Route path="/reports" element={<Reports />} />
+        <Route path="/reports" element={
+          <ProtectedRoute>
+            <Reports />
+          </ProtectedRoute>
+        } />
         <Route path="/users" element={
           <ProtectedRoute>
             {user?.role === 'admin' ? <Users /> : <Navigate to="/" />}
@@ -133,24 +132,28 @@ const AppRoutes: React.FC = () => {
         } />
         <Route path="/survey-builder" element={
           <ProtectedRoute>
-            <SurveyBuilder />
+            <SurveyBuilderPage />
           </ProtectedRoute>
         } />
         <Route path="/advanced-analytics" element={
           <ProtectedRoute>
-            <AdvancedAnalytics />
-
+            <AdvancedAnalyticsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/collaboration" element={
+          <ProtectedRoute>
+            <CollaborationPage />
           </ProtectedRoute>
         } />
         <Route path="/multi-survey-dashboard" element={
           <ProtectedRoute>
-            <Collaboration />
-
+            <MultiSurveyAnalysis />
           </ProtectedRoute>
         } />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+
   );
 };
 
@@ -158,7 +161,9 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <Layout>
+          <AppRoutes />
+        </Layout>
         <CookieConsent>
           This website uses cookies to enhance the user experience.
         </CookieConsent>

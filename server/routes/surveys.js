@@ -7,7 +7,6 @@ import {
   deleteSurvey,
   submitSurveyResponse,
   bulkUploadSurveyResponses,
-  generateSurveyWithAI,
 } from '../controllers/surveys.js';
 import { verifyToken, authorizeRole } from '../middleware/auth.js';
 
@@ -32,9 +31,6 @@ const surveyRoutesFunction = (upload) => {
 
   // Route for bulk uploading survey responses, using the upload middleware
   router.post('/:surveyId/responses/bulk-upload', verifyToken, authorizeRole(['admin', 'agent']), upload.single('file'), bulkUploadSurveyResponses);
-
-  // Route for generating a survey with AI
-  router.post('/generate-with-ai', verifyToken, authorizeRole(['admin', 'agent']), generateSurveyWithAI);
 
   return router;
 };
