@@ -5,6 +5,7 @@ const SurveyBuilderPage: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
+
         <h1 className="text-3xl font-bold mb-4">Survey Builder</h1>
         <p className="mb-4">Intuitive drag-and-drop interface with customizable templates and question types.</p>
         <h2 className="text-2xl font-bold mb-2">Question Types</h2>

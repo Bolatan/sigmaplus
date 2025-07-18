@@ -5,6 +5,7 @@ const AdvancedAnalyticsPage: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
+
         <h1 className="text-3xl font-bold mb-4">Advanced Analytics & Reporting</h1>
         <h2 className="text-2xl font-bold mb-2">Multi-Survey Analysis</h2>
         <p className="mb-4">Combine and analyze data across multiple surveys with multi-survey analysis, track key metrics over time, and consolidate findings in an interactive dashboard.</p>
