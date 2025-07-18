@@ -99,11 +99,7 @@ const AppRoutes: React.FC = () => {
           If you intend to have separate "Surveys" and "Projects" pages, you will need to
           create a new Surveys.tsx file and component.
         */}
-        <Route path="/reports" element={
-          <ProtectedRoute>
-            <Reports />
-          </ProtectedRoute>
-        } />
+        <Route path="/reports" element={<Reports />} />
         <Route path="/users" element={
           <ProtectedRoute>
             {user?.role === 'admin' ? <Users /> : <Navigate to="/" />}
