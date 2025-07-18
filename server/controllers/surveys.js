@@ -480,31 +480,3 @@ export const bulkUploadSurveyResponses = async (req, res, next) => {
     return next(new ApiError(500, error.message || 'Failed to process bulk upload.'));
   }
 };
-
-export const generateSurveyWithAI = async (req, res) => {
-  const { prompt } = req.body;
-
-  // Mock AI implementation
-  const questions = [
-    {
-      id: '1',
-      type: 'multiple-choice',
-      text: 'What is your favorite color?',
-      options: ['Red', 'Green', 'Blue'],
-    },
-    {
-      id: '2',
-      type: 'star-rating',
-      text: 'How would you rate our service?',
-      maxRating: 5,
-    },
-    {
-      id: '3',
-      type: 'ranking',
-      text: 'Rank the following features in order of importance.',
-      options: ['Feature A', 'Feature B', 'Feature C'],
-    },
-  ];
-
-  res.json({ questions });
-};

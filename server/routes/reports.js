@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyToken, authorizeRole } from '../middleware/auth.js';
+import { verifyToken } from '../middleware/auth.js';
 import {
   getReports,
   getReportById,
@@ -19,7 +19,6 @@ router.get('/:id/download', verifyToken, downloadReport);
 
 router.post('/', [
   verifyToken,
-  authorizeRole(['admin', 'agent']),
   body('surveyId').notEmpty().isMongoId(),
   body('title').notEmpty().trim(),
   body('clientId').optional().isMongoId(),
@@ -28,11 +27,10 @@ router.post('/', [
 
 router.put('/:id', [
   verifyToken,
-  authorizeRole(['admin', 'agent']),
   body('title').optional().notEmpty().trim(),
   validateRequest
 ], updateReport);
 
-router.delete('/:id', verifyToken, authorizeRole(['admin']), deleteReport);
+router.delete('/:id', verifyToken, deleteReport);
 
 export default router;
