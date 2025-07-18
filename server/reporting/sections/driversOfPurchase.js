@@ -1,25 +1,14 @@
-import { getChartData } from '../utils.js';
-
 export default class DriversOfPurchase {
-  constructor(processedData, generateChart) {
+  constructor(processedData) {
     this.processedData = processedData;
-    this.generateChart = generateChart;
   }
 
-  async generate() {
-    const { responses, survey } = this.processedData;
-
-    const driversOfPurchaseData = getChartData(responses, survey, 'drivers_of_purchase');
-
+  generate() {
+    // Placeholder for drivers of purchase section generation
+    console.log('Generating drivers of purchase section...');
     return {
       title: 'Drivers of Purchase',
-      content: [
-        {
-          title: 'Drivers of Purchase',
-          content: 'Chart showing drivers of purchase.',
-          chart: await this.generateChart(driversOfPurchaseData),
-        },
-      ],
+      content: 'This section would contain data and analysis on drivers of purchase.',
     };
   }
 }

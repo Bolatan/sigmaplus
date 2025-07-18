@@ -1,21 +1,17 @@
 import Reporting from './index.js';
-import { defaultTemplate } from './templates.js';
 
+// Mock dependencies
 jest.mock('./dataProcessor.js', () => {
   return jest.fn().mockImplementation(() => {
     return {
       process: jest.fn().mockReturnValue({
-        project: {
-          name: 'Test Project',
-          background: 'Test Background',
-          objectives: 'Test Objectives',
-          methodology: 'Test Methodology',
+        summaryStatistics: {
+          q1: { count: 10 },
+          q2: { count: 20 },
         },
-        summary: 'Test Summary',
-        responses: [],
-        survey: {
-          questions: [],
-        },
+        getTopChallenges: jest.fn().mockReturnValue(['Challenge 1', 'Challenge 2']),
+        getImprovementOpportunities: jest.fn().mockReturnValue(['Opportunity 1', 'Opportunity 2']),
+        generateChartForChallenges: jest.fn().mockReturnValue('base64-encoded-chart'),
       }),
     };
   });
@@ -25,61 +21,31 @@ jest.mock('./chartGenerator.js', () => ({
   generateChart: jest.fn().mockResolvedValue('base64-encoded-chart'),
 }));
 
-// Mock all section generators
-jest.mock('./sections/studyOverview.js');
-jest.mock('./sections/respondentProfile.js');
-jest.mock('./sections/executiveSummary.js');
-jest.mock('./sections/coreInsightAreas.js');
-jest.mock('./sections/regionalAndOutletLevelFindings.js');
-jest.mock('./sections/recommendations.js');
-
-import StudyOverview from './sections/studyOverview.js';
-import RespondentProfile from './sections/respondentProfile.js';
-import ExecutiveSummary from './sections/executiveSummary.js';
-import CoreInsightAreas from './sections/coreInsightAreas.js';
-import RegionalAndOutletLevelFindings from './sections/regionalAndOutletLevelFindings.js';
-import Recommendations from './sections/recommendations.js';
-
 describe('Reporting', () => {
-  beforeEach(() => {
-    // Clear all instances and calls to constructor and methods before each test
-    StudyOverview.mockClear();
-    RespondentProfile.mockClear();
-    ExecutiveSummary.mockClear();
-    CoreInsightAreas.mockClear();
-    RegionalAndOutletLevelFindings.mockClear();
-    Recommendations.mockClear();
-  });
-
-  it('should generate a report with all sections from the default template', async () => {
+  it('should generate a report with all sections', async () => {
     const clientData = {
-      survey: { title: 'Test Survey', questions: [] },
+      survey: { title: 'Test Survey' },
       responses: [],
       user: { name: 'Test User' },
       company: { name: 'Test Company' },
       title: 'Test Report',
-      template: defaultTemplate,
-      project: {},
+      sections: undefined, // Let the Reporting class generate all sections
     };
-
-    // Mock the generate method for each section generator
-    const mockGenerate = jest.fn().mockResolvedValue({ title: 'Mock Section', content: [] });
-    StudyOverview.prototype.generate = mockGenerate;
-    RespondentProfile.prototype.generate = mockGenerate;
-    ExecutiveSummary.prototype.generate = mockGenerate;
-    CoreInsightAreas.prototype.generate = mockGenerate;
-    RegionalAndOutletLevelFindings.prototype.generate = mockGenerate;
-    Recommendations.prototype.generate = mockGenerate;
 
     const reporting = new Reporting(clientData);
     const report = await reporting.generateReport();
 
-    expect(report.sections.length).toBe(defaultTemplate.sections.length);
-    expect(StudyOverview).toHaveBeenCalledTimes(1);
-    expect(RespondentProfile).toHaveBeenCalledTimes(1);
-    expect(ExecutiveSummary).toHaveBeenCalledTimes(1);
-    expect(CoreInsightAreas).toHaveBeenCalledTimes(1);
-    expect(RegionalAndOutletLevelFindings).toHaveBeenCalledTimes(1);
-    expect(Recommendations).toHaveBeenCalledTimes(1);
+    // Check for the presence of all sections
+    expect(report.sections.length).toBe(6);
+    expect(report.sections[0].title).toBe('Study Overview');
+    expect(report.sections[1].title).toBe('Respondent Profile');
+    expect(report.sections[2].title).toBe('Executive Summary');
+    expect(report.sections[3].title).toBe('Core Insight Areas');
+    expect(report.sections[4].title).toBe('Regional and Outlet-Level Findings');
+    expect(report.sections[5].title).toBe('Recommendations');
+
+    // Check the Core Insight Areas section
+    const coreInsightAreas = report.sections[3];
+    expect(coreInsightAreas.content.length).toBe(14); // 12 subsections + 2 charts
   });
 });

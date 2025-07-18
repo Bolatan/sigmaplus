@@ -1,11 +1,12 @@
 import express from 'express';
 import { getDb } from '../utils/db.js';
 import { ObjectId } from 'mongodb';
+import { verifyToken, authorizeRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Create a new survey group
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, authorizeRole(['admin', 'agent']), async (req, res) => {
   const { name, surveyIds } = req.body;
   if (!name || !surveyIds || !Array.isArray(surveyIds)) {
     return res.status(400).json({ error: 'Invalid request body' });
@@ -27,7 +28,7 @@ router.post('/', async (req, res) => {
 });
 
 // Get a survey group
-router.get('/:id', async (req, res) => {
+router.get('/:id', verifyToken, authorizeRole(['admin', 'agent']), async (req, res) => {
   try {
     const db = getDb();
     const group = await db.collection('survey_groups').findOne({ _id: new ObjectId(req.params.id) });
@@ -42,7 +43,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Update a survey group
-router.put('/:id', async (req, res) => {
+router.put('/:id', verifyToken, authorizeRole(['admin', 'agent']), async (req, res) => {
   const { name, surveyIds } = req.body;
   if (!name || !surveyIds || !Array.isArray(surveyIds)) {
     return res.status(400).json({ error: 'Invalid request body' });

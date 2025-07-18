@@ -1,31 +1,14 @@
-import { getChartData } from '../utils.js';
-
 export default class TradeMarginsAndPricing {
-  constructor(processedData, generateChart) {
+  constructor(processedData) {
     this.processedData = processedData;
-    this.generateChart = generateChart;
   }
 
-  async generate() {
-    const { responses, survey } = this.processedData;
-
-    const tradeMarginsData = getChartData(responses, survey, 'trade_margins');
-    const pricingData = getChartData(responses, survey, 'pricing');
-
+  generate() {
+    // Placeholder for trade margins and pricing section generation
+    console.log('Generating trade margins and pricing section...');
     return {
       title: 'Trade Margins & Pricing',
-      content: [
-        {
-          title: 'Trade Margins',
-          content: 'Chart showing trade margins.',
-          chart: await this.generateChart(tradeMarginsData),
-        },
-        {
-          title: 'Pricing',
-          content: 'Chart showing pricing information.',
-          chart: await this.generateChart(pricingData),
-        },
-      ],
+      content: 'This section would contain data and analysis on trade margins and pricing.',
     };
   }
 }

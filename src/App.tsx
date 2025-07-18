@@ -125,11 +125,32 @@ const AppRoutes: React.FC = () => {
             <SurveyResponsePage />
           </ProtectedRoute>
         } />
+        <Route path="/market-research" element={
+          <ProtectedRoute>
+            <MarketResearch />
+          </ProtectedRoute>
+        } />
+        <Route path="/survey-builder" element={
+          <ProtectedRoute>
+            <SurveyBuilderPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/advanced-analytics" element={
+          <ProtectedRoute>
+            <AdvancedAnalyticsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/collaboration" element={
+          <ProtectedRoute>
+            <CollaborationPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/multi-survey-dashboard" element={
+          <ProtectedRoute>
+            <MultiSurveyDashboard />
+          </ProtectedRoute>
+        } />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-        <Route path="/market-research" element={<MarketResearch />} />
-        <Route path="/survey-builder" element={<SurveyBuilderPage />} />
-        <Route path="/advanced-analytics" element={<AdvancedAnalyticsPage />} />
-        <Route path="/collaboration" element={<CollaborationPage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
 
