@@ -25,6 +25,7 @@ import Surveys from './pages/Surveys';
 import SurveyBuilderPage from './pages/SurveyBuilder';
 import AdvancedAnalyticsPage from './pages/AdvancedAnalytics';
 import CollaborationPage from './pages/Collaboration';
+import MultiSurveyDashboard from './pages/MultiSurveyDashboard';
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = React.memo(({ children }) => {

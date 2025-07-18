@@ -1,9 +1,10 @@
 // Migration to change the relationship between surveys and companies
 // from one-to-one to many-to-many
 
-import { getDb } from '../utils/db.js';
+import { connectToServer, getDb } from '../utils/db.js';
 
-const up = async () => {
+export const up = async (knex) => {
+  await connectToServer();
   const db = getDb();
   const surveys = await db.collection('surveys').find({ companyId: { $exists: true } }).toArray();
 
@@ -21,7 +22,8 @@ const up = async () => {
   console.log("Migration 'up' completed successfully.");
 };
 
-const down = async () => {
+export const down = async (knex) => {
+  await connectToServer();
   const db = getDb();
   const surveys = await db.collection('surveys').find({ companyIds: { $exists: true } }).toArray();
 
@@ -38,8 +40,3 @@ const down = async () => {
 
   console.log("Migration 'down' completed successfully.");
 };
-
-// To run this migration:
-// node -e 'import("./server/migrations/20231027_surveys_to_companies.js").then(m => m.up())'
-// To revert this migration:
-// node -e 'import("./server/migrations/20231027_surveys_to_companies.js").then(m => m.down())'

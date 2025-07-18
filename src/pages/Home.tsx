@@ -1,9 +1,15 @@
 import React from 'react';
 import Hero from '../components/layout/Hero';
+import MultiSurveyDashboard from './MultiSurveyDashboard';
 
 const HomePage: React.FC = () => {
   return (
-    <Hero />
+    <div>
+      <Hero />
+      <div className="mt-8">
+        <MultiSurveyDashboard />
+      </div>
+    </div>
   );
 };
 
