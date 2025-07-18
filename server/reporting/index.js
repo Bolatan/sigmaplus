@@ -1,10 +1,25 @@
 import DataProcessor from './dataProcessor.js';
 import { defaultTemplate } from './templates.js';
 import { generateChart } from './chartGenerator.js';
+import StudyOverview from './sections/studyOverview.js';
+import RespondentProfile from './sections/respondentProfile.js';
+import ExecutiveSummary from './sections/executiveSummary.js';
+import CoreInsightAreas from './sections/coreInsightAreas.js';
+import RegionalAndOutletLevelFindings from './sections/regionalAndOutletLevelFindings.js';
+import Recommendations from './sections/recommendations.js';
+
+const sectionGenerators = {
+  'Study Overview': StudyOverview,
+  'Respondent Profile': RespondentProfile,
+  'Executive Summary': ExecutiveSummary,
+  'Core Insight Areas': CoreInsightAreas,
+  'Regional and Outlet-Level Findings': RegionalAndOutletLevelFindings,
+  Recommendations,
+};
+
 export default class Reporting {
   constructor(clientData) {
     this.clientData = clientData;
-    this.chartGenerator = new ChartGenerator();
   }
 
   async generateReport() {
@@ -18,62 +33,18 @@ export default class Reporting {
     // 3. Populate the template with data
     const sections = await Promise.all(
       template.sections.map(async (section) => {
-        const newSection = { ...section };
-        newSection.content = await Promise.all(
-          section.content.map(async (subSection) => {
-            const newSubSection = { ...subSection };
-            // TODO: Add logic to populate the content of each subsection
-            // For now, we will just add a placeholder chart
-            if (this.clientData.responses && this.clientData.responses.length > 0) {
-                const chartData = this.prepareChartData(this.clientData.responses);
-                if(chartData) {
-                    newSubSection.chart = await this.chartGenerator.generateChart(chartData);
-                }
-            }
-            return newSubSection;
-          })
-        );
-        return newSection;
+        const SectionGenerator = sectionGenerators[section.title];
+        if (SectionGenerator) {
+          const generator = new SectionGenerator(processedData, generateChart);
+          return generator.generate();
+        }
+        return section;
       })
     );
 
     return {
       sections,
       summary: 'This is a summary of the report.',
-    };
-  }
-
-  prepareChartData(responses) {
-    const question = this.clientData.survey.questions[0];
-    if (!question) return null;
-
-    const labels = question.options;
-    const data = labels.map(option => {
-        return responses.filter(response => {
-            const answer = response.responseData[question.id];
-            return answer && answer.includes(option);
-        }).length;
-    });
-
-    return {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [{
-                label: question.text,
-                data,
-                backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
     };
   }
 }
