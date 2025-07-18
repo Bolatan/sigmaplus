@@ -7,7 +7,8 @@ const useApi = (logout: () => void) => {
       ...(token && { Authorization: `Bearer ${token}` }),
     };
 
-    const response = await fetch(`/api${url}`, { ...options, headers });
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    const response = await fetch(`${baseUrl}/api${url}`, { ...options, headers });
 
     if (response.status === 401) {
       logout();
