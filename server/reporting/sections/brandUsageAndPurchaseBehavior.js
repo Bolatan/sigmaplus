@@ -1,14 +1,31 @@
+import { getChartData } from '../utils.js';
+
 export default class BrandUsageAndPurchaseBehavior {
-  constructor(processedData) {
+  constructor(processedData, generateChart) {
     this.processedData = processedData;
+    this.generateChart = generateChart;
   }
 
-  generate() {
-    // Placeholder for brand usage and purchase behavior section generation
-    console.log('Generating brand usage and purchase behavior section...');
+  async generate() {
+    const { responses, survey } = this.processedData;
+
+    const brandUsageData = getChartData(responses, survey, 'brand_usage');
+    const purchaseBehaviorData = getChartData(responses, survey, 'purchase_behavior');
+
     return {
       title: 'Brand Usage & Purchase Behavior',
-      content: 'This section would contain data and analysis on brand usage and purchase behavior.',
+      content: [
+        {
+          title: 'Brand Usage',
+          content: 'Chart showing brand usage frequency.',
+          chart: await this.generateChart(brandUsageData),
+        },
+        {
+          title: 'Purchase Behavior',
+          content: 'Chart showing purchase behavior.',
+          chart: await this.generateChart(purchaseBehaviorData),
+        },
+      ],
     };
   }
 }

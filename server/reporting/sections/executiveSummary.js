@@ -1,13 +1,14 @@
 export default class ExecutiveSummary {
-  constructor(processedData) {
+  constructor(processedData, generateChart) {
     this.processedData = processedData;
+    this.generateChart = generateChart;
   }
 
   generate() {
-    console.log('Generating executive summary section...');
+    const { summary } = this.processedData;
     return {
       title: 'Executive Summary',
-      content: '',
+      content: summary || 'No summary available.',
     };
   }
 }

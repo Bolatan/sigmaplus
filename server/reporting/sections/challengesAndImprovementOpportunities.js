@@ -1,24 +1,29 @@
+import { getChartData } from '../utils.js';
+
 export default class ChallengesAndImprovementOpportunities {
-  constructor(processedData) {
+  constructor(processedData, generateChart) {
     this.processedData = processedData;
+    this.generateChart = generateChart;
   }
 
-  generate() {
-    // Implement logic to analyze challenges and suggest improvements
-    const topChallenges = this.processedData.getTopChallenges(5) || [];
-    const improvementSuggestions = this.processedData.getImprovementOpportunities() || [];
+  async generate() {
+    const { responses, survey } = this.processedData;
+
+    const challengesData = getChartData(responses, survey, 'challenges');
+    const improvementData = getChartData(responses, survey, 'improvement_opportunities');
 
     return {
       title: 'Challenges and Improvement Opportunities',
       content: [
         {
-          title: 'Top 5 Challenges',
-          content: topChallenges.join(', '),
-          chart: this.processedData.generateChartForChallenges(),
+          title: 'Challenges',
+          content: 'Chart showing top challenges.',
+          chart: await this.generateChart(challengesData),
         },
         {
           title: 'Improvement Opportunities',
-          content: improvementSuggestions.join(', '),
+          content: 'Chart showing top improvement opportunities.',
+          chart: await this.generateChart(improvementData),
         },
       ],
     };
