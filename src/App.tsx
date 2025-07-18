@@ -151,7 +151,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-    </Layout>
+
   );
 };
 
