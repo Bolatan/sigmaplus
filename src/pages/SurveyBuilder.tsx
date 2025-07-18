@@ -39,6 +39,7 @@ const SurveyBuilder: React.FC = () => {
   };
 
   return (
+
     <div className="flex h-screen">
       <div className="w-1/4 bg-gray-200 p-4">
         <h2 className="text-xl font-bold mb-4">Form Elements</h2>

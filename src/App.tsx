@@ -25,6 +25,9 @@ import SurveyBuilder from './pages/SurveyBuilder';
 import AdvancedAnalytics from './pages/AdvancedAnalytics';
 import CollaborationFeatures from './pages/CollaborationFeatures';
 import Surveys from './pages/Surveys';
+import SurveyBuilder from './pages/SurveyBuilder';
+import AdvancedAnalytics from './pages/AdvancedAnalytics';
+import Collaboration from './pages/Collaboration';
 
 
 // Protected route component
@@ -136,22 +139,18 @@ const AppRoutes: React.FC = () => {
         <Route path="/advanced-analytics" element={
           <ProtectedRoute>
             <AdvancedAnalytics />
-          </ProtectedRoute>
-        } />
-        <Route path="/collaboration-features" element={
-          <ProtectedRoute>
-            <CollaborationFeatures />
+
           </ProtectedRoute>
         } />
         <Route path="/multi-survey-dashboard" element={
           <ProtectedRoute>
-            <MultiSurveyDashboard />
+            <Collaboration />
+
           </ProtectedRoute>
         } />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-
   );
 };
 
