@@ -1,7 +1,7 @@
 import { getDb } from '../utils/db.js';
 import { ObjectId } from 'mongodb';
 import { ApiError } from '../utils/ApiError.js';
-import bcrypt from 'bcryptjs';
+import argon2 from 'argon2';
 
 export const updateUser = async (req, res, next) => {
   const { userId } = req.params;
@@ -95,8 +95,7 @@ export const setUserPasswordByAdmin = async (req, res, next) => {
   try {
     const db = getDb();
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    const hashedPassword = await argon2.hash(newPassword);
 
     const result = await db.collection('users').updateOne(
       { _id: new ObjectId(userId) },

@@ -1,4 +1,5 @@
 import Reporting from './index.js';
+import ChartGenerator from './chartGenerator.js';
 
 // Mock dependencies
 jest.mock('./dataProcessor.js', () => {

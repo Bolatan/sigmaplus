@@ -1,6 +1,8 @@
 import DataProcessor from './dataProcessor.js';
 import { defaultTemplate } from './templates.js';
 import { generateChart } from './chartGenerator.js';
+import { generateChart as ChartGenerator } from './chartGenerator.js';
+
 export default class Reporting {
   constructor(clientData) {
     this.clientData = clientData;
