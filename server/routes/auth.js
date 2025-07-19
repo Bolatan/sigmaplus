@@ -1,6 +1,6 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
-import bcrypt from 'bcryptjs';
+import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 import { getDb } from '../utils/db.js';
 import { ObjectId } from 'mongodb';
@@ -163,8 +163,7 @@ router.post('/register', registerValidation, async (req, res) => {
     }
 
     // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await argon2.hash(password);
 
     // Create user document
     const newUserDocument = {
@@ -261,7 +260,7 @@ router.post('/login', loginValidation, async (req, res) => {
     }
 
     // Verify password
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await argon2.verify(user.password, password);
     if (!isMatch) {
       return res.status(400).json({ 
         success: false,

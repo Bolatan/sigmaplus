@@ -3,15 +3,8 @@ module.exports = {
   transform: {
     '^.+\\.(t|j)sx?$': ['@swc/jest'],
   },
-  globals: {
-    'ts-jest': {
-      useESM: true,
-    },
-  },
-  transformIgnorePatterns: [
-    'node_modules/(?!react-dnd|react-dnd-html5-backend)/',
-  ],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
+  setupFiles: ['./jest.setup.js'],
 };
