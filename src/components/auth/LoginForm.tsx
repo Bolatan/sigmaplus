@@ -58,7 +58,7 @@ const LoginForm: React.FC = () => {
           isLoading={isLoading}
           rightIcon={<LogIn className="h-4 w-4" />}
         >
-          Sign in
+          Login
         </Button>
       </div>
       <div className="text-center text-sm text-gray-500">
