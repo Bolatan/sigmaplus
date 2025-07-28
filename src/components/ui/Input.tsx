@@ -1,5 +1,6 @@
-import React, { forwardRef } from 'react';
+import React, { useState, forwardRef } from 'react';
 import { cn } from '../../utils/cn';
+import { Eye, EyeOff } from 'lucide-react';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -10,7 +11,14 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, leftIcon, rightIcon, fullWidth = false, ...props }, ref) => {
+  ({ className, type, label, error, leftIcon, rightIcon, fullWidth = false, ...props }, ref) => {
+    const [showPassword, setShowPassword] = useState(false);
+    const isPassword = type === 'password';
+
+    const togglePasswordVisibility = () => {
+      setShowPassword(!showPassword);
+    };
+
     return (
       <div className={cn('flex flex-col', fullWidth ? 'w-full' : '')}>
         {label && (
@@ -28,17 +36,33 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             </div>
           )}
           <input
+            type={isPassword && showPassword ? 'text' : type}
             className={cn(
               'shadow-sm rounded-md border border-gray-300 focus:border-primary-500 focus:ring-primary-500 sm:text-sm block w-full p-2.5',
               leftIcon && 'pl-10',
-              rightIcon && 'pr-10',
+              (rightIcon || isPassword) && 'pr-10',
               error && 'border-error-500 focus:border-error-500 focus:ring-error-500',
               className
             )}
             ref={ref}
             {...props}
           />
-          {rightIcon && (
+          {isPassword && (
+            <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+              <button
+                type="button"
+                onClick={togglePasswordVisibility}
+                className="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+          )}
+          {rightIcon && !isPassword && (
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
               {rightIcon}
             </div>

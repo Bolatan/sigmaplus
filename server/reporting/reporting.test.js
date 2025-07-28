@@ -12,13 +12,19 @@ jest.mock('./dataProcessor.js', () => {
         },
         getTopChallenges: jest.fn().mockReturnValue(['Challenge 1', 'Challenge 2']),
         getImprovementOpportunities: jest.fn().mockReturnValue(['Opportunity 1', 'Opportunity 2']),
-        generateChartForChallenges: jest.fn().mockReturnValue('base64-encoded-chart'),
       }),
+      generateChartForChallenges: jest.fn().mockReturnValue('base64-encoded-chart'),
     };
   });
 });
 
 jest.mock('./chartGenerator.js', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(() => {
+    return {
+      generateChart: jest.fn().mockResolvedValue('base64-encoded-chart'),
+    };
+  }),
   generateChart: jest.fn().mockResolvedValue('base64-encoded-chart'),
 }));
 

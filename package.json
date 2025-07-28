@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "jest --config jest.config.backend.cjs --runInBand --no-cache",
-    "test:frontend": "jest --config jest.config.frontend.cjs"
+    "test:frontend": "jest --config jest.frontend.config.cjs"
   },
   "dependencies": {
     "@eslint/js": "^9.31.0",
@@ -52,11 +52,6 @@
     "tmp": "^0.2.3",
     "typescript-eslint": "^8.37.0",
     "uuid": "^9.0.1"
-  },
-  "jest": {
-    "transformIgnorePatterns": [
-      "node_modules/(?!react-dnd|react-dnd-html5-backend)/"
-    ]
   },
   "devDependencies": {
     "@babel/core": "^7.28.0",

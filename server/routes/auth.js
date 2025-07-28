@@ -245,7 +245,7 @@ router.post('/login', loginValidation, async (req, res) => {
     if (!user) {
       return res.status(400).json({ 
         success: false,
-        errors: [{ msg: 'Invalid credentials' }],
+        errors: [{ msg: 'User not found' }],
         message: 'Login failed'
       });
     }
