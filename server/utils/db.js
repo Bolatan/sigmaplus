@@ -1,6 +1,6 @@
 import { MongoClient } from 'mongodb';
 
-const uri = process.env.MONGODB_URI || "mongodb+srv://bolatan:Ogbogbo123@cluster0.vzjwn4g.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0&tlsAllowInvalidCertificates=true"; // Fallback for local dev if URI not in env
+const uri = process.env.MONGODB_URI; // Fallback for local dev if URI not in env
 
 let db;
 
