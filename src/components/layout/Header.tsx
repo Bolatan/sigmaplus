@@ -1,6 +1,9 @@
 import React from 'react';
+import { useAuth } from '../../context/AuthContext';
 
 const Header: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+
   return (
     <header className="bg-white shadow-md">
       <div className="container mx-auto px-4 py-2 flex justify-between items-center">
@@ -10,36 +13,30 @@ const Header: React.FC = () => {
             <span className="text-2xl font-bold text-gray-800">SignaPlus</span>
           </a>
           <nav className="hidden md:flex space-x-8">
-            <a href="/surveys" className="text-gray-600 hover:text-gray-800">
-              Surveys
-            </a>
-            <a href="/reports" className="text-gray-600 hover:text-gray-800">
-              Reports
-            </a>
-            <a href="/survey-builder" className="text-gray-600 hover:text-gray-800">
-              Survey Builder
-            </a>
-            <a href="/advanced-analytics" className="text-gray-600 hover:text-gray-800">
-              Advanced Analytics & Reporting
-            </a>
-            <a href="/collaboration" className="text-gray-600 hover:text-gray-800">
-              Collaboration & Team Features
-            </a>
-            <a href="/market-research" className="text-gray-600 hover:text-gray-800">
-              Market Research Tools
-            </a>
+            {/* All navigation links have been removed as per user request. */}
           </nav>
         </div>
         <div className="flex items-center space-x-4">
-          <a href="/login" className="text-gray-600 hover:text-gray-800">
-            Log in
-          </a>
-          <a
-            href="/signup"
-            className="bg-primary-500 text-white px-4 py-2 rounded hover:bg-primary-600"
-          >
-            Sign up free
-          </a>
+          {isAuthenticated ? (
+            <a
+              href="/logout"
+              className="bg-primary-500 text-white px-4 py-2 rounded hover:bg-primary-600"
+            >
+              Log out
+            </a>
+          ) : (
+            <>
+              <a href="/login" className="text-gray-600 hover:text-gray-800">
+                Log in
+              </a>
+              <a
+                href="/signup"
+                className="bg-primary-500 text-white px-4 py-2 rounded hover:bg-primary-600"
+              >
+                Sign up free
+              </a>
+            </>
+          )}
         </div>
       </div>
     </header>
