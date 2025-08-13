@@ -1,7 +1,7 @@
 module.exports = {
   testEnvironment: 'jsdom',
   transform: {
-    '^.+\\.(t|j)sx?$': ['@swc/jest'],
+    '^.+\\.[tj]sx?$': 'babel-jest',
   },
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
@@ -11,4 +11,5 @@ module.exports = {
   transformIgnorePatterns: [
     '/node_modules/(?!(react-dnd|dnd-core|@react-dnd))'
   ],
+  setupFilesAfterEnv: ['./jest.setup.frontend.js'],
 };

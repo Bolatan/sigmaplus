@@ -7,14 +7,16 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  setAuthToken: (token: string) => void;
   isAuthenticated: boolean;
 }
 
-const AuthContext = createContext<AuthContextType>({
+export const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: false,
   login: async () => {},
   logout: () => {},
+  setAuthToken: () => {},
   isAuthenticated: false,
 });
 
@@ -29,13 +31,17 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const api = useApi();
+
+  const setAuthToken = (token: string) => {
+    localStorage.setItem('authToken', token);
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('authToken');
   };
-
-  const api = useApi(logout);
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
@@ -44,16 +50,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const savedUser = JSON.parse(savedUserString);
         setUser(savedUser);
+        setAuthToken(token);
       } catch (e) {
         console.error("Error parsing saved user from localStorage", e);
-        localStorage.removeItem('user');
-        localStorage.removeItem('authToken');
+        logout();
       }
     }
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password:string) => {
     setIsLoading(true);
     try {
       const data = await api('/auth/login', {
@@ -64,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.token && data.user) {
         setUser(data.user);
         localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('authToken', data.token);
+        setAuthToken(data.token);
       } else {
         throw new Error('Login response did not include token or user information.');
       }
@@ -82,6 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isLoading, 
       login, 
       logout, 
+      setAuthToken,
       isAuthenticated: !!user 
     }}>
       {children}

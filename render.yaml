@@ -16,8 +16,11 @@ services:
       - key: NODE_ENV
         value: production
       - key: JWT_SECRET
-        # Replace this with a strong, unique secret.
-        value: 'your-jwt-secret'
+        # IMPORTANT: Set this to a strong, unique secret in your Render dashboard.
+        # This is critical for securing your application's authentication.
+        # To generate a strong secret, run: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+        # The value must match the one in your .env file for local tokens to work in production.
+        value: 'PASTE_YOUR_STRONG_JWT_SECRET_HERE'
       - key: DB_CLIENT
         value: 'sqlite3'
       - key: DB_CONNECTION_STRING
