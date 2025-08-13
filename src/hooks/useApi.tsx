@@ -12,7 +12,7 @@ const useApi = (logout: () => void) => {
 
     if (response.status === 401) {
       logout();
-      throw new Error('Unauthorized');
+      return Promise.reject(new Error('Unauthorized'));
     }
 
     if (!response.ok) {
