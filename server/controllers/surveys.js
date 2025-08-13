@@ -26,7 +26,20 @@ export const createSurvey = async (req, res, next) => {
     }
 
     const validatedQuestions = (inputQuestions || []).map((q, index) => {
-      // ... (existing question validation logic)
+      const newQuestion = {
+        ...q,
+        id: q.id || new ObjectId().toString(),
+      };
+
+      if (q.logic) {
+        // Basic validation for logic
+        if (typeof q.logic !== 'object' || !q.logic.conditions || !Array.isArray(q.logic.conditions)) {
+          throw new ApiError(400, `Question at index ${index} has invalid logic structure.`);
+        }
+        newQuestion.logic = q.logic;
+      }
+
+      return newQuestion;
     });
 
     const newSurveyData = {
@@ -224,6 +237,13 @@ export const updateSurvey = async (req, res, next) => {
         }
         if (q.type === 'image-choice') {
           updatedQuestion.options = q.options;
+        }
+
+        if (q.logic) {
+          if (typeof q.logic !== 'object' || !q.logic.conditions || !Array.isArray(q.logic.conditions)) {
+            throw new ApiError(400, `Update: Question '${q.id}' (index ${index}) has invalid logic structure.`);
+          }
+          updatedQuestion.logic = q.logic;
         }
 
         return updatedQuestion;
