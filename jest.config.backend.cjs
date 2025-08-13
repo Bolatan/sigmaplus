@@ -7,4 +7,5 @@ module.exports = {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   setupFiles: ['./jest.setup.js'],
+  testMatch: ['**/server/**/*.test.js'],
 };

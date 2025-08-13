@@ -1,5 +1,6 @@
 import request from 'supertest';
 import express from 'express';
+import jwt from 'jsonwebtoken';
 import authRouter from './routes/auth.js';
 import argon2 from 'argon2';
 
@@ -126,5 +127,27 @@ describe('Auth Routes', () => {
       });
 
     expect(res.statusCode).toEqual(400);
+  });
+
+  it('should refresh an expired token', async () => {
+    const user = {
+      _id: '60d5ec49e03f4a0015c4a2ab', // Using a valid ObjectId hex string
+      email: 'test@example.com',
+      role: 'agent',
+      status: 'active',
+    };
+
+    // Generate an expired token
+    const expiredToken = jwt.sign({ user: { id: user._id, role: user.role } }, process.env.JWT_SECRET, { expiresIn: '-1h' });
+
+    mockDb.collection('users').findOne.mockResolvedValue(user);
+
+    const res = await request(app)
+      .post('/auth/refresh')
+      .set('Authorization', `Bearer ${expiredToken}`);
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body).toHaveProperty('token');
+    expect(res.body.token).not.toEqual(expiredToken);
   });
 });
