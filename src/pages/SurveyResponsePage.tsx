@@ -239,6 +239,30 @@ const SurveyResponsePage: React.FC = () => {
     );
   }
 
+  const evaluateCondition = (condition, currentResponses) => {
+    const response = currentResponses[condition.questionId];
+    if (response === undefined) return false;
+
+    switch (condition.operator) {
+      case 'equals':
+        return Array.isArray(response) ? response.includes(condition.value) : response === condition.value;
+      case 'not_equals':
+        return Array.isArray(response) ? !response.includes(condition.value) : response !== condition.value;
+      default:
+        return false;
+    }
+  };
+
+  const isQuestionVisible = (question, currentResponses) => {
+    if (!question.logic || !question.logic.conditions || question.logic.conditions.length === 0) {
+      return true;
+    }
+    // Assuming AND logic for now
+    return question.logic.conditions.every(cond => evaluateCondition(cond, currentResponses));
+  };
+
+  const visibleQuestions = survey.questions.filter(q => isQuestionVisible(q, responses));
+
   return (
     <div className="container mx-auto py-8 px-4">
       <Card className="max-w-2xl mx-auto">
@@ -267,8 +291,8 @@ const SurveyResponsePage: React.FC = () => {
           {survey.status === 'active' && !successMessage && ( // Hide form after successful submission
             <form onSubmit={handleSubmitResponse}>
               <h3 className="text-lg font-semibold mb-4 border-t pt-4">Questions</h3>
-              {survey.questions && survey.questions.length > 0 ? (
-                survey.questions.map((q, index) => (
+              {visibleQuestions.length > 0 ? (
+                visibleQuestions.map((q, index) => (
                   <div key={q.id || `q-${index}`} className="mb-6">
                     <label htmlFor={q.id || `q-input-${index}`} className="block text-sm font-medium text-gray-700 mb-1">
                       {index + 1}. {q.text}
