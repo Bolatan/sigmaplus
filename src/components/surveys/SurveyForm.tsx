@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { ConditionalLogicModal } from './ConditionalLogicModal';
 
 const ItemTypes = {
   QUESTION: 'question',
@@ -55,6 +55,28 @@ const DraggableQuestion = ({ id, index, moveQuestion, children }) => {
 
 const SurveyForm = ({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, companies, projects, user }) => {
   const [questions, setQuestions] = useState(formData.questions || []);
+  const [isLogicModalOpen, setIsLogicModalOpen] = useState(false);
+  const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null);
+
+  const handleOpenLogicModal = (index: number) => {
+    setSelectedQuestionIndex(index);
+    setIsLogicModalOpen(true);
+  };
+
+  const handleCloseLogicModal = () => {
+    setSelectedQuestionIndex(null);
+    setIsLogicModalOpen(false);
+  };
+
+  const handleSaveLogic = (logic: any) => {
+    if (selectedQuestionIndex === null) return;
+
+    const newQuestions = [...questions];
+    newQuestions[selectedQuestionIndex].logic = logic;
+    setQuestions(newQuestions);
+    onFormDataChange({ ...formData, questions: newQuestions });
+    handleCloseLogicModal();
+  };
 
   const addQuestion = (type) => {
     const newQuestion = { type, text: '', id: Date.now().toString(), options: [] };
@@ -216,6 +238,9 @@ const SurveyForm = ({ formData, onFormDataChange, onSubmit, onCancel, buttonText
                 onChange={(e) => handleQuestionChange(qIndex, e.target.value)}
                 className="input mb-2 w-full"
               />
+              <div className="flex justify-end">
+                <button type="button" onClick={() => handleOpenLogicModal(qIndex)} className="text-sm text-blue-600 hover:text-blue-800">Logic</button>
+              </div>
               {q.type === 'multiple-choice' && (
                 <div>
                   {q.options.map((option, oIndex) => (
@@ -288,6 +313,15 @@ const SurveyForm = ({ formData, onFormDataChange, onSubmit, onCancel, buttonText
           <button type="submit" className="btn-primary">{buttonText}</button>
         </div>
       </form>
+      {selectedQuestionIndex !== null && (
+        <ConditionalLogicModal
+          isOpen={isLogicModalOpen}
+          onClose={handleCloseLogicModal}
+          onSave={handleSaveLogic}
+          question={questions[selectedQuestionIndex]}
+          availableQuestions={questions.slice(0, selectedQuestionIndex)}
+        />
+      )}
     </DndProvider>
   );
 };

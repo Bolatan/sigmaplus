@@ -52,6 +52,7 @@ const useApi = () => {
       },
     });
 
+
     if (!response.ok) {
       throw new Error('Failed to refresh token');
     }

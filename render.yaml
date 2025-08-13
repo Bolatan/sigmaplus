@@ -1,20 +1,17 @@
-# This file configures the services for the Render environment.
-# See https://render.com/docs/blueprint-spec for more information.
-
 services:
-  # A web service for the main application.
   - type: web
-    name: survey-dashboard
+    name: sigmaplus
     env: node
-    # The build command for the application.
-    buildCommand: 'npm install'
-    # The start command for the application.
-    startCommand: 'npm start'
-    # The environment variables for the application.
-    # The user should replace the placeholder values with their actual secrets.
+    plan: free
+    buildCommand: 'npm install && npm run build'
+    startCommand: 'npm run start'
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sigmaplus-db
+          property: connectionString
       - key: JWT_SECRET
         # IMPORTANT: Set this to a strong, unique secret in your Render dashboard.
         # This is critical for securing your application's authentication.
@@ -31,3 +28,4 @@ services:
       #   value: 'your-database-url'
       # - key: ...
       #   value: '...'
+
