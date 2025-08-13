@@ -1,12 +1,13 @@
 export default class ChallengesAndImprovementOpportunities {
-  constructor(processedData) {
-    this.processedData = processedData;
+  constructor(dataProcessor) {
+    this.dataProcessor = dataProcessor;
   }
 
   generate() {
+    const processedData = this.dataProcessor.process();
     // Implement logic to analyze challenges and suggest improvements
-    const topChallenges = this.processedData.getTopChallenges(5) || [];
-    const improvementSuggestions = this.processedData.getImprovementOpportunities() || [];
+    const topChallenges = processedData.getTopChallenges(5) || [];
+    const improvementSuggestions = processedData.getImprovementOpportunities() || [];
 
     return {
       title: 'Challenges and Improvement Opportunities',
@@ -14,7 +15,7 @@ export default class ChallengesAndImprovementOpportunities {
         {
           title: 'Top 5 Challenges',
           content: topChallenges.join(', '),
-          chart: this.processedData.generateChartForChallenges(),
+          chart: this.dataProcessor.generateChartForChallenges(),
         },
         {
           title: 'Improvement Opportunities',

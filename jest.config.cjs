@@ -1,7 +1,7 @@
 module.exports = {
   testEnvironment: 'node',
   transform: {
-    '^.+\\.(t|j)sx?$': ['@swc/jest'],
+    '^.+\\.[tj]sx?$': 'babel-jest',
   },
   globals: {
     'ts-jest': {

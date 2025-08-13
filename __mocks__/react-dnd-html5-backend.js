@@ -1,3 +1,2 @@
-module.exports = {
-  HTML5Backend: 'HTML5Backend',
-};
+// This is a dummy mock. The component expects a function or class.
+export const HTML5Backend = () => {};

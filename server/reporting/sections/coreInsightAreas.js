@@ -13,8 +13,8 @@ import CsatNpsCes from './csatNpsCes.js';
 import { generateChart } from '../chartGenerator.js';
 
 export default class CoreInsightAreas {
-  constructor(processedData) {
-    this.processedData = processedData;
+  constructor(dataProcessor) {
+    this.dataProcessor = dataProcessor;
     this.subSections = [
       BrandAwarenessAndPerception,
       BrandUsageAndPurchaseBehavior,
@@ -33,12 +33,14 @@ export default class CoreInsightAreas {
 
   async generate() {
     console.log('Generating core insight areas section...');
+    const processedData = this.dataProcessor.process();
     const content = this.subSections.map(SubSection => {
-      const instance = new SubSection(this.processedData);
+      // Pass the dataProcessor, not the processedData
+      const instance = new SubSection(this.dataProcessor);
       return instance.generate();
     });
 
-    const { summaryStatistics } = this.processedData;
+    const { summaryStatistics } = processedData;
 
     const charts = [];
     for (const questionId in summaryStatistics) {

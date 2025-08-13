@@ -47,3 +47,37 @@ Admins and agents can edit the content of a report by following these steps:
 2.  Click the "Edit Sections" button for the report you want to edit. This will take you to a page where you can see all the sections and sub-sections of the report.
 3.  For each section and sub-section, there is a text area where you can enter the content.
 4.  After you have entered the content for all the sections, click the "Save Changes" button to save your changes.
+
+## Troubleshooting
+
+### "Token Verification Error" / "Authorization Denied"
+
+This error usually means there is a mismatch with the `JWT_SECRET` used to sign and verify authentication tokens. This secret is critical for security.
+
+**Solution:** Ensure the `JWT_SECRET` is configured correctly in all environments.
+
+**1. Local Development (`.env` file):**
+- The secret is defined in the `.env` file at the root of the project.
+- It must contain a single, non-empty `JWT_SECRET` variable.
+- Example: `JWT_SECRET="your_super_secret_and_long_string_for_dev"`
+
+**2. Production Environment (Render):**
+- The secret must be set as an environment variable in your service configuration on Render.
+- Go to your service's "Environment" tab and add a variable with the key `JWT_SECRET` and a strong, unique value.
+- **Important**: This secret must be identical to the one in your local `.env` file if you want tokens to be interchangeable.
+
+**How to Generate a Strong Secret:**
+Run this command in your terminal and copy the output:
+```sh
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+### "JWT Expired" / Session Suddenly Ends
+
+If you are logged out unexpectedly, it may be because your authentication token has expired.
+
+**Solution:** The application is now built with an automatic token refresh mechanism. When your token is about to expire, the application will attempt to get a new one in the background without interrupting your session.
+
+If you are still frequently being logged out:
+- **Check Server Status:** Ensure the backend server is running and the `/api/auth/refresh` endpoint is accessible.
+- **Check System Clock:** An incorrect system clock on either the server or your computer can cause tokens to be considered expired prematurely. Ensure both are set to the correct time.

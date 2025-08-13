@@ -1,11 +1,11 @@
 module.exports = {
   testEnvironment: 'node',
   transform: {
-    '^.+\\.(t|j)sx?$': ['@swc/jest'],
+    '^.+\\.[tj]sx?$': 'babel-jest',
   },
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
-  setupFiles: ['./jest.setup.js'],
+  setupFiles: ['./jest.setup.backend.js'],
   testMatch: ['**/server/**/*.test.js'],
 };

@@ -13,16 +13,19 @@ services:
           name: sigmaplus-db
           property: connectionString
       - key: JWT_SECRET
-        # This value is a placeholder. For production, you should set a strong, unique
-        # secret in the Render dashboard under Environment. Do not commit secrets to git.
-        value: 'your-jwt-secret-placeholder'
-      - key: CRON_SECRET
-        # This value is a placeholder. Set a real, random secret in the Render dashboard.
-        value: 'your-cron-secret-placeholder'
+        # IMPORTANT: Set this to a strong, unique secret in your Render dashboard.
+        # This is critical for securing your application's authentication.
+        # To generate a strong secret, run: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+        # The value must match the one in your .env file for local tokens to work in production.
+        value: 'PASTE_YOUR_STRONG_JWT_SECRET_HERE'
+      - key: DB_CLIENT
+        value: 'sqlite3'
+      - key: DB_CONNECTION_STRING
+        value: 'dev.sqlite3'
+      # The following are placeholders for other potential environment variables.
+      # The user should add any other environment variables that their application requires.
+      # - key: DATABASE_URL
+      #   value: 'your-database-url'
+      # - key: ...
+      #   value: '...'
 
-databases:
-  - name: sigmaplus-db
-    plan: free
-    databaseName: sigmaplus
-    user: sigmaplus
-    ipAllowList: [] # allow all
