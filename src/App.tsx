@@ -5,7 +5,6 @@ import Layout from './components/layout/Layout';
 import CookieConsent from 'react-cookie-consent';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import HomePage from './pages/Home';
 
 import Reports from './pages/Reports';
 import Users from './pages/Users';
@@ -47,7 +46,7 @@ const AppRoutes: React.FC = () => {
         isAuthenticated ? <Navigate to="/dashboard" /> : <Login />
       } />
       <Route path="/" element={
-        isAuthenticated ? <Navigate to="/dashboard" /> : <HomePage />
+        isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
       } />
       <Route path="/dashboard" element={
         <ProtectedRoute>
