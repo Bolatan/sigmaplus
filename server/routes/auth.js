@@ -303,29 +303,29 @@ router.post('/login', loginValidation, async (req, res) => {
 
 // @route   POST api/auth/refresh
 // @desc    Refresh JWT token
-// @access  Private (requires valid token)
+// @access  Private (requires valid token, can be expired)
 router.post('/refresh', async (req, res) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
-    
+
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: 'No token provided'
+        message: 'No token provided',
       });
     }
 
-    // Verify current token
-    const decoded = jwt.verify(token, JWT_SECRET);
+    // Verify current token, but ignore expiry for refresh purposes
+    const decoded = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true });
     const db = getDb();
-    
+
     // Get fresh user data
     const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.user.id) });
-    
+
     if (!user || user.status !== 'active') {
       return res.status(401).json({
         success: false,
-        message: 'Invalid token or inactive user'
+        message: 'Invalid token or inactive user',
       });
     }
 
@@ -336,14 +336,14 @@ router.post('/refresh', async (req, res) => {
       success: true,
       message: 'Token refreshed successfully',
       token: newToken,
-      user: sanitizeUser(user)
+      user: sanitizeUser(user),
     });
-
   } catch (err) {
     console.error('Error in /api/auth/refresh:', err);
+    // This will catch invalid signatures or other JWT errors
     res.status(401).json({
       success: false,
-      message: 'Invalid token'
+      message: 'Invalid token',
     });
   }
 });
