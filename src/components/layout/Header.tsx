@@ -1,8 +1,15 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
+const NavLink: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
+  <Link to={to} className="text-gray-600 hover:text-gray-800">
+    {children}
+  </Link>
+);
+
 const Header: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   return (
     <header className="bg-white shadow-md">
@@ -12,8 +19,23 @@ const Header: React.FC = () => {
             <img src="/logo.png" alt="SignaPlus Logo" className="h-8" />
             <span className="text-2xl font-bold text-gray-800">SignaPlus</span>
           </a>
-          <nav className="hidden md:flex space-x-8">
-            {/* All navigation links have been removed as per user request. */}
+          <nav className="hidden md:flex space-x-4">
+            <NavLink to="/dashboard">Dashboard</NavLink>
+            <NavLink to="/surveys">Surveys</NavLink>
+            <NavLink to="/projects">Projects</NavLink>
+            <NavLink to="/reports">Reports</NavLink>
+            <NavLink to="/market-research">Market Research</NavLink>
+            <NavLink to="/survey-builder">Survey Builder</NavLink>
+            <NavLink to="/advanced-analytics">Advanced Analytics</NavLink>
+            <NavLink to="/collaboration">Collaboration</NavLink>
+            <NavLink to="/multi-survey-dashboard">Multi-Survey Analysis</NavLink>
+            {user?.role === 'admin' && (
+              <>
+                <NavLink to="/users">Users</NavLink>
+                <NavLink to="/companies">Companies</NavLink>
+              </>
+            )}
+            <NavLink to="/settings">Settings</NavLink>
           </nav>
         </div>
         <div className="flex items-center space-x-4">
