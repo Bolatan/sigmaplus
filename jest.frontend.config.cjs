@@ -12,4 +12,5 @@ module.exports = {
     '/node_modules/(?!(react-dnd|dnd-core|@react-dnd))'
   ],
   setupFilesAfterEnv: ['./jest.setup.frontend.js'],
+  testMatch: ['**/src/**/*.test.tsx'],
 };
