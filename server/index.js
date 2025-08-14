@@ -22,6 +22,11 @@ import companyRoutes from './routes/companies.js';
 import reportRoutes from './routes/reports.js'; // Uncommented
 import projectRoutes from './routes/projects.js';
 import cronRoutes from './routes/cron.js';
+import marketResearchRoutes from './routes/market-research.js';
+import surveyBuilderRoutes from './routes/survey-builder.js';
+import advancedAnalyticsRoutes from './routes/advanced-analytics.js';
+import collaborationRoutes from './routes/collaboration.js';
+import multiSurveyAnalysisRoutes from './routes/multi-survey-analysis.js';
 import scheduleReportGeneration from './services/reportingService.js';
 import multer from 'multer';
 import Reporting from './reporting/index.js';
@@ -76,6 +81,11 @@ app.use('/api/users', userRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/cron', cronRoutes);
+app.use('/api/market-research', marketResearchRoutes);
+app.use('/api/survey-builder', surveyBuilderRoutes);
+app.use('/api/advanced-analytics', advancedAnalyticsRoutes);
+app.use('/api/collaboration', collaborationRoutes);
+app.use('/api/multi-survey-analysis', multiSurveyAnalysisRoutes);
 
 import statsRoutes from './routes/stats.js';
 app.use('/api/stats', statsRoutes);

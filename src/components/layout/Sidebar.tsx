@@ -8,7 +8,13 @@ import {
   Building2,
   Settings,
   LogOut,
-  Briefcase
+  Briefcase,
+  FileText,
+  Search,
+  Wrench,
+  PieChart,
+  Users2,
+  AreaChart
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types';
@@ -64,9 +70,39 @@ export const Sidebar: React.FC = () => {
     if (user?.role === UserRole.ADMIN) {
       items.push(
         {
+          to: '/surveys',
+          icon: <FileText />,
+          label: 'Surveys',
+        },
+        {
           to: '/reports',
           icon: <BarChart3 />,
           label: 'Reports',
+        },
+        {
+          to: '/market-research',
+          icon: <Search />,
+          label: 'Market Research',
+        },
+        {
+          to: '/survey-builder',
+          icon: <Wrench />,
+          label: 'Survey Builder',
+        },
+        {
+          to: '/advanced-analytics',
+          icon: <PieChart />,
+          label: 'Advanced Analytics',
+        },
+        {
+          to: '/collaboration',
+          icon: <Users2 />,
+          label: 'Collaboration',
+        },
+        {
+          to: '/multi-survey-dashboard',
+          icon: <AreaChart />,
+          label: 'Multi-Survey Analysis',
         },
         {
           to: '/users',
