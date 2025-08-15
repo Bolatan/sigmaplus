@@ -6,11 +6,11 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 import { Bar, Pie } from 'react-chartjs-2';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { DashboardCard } from '../components/dashboard/DashboardCard';
-import { StatCard } from '../components/dashboard/StatCard';
-import Heatmap from '../components/dashboard/Heatmap';
-import Scorecard from '../components/dashboard/Scorecard';
-import Annotations from '../components/dashboard/Annotations';
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
+import StatCard from '../components/dashboard/StatCard';
+import Heatmap from '../components/client-dashboard/Heatmap';
+import Scorecard from '../components/client-dashboard/Scorecard';
+import Annotations from '../components/client-dashboard/Annotations';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
@@ -242,9 +242,13 @@ const moveItem = (dragIndex: number, hoverIndex: number) => {
         {dashboardItems.map((item, index) => (
           <DraggableItem key={item} id={item} index={index} moveItem={moveItem}>
             {item === 'surveys' && (
-              <DashboardCard title="Your Surveys" variant="bar">
-                {surveys.length === 0 ? (
-                  <p>You do not have any surveys yet.</p>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Your Surveys</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {surveys.length === 0 ? (
+                    <p>You do not have any surveys yet.</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
@@ -273,12 +277,13 @@ const moveItem = (dragIndex: number, hoverIndex: number) => {
                     </table>
                   </div>
                 )}
-              </DashboardCard>
+                </CardContent>
+              </Card>
             )}
             {item === 'stats' && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <StatCard title="Total Surveys" value={surveys.length} icon={<BarChart3 className="h-6 w-6 text-primary-500" />} />
-                <StatCard title="Total Responses" value={surveys.reduce((acc, s) => acc + s.responseCount, 0)} icon={<PieChart className="h-6 w-6 text-secondary-500" />} />
+                <StatCard title="Total Surveys" value={surveys.length.toString()} icon={<BarChart3 className="h-6 w-6 text-primary-500" />} />
+                <StatCard title="Total Responses" value={surveys.reduce((acc, s) => acc + s.responseCount, 0).toString()} icon={<PieChart className="h-6 w-6 text-secondary-500" />} />
               </div>
             )}
             {item === 'chart' && (
