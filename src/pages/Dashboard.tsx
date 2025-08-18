@@ -8,7 +8,6 @@ import useApi from '../hooks/useApi';
 import { UserRole } from '../types';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
-import SurveyCharts from '../components/dashboard/SurveyCharts';
 
 ChartJS.register(ArcElement, Tooltip, Legend, Title);
 
@@ -222,10 +221,6 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Charts and Visualizations */}
-      {!isAgent && (
-        <SurveyCharts />
-      )}
 
       {/* Recent Activity */}
       {!isAgent && (

@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   ClipboardList,
   BarChart3,
+  Grid,
   Users,
   Building2,
   Settings,
@@ -69,6 +70,11 @@ export const Sidebar: React.FC = () => {
     // Role-specific nav items
     if (user?.role === UserRole.ADMIN) {
       items.push(
+        {
+          to: '/dashboard-module',
+          icon: <Grid />,
+          label: 'Dashboard Module',
+        },
         {
           to: '/surveys',
           icon: <FileText />,

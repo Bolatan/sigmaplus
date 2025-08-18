@@ -25,6 +25,7 @@ import SurveyBuilderPage from './pages/SurveyBuilder';
 import AdvancedAnalyticsPage from './pages/AdvancedAnalytics';
 import CollaborationPage from './pages/Collaboration';
 import MultiSurveyAnalysis from './pages/MultiSurveyAnalysis';
+import DashboardModule from './pages/DashboardModule';
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = React.memo(({ children }) => {
@@ -51,6 +52,11 @@ const AppRoutes: React.FC = () => {
       <Route path="/dashboard" element={
         <ProtectedRoute>
           {user?.role === 'client' ? <Navigate to="/client-dashboard" /> : <Dashboard />}
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard-module" element={
+        <ProtectedRoute>
+          <DashboardModule />
         </ProtectedRoute>
       } />
         <Route path="/surveys/:surveyId/edit" element={
