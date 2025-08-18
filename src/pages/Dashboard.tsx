@@ -3,9 +3,25 @@ import { Users, BarChart3, ClipboardList, TrendingUp, Building2, UserCheck } fro
 import { useAuth } from '../context/AuthContext';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import { UserRole } from '../types';
-import StatCard from '../components/dashboard/StatCard';
-import ChartCard from '../components/dashboard/ChartCard';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from 'chart.js';
+import { Pie } from 'react-chartjs-2';
+
+ChartJS.register(ArcElement, Tooltip, Legend, Title);
+
+interface DashboardStats {
+  totalSurveys: number;
+  totalResponses: number;
+  reportsGenerated: number;
+  averageCompletionRate: number; // Will be calculated from surveys
+  totalUsers?: number; // Optional because only admins see this
+  totalCompanies: number;
+  // Trends can be added back later if actual trend data is available
+  // surveyTrend: number;
+  // responseTrend: number;
+  // reportTrend: number;
+  // completionRateTrend: number;
+}
+
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -125,20 +141,7 @@ const Dashboard: React.FC = () => {
         )}
       </div>
 
-      {!isAgent && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ChartCard
-            title="Survey Status Distribution"
-            chartType="pie"
-            chartData={surveyStatusChartData}
-          />
-          <ChartCard
-            title="Responses by Survey"
-            chartType="bar"
-            chartData={responsesBySurveyChartData}
-          />
-        </div>
-      )}
+
 
       {/* Recent Activity - Placeholder */}
       {!isAgent && (
