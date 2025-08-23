@@ -77,6 +77,7 @@ export default class BrandAwarenessAndPerception {
           content: `The average perception score for "${ourBrandName}" was ${averagePerception} out of 5.`,
         },
       ],
+
     };
   }
 }
