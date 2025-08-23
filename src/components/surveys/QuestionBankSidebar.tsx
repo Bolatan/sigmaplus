@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDrag } from 'react-dnd';
-import { useApi } from '../../hooks/useApi';
+import useApi from '../../hooks/useApi';
 
 const ItemTypes = {
   QUESTION_BANK_ITEM: 'questionBankItem',

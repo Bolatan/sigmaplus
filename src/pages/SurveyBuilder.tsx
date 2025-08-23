@@ -3,7 +3,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import SurveyBuilderLayout from '../components/layout/SurveyBuilderLayout';
 import SurveyForm from '../components/surveys/SurveyForm';
-import { useApi } from '../hooks/useApi';
+import useApi from '../hooks/useApi';
 import { useNavigate } from 'react-router-dom';
 import { TemplateSelectionModal } from '../components/surveys/TemplateSelectionModal';
 import { Button } from '../components/ui/Button';
@@ -111,27 +111,6 @@ const SurveyBuilderPage: React.FC = () => {
                 <p className="mt-4">Design options will be here.</p>
               </div>
             )}
-          </div>
-          <TemplateSelectionModal
-            isOpen={isTemplateModalOpen}
-            onClose={() => setIsTemplateModalOpen(false)}
-            onSelectTemplate={handleSelectTemplate}
-          />
-        </div>
-      </SurveyBuilderLayout>
-    </DndProvider>
-  );
-};
-              onFormDataChange={handleFormDataChange}
-              onSubmit={handleSubmit}
-              onCancel={handleCancel}
-              buttonText="Create Survey"
-              agents={[]}
-              companies={[]}
-              projects={[]}
-              user={{ role: 'admin' }} // This should be replaced with actual user data
-              onDrop={handleDrop}
-            />
           </div>
           <TemplateSelectionModal
             isOpen={isTemplateModalOpen}
