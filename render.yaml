@@ -3,29 +3,21 @@ services:
     name: sigmaplus
     env: node
     plan: free
-    buildCommand: 'npm install && npm run build'
-    startCommand: 'npm run start'
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm run start"
     envVars:
       - key: NODE_ENV
         value: production
-      - key: DATABASE_URL
+      - key: MONGODB_URI
         fromDatabase:
-          name: sigmaplus-db
+          name: sigmaplus-mongodb
           property: connectionString
       - key: JWT_SECRET
-        # IMPORTANT: Set this to a strong, unique secret in your Render dashboard.
-        # This is critical for securing your application's authentication.
-        # To generate a strong secret, run: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-        # The value must match the one in your .env file for local tokens to work in production.
-        value: 'PASTE_YOUR_STRONG_JWT_SECRET_HERE'
-      - key: DB_CLIENT
-        value: 'sqlite3'
-      - key: DB_CONNECTION_STRING
-        value: 'dev.sqlite3'
-      # The following are placeholders for other potential environment variables.
-      # The user should add any other environment variables that their application requires.
-      # - key: DATABASE_URL
-      #   value: 'your-database-url'
-      # - key: ...
-      #   value: '...'
+        generateValue: true
+
+databases:
+  - name: sigmaplus-mongodb
+    plan: free
+    databaseName: sigmaplus
+    ipAllowList: [] # Allows connections from anywhere
 
