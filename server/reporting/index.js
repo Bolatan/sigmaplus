@@ -8,6 +8,7 @@ import ExecutiveSummary from './sections/executiveSummary.js';
 import CoreInsightAreas from './sections/coreInsightAreas.js';
 import RegionalAndOutletLevelFindings from './sections/regionalAndOutletLevelFindings.js';
 import Recommendations from './sections/recommendations.js';
+import BrandAwarenessAndPerception from './sections/brandAwarenessAndPerception.js';
 
 // Map section IDs from the template to their corresponding generator classes
 const sectionGenerators = {
@@ -17,6 +18,7 @@ const sectionGenerators = {
   'core-insight-areas': CoreInsightAreas,
   'regional-and-outlet-level-findings': RegionalAndOutletLevelFindings,
   'recommendations': Recommendations,
+  'brand-awareness-and-perception': BrandAwarenessAndPerception,
 };
 
 export default class Reporting {
@@ -27,6 +29,7 @@ export default class Reporting {
   async generateReport() {
     // 1. Initialize data processor
     const dataProcessor = new DataProcessor(this.clientData);
+    const { responses, company } = this.clientData;
 
     // 2. Get the report template
     const template = this.clientData.template || defaultTemplate;
@@ -36,10 +39,14 @@ export default class Reporting {
       template.sections.map(async (sectionConfig) => {
         const GeneratorClass = sectionGenerators[sectionConfig.id];
         if (GeneratorClass) {
-          // Pass the entire dataProcessor instance to the generator
-          const generator = new GeneratorClass(dataProcessor);
-          // The generate method of the class returns the complete section object
-          // (e.g., { title: '...', content: [...] })
+          let generator;
+          // Special handling for sections that need raw data
+          if (sectionConfig.id === 'brand-awareness-and-perception') {
+            generator = new GeneratorClass({ responses, company });
+          } else {
+            // Pass the entire dataProcessor instance to other generators
+            generator = new GeneratorClass(dataProcessor);
+          }
           return generator.generate();
         }
         // If no generator is found, return the static section from the template
