@@ -3,12 +3,13 @@ import { getDb } from '../utils/db.js';
 export const createSurvey = async (req, res, next) => {
   try {
     const db = getDb();
-    const { title, description, questions } = req.body;
+    const { title, description, questions, design } = req.body;
 
     const newSurvey = {
       title,
       description,
       questions,
+      design,
       createdAt: new Date(),
       updatedAt: new Date(),
       status: 'draft',
