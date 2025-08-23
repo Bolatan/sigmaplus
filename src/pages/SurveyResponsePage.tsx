@@ -22,6 +22,11 @@ interface SurveyQuestion {
 
 interface SurveyWithQuestions extends Survey {
   questions: SurveyQuestion[];
+  design?: {
+    backgroundColor?: string;
+    textColor?: string;
+    buttonColor?: string;
+  };
 }
 
 const SurveyResponsePage: React.FC = () => {
@@ -293,10 +298,10 @@ const SurveyResponsePage: React.FC = () => {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <Card className="max-w-2xl mx-auto">
+      <Card className="max-w-2xl mx-auto" style={{ backgroundColor: survey.design?.backgroundColor }}>
         <CardHeader>
-          <CardTitle>{survey.title}</CardTitle>
-          {survey.description && <CardDescription>{survey.description}</CardDescription>}
+          <CardTitle style={{ color: survey.design?.textColor }}>{survey.title}</CardTitle>
+          {survey.description && <CardDescription style={{ color: survey.design?.textColor }}>{survey.description}</CardDescription>}
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-500 mb-4">Survey ID: {survey.id}</p>
@@ -497,12 +502,20 @@ const SurveyResponsePage: React.FC = () => {
 
               <div className="mt-6 border-t pt-6 flex justify-between">
                 {currentPage > 0 && (
-                  <Button type="button" onClick={() => setCurrentPage(currentPage - 1)}>
+                  <Button
+                    type="button"
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    style={{ backgroundColor: survey.design?.buttonColor }}
+                  >
                     Previous
                   </Button>
                 )}
                 {currentPage < pages.length - 1 && (
-                  <Button type="button" onClick={() => setCurrentPage(currentPage + 1)}>
+                  <Button
+                    type="button"
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    style={{ backgroundColor: survey.design?.buttonColor }}
+                  >
                     Next
                   </Button>
                 )}
@@ -511,6 +524,7 @@ const SurveyResponsePage: React.FC = () => {
                     type="submit"
                     disabled={survey.status !== 'active' || isSubmitting || !!successMessage}
                     className="w-full"
+                    style={{ backgroundColor: survey.design?.buttonColor }}
                   >
                     {isSubmitting ? 'Submitting...' : 'Submit Responses'}
                   </Button>

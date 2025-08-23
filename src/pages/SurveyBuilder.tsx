@@ -18,6 +18,11 @@ const SurveyBuilderPage: React.FC = () => {
     projectId: '',
     agentId: '',
     companyIds: [],
+    design: {
+      backgroundColor: '#ffffff',
+      textColor: '#000000',
+      buttonColor: '#3b82f6',
+    },
   });
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const api = useApi();
@@ -25,6 +30,17 @@ const SurveyBuilderPage: React.FC = () => {
 
   const handleFormDataChange = (newFormData) => {
     setFormData(newFormData);
+  };
+
+  const handleDesignChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      design: {
+        ...prev.design,
+        [name]: value,
+      },
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -108,7 +124,89 @@ const SurveyBuilderPage: React.FC = () => {
             {activeTab === 'design' && (
               <div>
                 <h2 className="text-2xl font-bold">Design Options</h2>
-                <p className="mt-4">Design options will be here.</p>
+                <div className="grid grid-cols-2 gap-8 mt-4">
+                  <div>
+                    <div className="space-y-4">
+                      <div>
+                        <label htmlFor="backgroundColor" className="block text-sm font-medium text-gray-700">
+                          Background Color
+                        </label>
+                        <input
+                          type="color"
+                          id="backgroundColor"
+                          name="backgroundColor"
+                          value={formData.design.backgroundColor}
+                          onChange={handleDesignChange}
+                          className="mt-1 block w-full h-10 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="textColor" className="block text-sm font-medium text-gray-700">
+                          Text Color
+                        </label>
+                        <input
+                          type="color"
+                          id="textColor"
+                          name="textColor"
+                          value={formData.design.textColor}
+                          onChange={handleDesignChange}
+                          className="mt-1 block w-full h-10 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="buttonColor" className="block text-sm font-medium text-gray-700">
+                          Button Color
+                        </label>
+                        <input
+                          type="color"
+                          id="buttonColor"
+                          name="buttonColor"
+                          value={formData.design.buttonColor}
+                          onChange={handleDesignChange}
+                          className="mt-1 block w-full h-10 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium">Preview</h3>
+                    <div
+                      className="mt-2 p-8 border rounded-md"
+                      style={{ backgroundColor: formData.design.backgroundColor }}
+                    >
+                      <h4 className="text-2xl font-bold" style={{ color: formData.design.textColor }}>
+                        {formData.title || 'Survey Title'}
+                      </h4>
+                      <p className="mt-2" style={{ color: formData.design.textColor }}>
+                        {formData.description || 'This is a description of the survey.'}
+                      </p>
+                      <div className="mt-4">
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium" style={{ color: formData.design.textColor }}>
+                            Sample Question
+                          </label>
+                          <input
+                            type="text"
+                            readOnly
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                            value="Sample answer"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          style={{ backgroundColor: formData.design.buttonColor }}
+                          className="text-white font-bold py-2 px-4 rounded"
+                        >
+                          Submit
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-2 mt-8">
+                    <button type="button" onClick={handleCancel} className="btn-secondary">Cancel</button>
+                    <button type="button" onClick={handleSubmit} className="btn-primary">Create Survey</button>
+                </div>
               </div>
             )}
           </div>
