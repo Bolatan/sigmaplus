@@ -27,6 +27,7 @@ import surveyBuilderRoutes from './routes/survey-builder.js';
 import advancedAnalyticsRoutes from './routes/advanced-analytics.js';
 import collaborationRoutes from './routes/collaboration.js';
 import multiSurveyAnalysisRoutes from './routes/multi-survey-analysis.js';
+import dashboardRoutes from './routes/dashboard.js';
 import scheduleReportGeneration from './services/reportingService.js';
 import multer from 'multer';
 import Reporting from './reporting/index.js';
@@ -78,6 +79,7 @@ app.use('/api/auth', authRoutes); // Mount authentication routes
 app.use('/api/surveys', surveyRoutesFunction(upload));
 app.use('/api/projects', projectRoutes(upload));
 app.use('/api/users', userRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/cron', cronRoutes);
