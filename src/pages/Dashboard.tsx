@@ -1,4 +1,6 @@
 import React from 'react';
+import StatCard from '../components/dashboard/StatCard';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Users, BarChart3, ClipboardList, TrendingUp, Building2, UserCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useDashboardStats } from '../hooks/useDashboardStats';
