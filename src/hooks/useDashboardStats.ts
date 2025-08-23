@@ -24,12 +24,41 @@ export const useDashboardStats = () => {
   const isAdmin = user?.role === UserRole.ADMIN;
   const isClient = user?.role === UserRole.CLIENT;
 
+  const useDummyData = true; // Set to true to use dummy data
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       if (!user) return;
 
       setIsLoading(true);
       setError(null);
+
+      if (useDummyData) {
+        const dummyStats: DashboardStats = {
+          totalSurveys: 50,
+          totalResponses: 1250,
+          reportsGenerated: 25,
+          averageCompletionRate: 85,
+          totalUsers: isAdmin ? 100 : undefined,
+          totalCompanies: 20,
+          surveyStatusDistribution: [
+            { status: 'active', count: 20 },
+            { status: 'draft', count: 10 },
+            { status: 'completed', count: 15 },
+            { status: 'archived', count: 5 },
+          ],
+          responsesBySurvey: [
+            { title: 'Customer Satisfaction Q1', responseCount: 300 },
+            { title: 'Product Feedback Q1', responseCount: 250 },
+            { title: 'Employee Engagement 2024', responseCount: 400 },
+            { title: 'Market Research: New Logo', responseCount: 150 },
+            { title: 'Website Usability Study', responseCount: 150 },
+          ],
+        };
+        setStats(dummyStats);
+        setIsLoading(false);
+        return;
+      }
 
       try {
         const [
@@ -82,7 +111,7 @@ export const useDashboardStats = () => {
     };
 
     fetchDashboardData();
-  }, [user, api, isAdmin, isClient]);
+  }, [user, api, isAdmin, isClient, useDummyData]);
 
   return { stats, isLoading, error };
 };
