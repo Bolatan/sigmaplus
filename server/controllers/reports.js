@@ -95,6 +95,41 @@ export const generateReport = async (req, res) => {
 // @route   GET /api/reports
 // @access  Private (Admins, Agents, Clients)
 export const getReports = async (req, res) => {
+  const useDummyData = true; // Set to true to use dummy data
+
+  if (useDummyData) {
+    const dummyReports = [
+      {
+        _id: new ObjectId(),
+        title: 'Q1 2024 Customer Satisfaction Report',
+        surveyId: new ObjectId(),
+        companyId: new ObjectId(),
+        generatedBy: new ObjectId(),
+        createdAt: new Date('2024-04-05T10:00:00Z'),
+        status: 'completed',
+      },
+      {
+        _id: new ObjectId(),
+        title: 'Product Launch Feedback Analysis',
+        surveyId: new ObjectId(),
+        companyId: new ObjectId(),
+        generatedBy: new ObjectId(),
+        createdAt: new Date('2024-03-20T14:30:00Z'),
+        status: 'completed',
+      },
+      {
+        _id: new ObjectId(),
+        title: 'Annual Employee Engagement Survey Results',
+        surveyId: new ObjectId(),
+        companyId: new ObjectId(),
+        generatedBy: new ObjectId(),
+        createdAt: new Date('2024-02-15T11:00:00Z'),
+        status: 'completed',
+      },
+    ];
+    return res.json({ data: dummyReports });
+  }
+
   try {
     const db = getDb();
     const reportsCollection = db.collection('reports');
