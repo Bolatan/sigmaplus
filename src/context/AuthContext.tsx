@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
-import useApi from '../hooks/useApi';
 
 interface AuthContextType {
   user: User | null;
@@ -13,7 +12,7 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
-  isLoading: false,
+  isLoading: true, // Start with loading true
   login: async () => {},
   logout: () => {},
   setAuthToken: () => {},
@@ -31,7 +30,6 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const api = useApi();
 
   const setAuthToken = (token: string) => {
     localStorage.setItem('authToken', token);
@@ -41,6 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('authToken');
+    // Consider using useNavigate for SPA-style navigation
     window.location.href = '/login';
   };
 
@@ -51,22 +50,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const savedUser = JSON.parse(savedUserString);
         setUser(savedUser);
-        setAuthToken(token);
       } catch (e) {
         console.error("Error parsing saved user from localStorage", e);
-        logout();
+        logout(); // Clear corrupted data
       }
     }
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password:string) => {
+  const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const data = await api('/auth/login', {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+      const response = await fetch(`${baseUrl}/api/auth/login`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
       
       if (data.token && data.user) {
         setUser(data.user);
@@ -77,6 +83,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error: any) {
       console.error('Login API error:', error);
+      // Clear any partial login artifacts
+      logout();
       throw error;
     } finally {
       setIsLoading(false);
