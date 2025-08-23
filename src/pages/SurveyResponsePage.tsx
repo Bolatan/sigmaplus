@@ -157,6 +157,15 @@ const SurveyResponsePage: React.FC = () => {
 
   const handleSubmitResponse = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const requiredQuestionsOnPage = visibleQuestions.filter(q => q.isRequired);
+    const unansweredRequiredQuestions = requiredQuestionsOnPage.filter(q => !responses[q.id]);
+
+    if (unansweredRequiredQuestions.length > 0) {
+      setError(`Please answer all required questions: ${unansweredRequiredQuestions.map(q => q.text).join(', ')}`);
+      return;
+    }
+
     if (survey?.status !== 'active') {
       setError("This survey is not currently active and cannot accept responses.");
       return;
@@ -209,14 +218,14 @@ const SurveyResponsePage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500" aria-label="Loading"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto py-8 px-4">
+      <div className="container mx-auto py-8 px-4" role="alert">
         <Card className="max-w-2xl mx-auto">
           <CardHeader>
             <CardTitle className="text-error-500">Error</CardTitle>
@@ -257,11 +266,30 @@ const SurveyResponsePage: React.FC = () => {
     if (!question.logic || !question.logic.conditions || question.logic.conditions.length === 0) {
       return true;
     }
-    // Assuming AND logic for now
+
+    if (question.logic.logicalOperator === 'OR') {
+      return question.logic.conditions.some(cond => evaluateCondition(cond, currentResponses));
+    }
+
+    // Default to AND logic
     return question.logic.conditions.every(cond => evaluateCondition(cond, currentResponses));
   };
 
-  const visibleQuestions = survey.questions.filter(q => isQuestionVisible(q, responses));
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const pages = survey.questions.reduce((acc, q) => {
+    if (q.type === 'page-break') {
+      acc.push([]);
+    } else {
+      if (acc.length === 0) {
+        acc.push([]);
+      }
+      acc[acc.length - 1].push(q);
+    }
+    return acc;
+  }, []);
+
+  const visibleQuestions = pages[currentPage]?.filter(q => isQuestionVisible(q, responses)) || [];
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -319,12 +347,14 @@ const SurveyResponsePage: React.FC = () => {
                       />
                     )}
                     {q.type === 'single-choice' && q.options && q.options.length > 0 && (
-                      <div className="mt-2 space-y-2">
-                        {q.options.map((option, optIndex) => (
-                          <label key={optIndex} className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                              type="radio"
-                              name={q.id || `q-radio-${index}`}
+                      <fieldset className="mt-2">
+                        <legend className="sr-only">{q.text}</legend>
+                        <div className="space-y-2">
+                          {q.options.map((option, optIndex) => (
+                            <label key={optIndex} className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name={q.id || `q-radio-${index}`}
                               value={option}
                               checked={(responses[q.id || `q-${index}`] as string) === option}
                               onChange={(e) => handleInputChange(q.id || `q-${index}`, e.target.value, q.type)}
@@ -335,15 +365,18 @@ const SurveyResponsePage: React.FC = () => {
                             <span>{option}</span>
                           </label>
                         ))}
-                      </div>
+                        </div>
+                      </fieldset>
                     )}
                     {q.type === 'multiple-choice' && q.options && q.options.length > 0 && (
-                       <div className="mt-2 space-y-2">
-                        {q.options.map((option, optIndex) => (
-                          <label key={optIndex} className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              name={`${q.id || `q-check-${index}`}-${optIndex}`}
+                      <fieldset className="mt-2">
+                        <legend className="sr-only">{q.text}</legend>
+                        <div className="space-y-2">
+                          {q.options.map((option, optIndex) => (
+                            <label key={optIndex} className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                name={`${q.id || `q-check-${index}`}-${optIndex}`}
                               value={option}
                               checked={((responses[q.id || `q-${index}`] || []) as string[]).includes(option)}
                               onChange={(e) => handleInputChange(q.id || `q-${index}`, e.target.value, q.type)}
@@ -353,7 +386,8 @@ const SurveyResponsePage: React.FC = () => {
                             <span>{option}</span>
                           </label>
                         ))}
-                      </div>
+                        </div>
+                      </fieldset>
                     )}
                     {q.type === 'range' && (
                       <input
@@ -461,14 +495,26 @@ const SurveyResponsePage: React.FC = () => {
                 <p>No questions found for this survey.</p>
               )}
 
-              <div className="mt-6 border-t pt-6">
-                <Button
-                  type="submit"
-                  disabled={survey.status !== 'active' || isSubmitting || !!successMessage}
-                  className="w-full"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit Responses'}
-                </Button>
+              <div className="mt-6 border-t pt-6 flex justify-between">
+                {currentPage > 0 && (
+                  <Button type="button" onClick={() => setCurrentPage(currentPage - 1)}>
+                    Previous
+                  </Button>
+                )}
+                {currentPage < pages.length - 1 && (
+                  <Button type="button" onClick={() => setCurrentPage(currentPage + 1)}>
+                    Next
+                  </Button>
+                )}
+                {currentPage === pages.length - 1 && (
+                  <Button
+                    type="submit"
+                    disabled={survey.status !== 'active' || isSubmitting || !!successMessage}
+                    className="w-full"
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit Responses'}
+                  </Button>
+                )}
               </div>
             </form>
           )}
