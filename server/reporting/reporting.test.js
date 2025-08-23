@@ -3,17 +3,22 @@ import ChartGenerator from './chartGenerator.js';
 
 // Mock dependencies
 jest.mock('./dataProcessor.js', () => {
-  return jest.fn().mockImplementation(() => {
+  return jest.fn().mockImplementation((clientData) => { // Accept clientData
     return {
+      clientData: clientData, // Pass clientData through
+      survey: clientData.survey, // Pass survey through for generators that use it
       process: jest.fn().mockReturnValue({
-        summaryStatistics: {
-          q1: { count: 10 },
-          q2: { count: 20 },
-        },
-        getTopChallenges: jest.fn().mockReturnValue(['Challenge 1', 'Challenge 2']),
-        getImprovementOpportunities: jest.fn().mockReturnValue(['Opportunity 1', 'Opportunity 2']),
+        totalResponses: clientData.responses.length,
+        questionAnalysis: {}, // Mocked empty for now
+        getTopChallenges: jest.fn().mockReturnValue(['Mock Challenge 1']),
+        getImprovementOpportunities: jest.fn().mockReturnValue(['Mock Opportunity 1']),
+        summaryStatistics: { 'q1': { count: 10 }, 'q2': { count: 20 } },
       }),
-      generateChartForChallenges: jest.fn().mockReturnValue('base64-encoded-chart'),
+      getDemographicsProfile: jest.fn().mockReturnValue({
+        location: { 'State A': 1, 'State B': 1 },
+        gender: { 'Male': 1, 'Female': 1 },
+      }),
+      generateChartForChallenges: jest.fn().mockResolvedValue('base64-encoded-chart'),
     };
   });
 });
