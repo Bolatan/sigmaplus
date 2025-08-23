@@ -1,9 +1,9 @@
 import express from 'express';
 import { verifyToken } from '../middleware/auth.js';
-import { createSurvey } from '../controllers/survey-builder.js';
+import { getQuestionBank } from '../controllers/question-bank.js';
 
 const router = express.Router();
 
-router.post('/', verifyToken, createSurvey);
+router.get('/', verifyToken, getQuestionBank);
 
 export default router;

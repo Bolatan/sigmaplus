@@ -45,10 +45,12 @@ export const ConditionalLogicModal: React.FC<ConditionalLogicModalProps> = ({
     setConditions(newConditions);
   };
 
+  const [logicalOperator, setLogicalOperator] = useState(question.logic?.logicalOperator || 'AND');
+
   const handleSave = () => {
     // Filter out incomplete conditions before saving
     const validConditions = conditions.filter(c => c.questionId && c.value);
-    onSave({ conditions: validConditions, logicalOperator: 'AND' });
+    onSave({ conditions: validConditions, logicalOperator });
   };
 
   const getOptionsForQuestion = (questionId) => {
@@ -60,6 +62,18 @@ export const ConditionalLogicModal: React.FC<ConditionalLogicModalProps> = ({
     <Modal isOpen={isOpen} onClose={onClose} title={`Conditional Logic for "${question.text}"`}>
       <div className="space-y-4">
         <p>Show this question only if the following conditions are met:</p>
+
+        <div className="flex items-center space-x-2">
+          <span>Logic:</span>
+          <select
+            value={logicalOperator}
+            onChange={(e) => setLogicalOperator(e.target.value)}
+            className="input"
+          >
+            <option value="AND">All conditions must be met (AND)</option>
+            <option value="OR">Any condition can be met (OR)</option>
+          </select>
+        </div>
 
         {conditions.map((condition, index) => (
           <div key={index} className="space-y-2 p-3 border rounded-md relative">
