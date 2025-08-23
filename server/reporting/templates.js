@@ -31,13 +31,14 @@ export const defaultTemplate = {
       ],
     },
     {
+      id: 'brand-awareness-and-perception',
+      title: 'Brand Awareness & Perception',
+      content: [],
+    },
+    {
       id: 'core-insight-areas',
       title: 'Core Insight Areas',
       content: [
-        {
-          title: 'Brand Awareness & Perception',
-          content: '',
-        },
         {
           title: 'Brand Usage & Purchase Behavior',
           content: '',

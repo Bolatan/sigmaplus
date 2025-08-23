@@ -187,27 +187,9 @@ export const downloadReport = async (req, res) => {
       case 'pptx': {
         try {
           console.log('Generating PPTX report');
-          const presentation = new Presentation({ sections: report.sections || [] });
-          const pptx = presentation.generate();
-          
-          // Get buffer from pptx - different methods depending on pptxgenjs version
-          let buffer;
-          if (typeof pptx.write === 'function') {
-            buffer = await pptx.write();
-          } else if (typeof pptx.writeFile === 'function') {
-            buffer = await pptx.writeFile({ outputType: 'buffer' });
-          } else if (typeof pptx.stream === 'function') {
-            buffer = await pptx.stream();
-          } else {
-            // Fallback: try to get buffer directly
-            buffer = pptx;
-          }
-          
-          // Ensure buffer is a Buffer instance
-          if (!Buffer.isBuffer(buffer)) {
-            buffer = Buffer.from(buffer);
-          }
-          
+          const presentation = new Presentation({ report, company, survey, project });
+          const buffer = await presentation.generate();
+
           const sanitizedTitle = sanitizeFilename(report.title);
           res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}.pptx"`);
           res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');

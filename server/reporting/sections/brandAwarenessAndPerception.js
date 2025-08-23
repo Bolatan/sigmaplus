@@ -1,64 +1,83 @@
-import { generateChart } from '../chartGenerator.js';
+// A helper function to safely calculate percentages
+const calculatePercentage = (count, total) => {
+  if (total === 0) return '0.0%';
+  return ((count / total) * 100).toFixed(1) + '%';
+};
 
 export default class BrandAwarenessAndPerception {
-  constructor(dataProcessor) {
-    this.dataProcessor = dataProcessor;
-    this.survey = dataProcessor.survey;
-    this.questionAnalysis = dataProcessor.process().questionAnalysis;
+  constructor({ responses, company }) {
+    this.responses = responses || [];
+    this.company = company; // The client's company
+    this.totalRespondents = this.responses.length;
   }
 
-  async generate() {
+  generate() {
     console.log('Generating brand awareness and perception section...');
 
-    const keywords = ['brand', 'aware', 'awareness', 'perception', 'recall', 'recognize'];
-    const relevantQuestions = (this.survey.questions || []).filter(q =>
-      keywords.some(keyword => q.text.toLowerCase().includes(keyword))
-    );
+    // --- Data Processing ---
+    // We'll make assumptions about the survey question IDs, e.g., 'brand_recall_unaided', 'brand_recall_aided'.
+    const ourBrandName = this.company?.name || 'Signa Plus';
 
-    if (relevantQuestions.length === 0) {
-      return {
-        title: 'Brand Awareness & Perception',
-        content: 'No questions related to brand awareness or perception were found in this survey.',
-      };
-    }
+    // Unaided Recall: Count how many mentioned our brand
+    const unaidedMentions = this.responses.filter(r =>
+      r.data?.brand_recall_unaided?.toLowerCase().includes(ourBrandName.toLowerCase())
+    ).length;
 
-    const content = [];
-    for (const question of relevantQuestions) {
-      const analysis = this.questionAnalysis[question.id];
-      if (!analysis || analysis.summary.total === 0) continue;
+    // Aided Recall: Count how many recognized our brand from a list
+    const aidedRecognitions = this.responses.filter(r =>
+      r.data?.brand_recall_aided && r.data.brand_recall_aided.includes(ourBrandName)
+    ).length;
 
-      let summaryText = `For the question "${question.text}", there were ${analysis.summary.total} responses. `;
-      const breakdown = analysis.summary.breakdown;
-      const breakdownText = Object.entries(breakdown)
-        .map(([answer, count]) => `${answer}: ${count} (${((count / analysis.summary.total) * 100).toFixed(1)}%)`)
-        .join(', ');
+    // Perception Score: Average score for our brand (assuming a 1-5 scale)
+    const perceptionScores = this.responses
+      .map(r => r.data[`brand_perception_${ourBrandName.toLowerCase()}`])
+      .filter(score => score && !isNaN(score));
 
-      summaryText += `The breakdown of answers was as follows: ${breakdownText}.`;
+    const averagePerception = perceptionScores.length > 0
+      ? (perceptionScores.reduce((a, b) => a + Number(b), 0) / perceptionScores.length).toFixed(2)
+      : 'N/A';
 
-      // Generate a chart for the first question we analyze
-      let chartImage = null;
-      if (content.length === 0 && Object.keys(breakdown).length > 0) {
-        const chartData = {
-          labels: Object.keys(breakdown),
-          datasets: [{
-            label: 'Response Count',
-            data: Object.values(breakdown),
-            backgroundColor: 'rgba(54, 162, 235, 0.6)',
-          }],
-        };
-        chartImage = await generateChart(chartData);
-      }
-
-      content.push({
-        title: question.text,
-        content: summaryText,
-        ...(chartImage && { chart: chartImage }),
-      });
-    }
-
+    // --- Structuring Content for the Report ---
     return {
       title: 'Brand Awareness & Perception',
-      content: content.length > 0 ? content : [{ title: 'No relevant responses found for this section.', content: '' }],
+      content: [
+        {
+          title: 'Key Highlights',
+          content: `This section analyzes brand recall and perception among ${this.totalRespondents} respondents.`,
+        },
+        {
+          title: 'Unaided Brand Recall',
+          content: `When asked to name brands in the category, ${calculatePercentage(unaidedMentions, this.totalRespondents)} of respondents mentioned "${ourBrandName}".`,
+          chartData: {
+            type: 'bar',
+            data: {
+              labels: [ourBrandName, 'Other Brands'],
+              datasets: [{
+                label: 'Unaided Recall',
+                data: [unaidedMentions, this.totalRespondents - unaidedMentions],
+              }],
+            },
+          },
+        },
+        {
+          title: 'Aided Brand Recall',
+          content: `When shown a list of brands, ${calculatePercentage(aidedRecognitions, this.totalRespondents)} of respondents recognized "${ourBrandName}".`,
+          chartData: {
+            type: 'pie',
+            data: {
+              labels: ['Recognized', 'Did Not Recognize'],
+              datasets: [{
+                data: [aidedRecognitions, this.totalRespondents - aidedRecognitions],
+              }],
+            },
+          },
+        },
+        {
+          title: 'Brand Perception',
+          content: `The average perception score for "${ourBrandName}" was ${averagePerception} out of 5.`,
+        },
+      ],
+
     };
   }
 }

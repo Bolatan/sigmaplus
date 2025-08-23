@@ -48,16 +48,17 @@ describe('Reporting', () => {
     const report = await reporting.generateReport();
 
     // Check for the presence of all sections
-    expect(report.sections.length).toBe(6);
+    expect(report.sections.length).toBe(7);
     expect(report.sections[0].title).toBe('Study Overview');
     expect(report.sections[1].title).toBe('Respondent Profile');
     expect(report.sections[2].title).toBe('Executive Summary');
-    expect(report.sections[3].title).toBe('Core Insight Areas');
-    expect(report.sections[4].title).toBe('Regional and Outlet-Level Findings');
-    expect(report.sections[5].title).toBe('Recommendations');
+    expect(report.sections[3].title).toBe('Brand Awareness & Perception');
+    expect(report.sections[4].title).toBe('Core Insight Areas');
+    expect(report.sections[5].title).toBe('Regional and Outlet-Level Findings');
+    expect(report.sections[6].title).toBe('Recommendations');
 
     // Check the Core Insight Areas section
-    const coreInsightAreas = report.sections[3];
-    expect(coreInsightAreas.content.length).toBe(14); // 12 subsections + 2 charts
+    const coreInsightAreas = report.sections[4];
+    expect(coreInsightAreas.content.length).toBe(13); // 11 subsections + 2 charts
   });
 });
