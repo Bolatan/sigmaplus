@@ -122,26 +122,5 @@ const SurveyBuilderPage: React.FC = () => {
     </DndProvider>
   );
 };
-              onFormDataChange={handleFormDataChange}
-              onSubmit={handleSubmit}
-              onCancel={handleCancel}
-              buttonText="Create Survey"
-              agents={[]}
-              companies={[]}
-              projects={[]}
-              user={{ role: 'admin' }} // This should be replaced with actual user data
-              onDrop={handleDrop}
-            />
-          </div>
-          <TemplateSelectionModal
-            isOpen={isTemplateModalOpen}
-            onClose={() => setIsTemplateModalOpen(false)}
-            onSelectTemplate={handleSelectTemplate}
-          />
-        </div>
-      </SurveyBuilderLayout>
-    </DndProvider>
-  );
-};
 
 export default SurveyBuilderPage;
