@@ -22,8 +22,8 @@ const Header: React.FC = () => {
           <nav className="hidden md:flex space-x-4">
             <NavLink to="/dashboard">Dashboard</NavLink>
             <NavLink to="/projects">Projects</NavLink>
-            <NavLink to="/market-research">Market Research</NavLink>
             <NavLink to="/survey-builder">Survey Builder</NavLink>
+            <NavLink to="/market-research">Market Research</NavLink>
             <NavLink to="/advanced-analytics">Advanced Analytics</NavLink>
             <NavLink to="/reports">Reports</NavLink>
             <NavLink to="/collaboration">Collaboration</NavLink>
