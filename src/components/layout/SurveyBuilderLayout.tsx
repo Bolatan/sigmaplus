@@ -1,5 +1,4 @@
 import React from 'react';
-import Footer from './Footer';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,7 +18,6 @@ const SurveyBuilderLayout: React.FC<LayoutProps> = ({ children, sidebar }) => {
           </aside>
         )}
       </div>
-      <Footer />
     </div>
   );
 };
