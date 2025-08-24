@@ -426,20 +426,24 @@ const Companies: React.FC = () => {
                     Added {formatDate(company.createdAt)}
                   </span>
                   <div className="space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => startEdit(company)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => openDeleteModal(company)}
-                    >
-                      Delete
-                    </Button>
+                    {loggedInUser?.role === 'admin' && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => startEdit(company)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => openDeleteModal(company)}
+                        >
+                          Delete
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

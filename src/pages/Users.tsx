@@ -487,13 +487,9 @@ useEffect(() => {
 
   // --- Effects ---
   useEffect(() => {
-    if (loggedInUser && loggedInUser.role === UserRole.ADMIN) {
+    if (loggedInUser) {
       fetchUsers();
-    } else if (loggedInUser && loggedInUser.role !== UserRole.ADMIN) {
-      setApiError("Access Denied: You do not have permission to view users.");
-      setIsLoading(false);
-      setUsers([]);
-    } else if (!loggedInUser && !localStorage.getItem('authToken')) {
+    } else if (!localStorage.getItem('authToken')) {
       setApiError("No authentication token found. Please log in.");
       setIsLoading(false);
       setUsers([]);
@@ -599,28 +595,30 @@ useEffect(() => {
               </div>
 
               <div className="flex items-center justify-end mt-4 pt-4 border-t border-gray-100 space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => startEdit(user)}
-                >
-                  Edit
-                </Button>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => openDeleteModal(user)}
-                >
-                  Delete
-                </Button>
-                {loggedInUser?.role === UserRole.ADMIN && ( // Only admins can change passwords for others
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openChangePasswordModal(user.id)}
-                  >
-                    Change Password
-                  </Button>
+                {loggedInUser?.role === UserRole.ADMIN && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => startEdit(user)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => openDeleteModal(user)}
+                    >
+                      Delete
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openChangePasswordModal(user.id)}
+                    >
+                      Change Password
+                    </Button>
+                  </>
                 )}
               </div>
             </CardContent>
