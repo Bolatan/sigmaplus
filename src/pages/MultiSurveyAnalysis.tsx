@@ -74,6 +74,7 @@ const MultiSurveyAnalysis: React.FC = () => {
           {loading ? 'Loading...' : 'Analyze'}
         </button>
       </div>
+      </div>
 
       {analysisData && (
         <div>
