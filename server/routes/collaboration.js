@@ -1,9 +1,10 @@
 import express from 'express';
-import { verifyToken } from '../middleware/auth.js';
-import { getCollaborationData } from '../controllers/collaboration.js';
 
 const router = express.Router();
 
-router.get('/', verifyToken, getCollaborationData);
+// @route   GET api/collaboration/test
+// @desc    Tests collaboration route
+// @access  Public
+router.get('/test', (req, res) => res.json({ msg: 'Collaboration route works' }));
 
 export default router;
