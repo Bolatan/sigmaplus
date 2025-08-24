@@ -152,6 +152,8 @@ const Users: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [changePasswordUserId, setChangePasswordUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
@@ -207,6 +209,17 @@ const Users: React.FC = () => {
     setNewPassword('');
     setConfirmNewPassword('');
     setPasswordChangeError(null); // Clear password error on modal close
+  }, []);
+
+  const openDeleteModal = useCallback((user: User) => {
+    setDeletingUser(user);
+    setIsDeleteModalOpen(true);
+  }, []);
+
+  const handleCancelDelete = useCallback(() => {
+    setIsDeleteModalOpen(false);
+    setDeletingUser(null);
+    setApiError(null);
   }, []);
 
   const getRoleBadgeColor = (role: UserRole) => {
@@ -468,6 +481,22 @@ useEffect(() => {
     }
   }, [newPassword, confirmNewPassword, changePasswordUserId, handleCancelChangePassword, apiFetch]);
 
+  const handleDeleteUser = useCallback(async () => {
+    if (!deletingUser) return;
+    setApiError(null);
+
+    try {
+      await apiFetch(`/users/${deletingUser.id}`, {
+        method: 'DELETE',
+      });
+      setUsers(prev => prev.filter(u => u.id !== deletingUser.id));
+      handleCancelDelete();
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      setApiError(error.message || 'Failed to delete user.');
+    }
+  }, [deletingUser, apiFetch, handleCancelDelete]);
+
   // --- Effects ---
   useEffect(() => {
     if (loggedInUser && loggedInUser.role === UserRole.ADMIN) {
@@ -590,11 +619,11 @@ useEffect(() => {
                   Edit
                 </Button>
                 <Button
-                  variant={user.status === 'active' ? 'danger' : 'secondary'}
+                  variant="danger"
                   size="sm"
-                  onClick={() => handleToggleUserStatus(user.id, user.status)}
+                  onClick={() => openDeleteModal(user)}
                 >
-                  {user.status === 'active' ? 'Deactivate' : 'Activate'}
+                  Delete
                 </Button>
                 {loggedInUser?.role === UserRole.ADMIN && ( // Only admins can change passwords for others
                   <Button
@@ -644,6 +673,32 @@ useEffect(() => {
           isLoadingCompanies={isLoadingCompanies}
         />
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && deletingUser && (
+        <Modal
+          isOpen={isDeleteModalOpen}
+          onClose={handleCancelDelete}
+          title="Confirm Deletion"
+        >
+          <div className="space-y-4">
+            <p>Are you sure you want to delete the user <strong>{deletingUser.name}</strong>? This action cannot be undone.</p>
+            {apiError && (
+              <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3" role="alert">
+                <p>{apiError}</p>
+              </div>
+            )}
+            <div className="flex justify-end space-x-2 mt-6">
+              <Button type="button" variant="outline" onClick={handleCancelDelete}>
+                Cancel
+              </Button>
+              <Button type="button" variant="danger" onClick={handleDeleteUser}>
+                Delete User
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Change Password Modal */}
       {isChangePasswordModalOpen && changePasswordUserId && (
