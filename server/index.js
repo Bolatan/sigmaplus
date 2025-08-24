@@ -29,6 +29,7 @@ import advancedAnalyticsRoutes from './routes/advanced-analytics.js';
 import collaborationRoutes from './routes/collaboration.js';
 import reminderRoutes from './routes/reminders.js';
 import multiSurveyAnalysisRoutes from './routes/multi-survey-analysis.js';
+import surveyGroupsRoutes from './routes/surveyGroups.js';
 import dashboardRoutes from './routes/dashboard.js';
 import scheduleReportGeneration from './services/reportingService.js';
 import { scheduleReminderJobs } from './services/reminderService.js';
@@ -93,6 +94,7 @@ app.use('/api/advanced-analytics', advancedAnalyticsRoutes);
 app.use('/api/collaboration', collaborationRoutes);
 app.use('/api/reminders', reminderRoutes);
 app.use('/api/multi-survey-analysis', multiSurveyAnalysisRoutes);
+app.use('/api/survey-groups', surveyGroupsRoutes);
 
 import statsRoutes from './routes/stats.js';
 app.use('/api/stats', statsRoutes);
