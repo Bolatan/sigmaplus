@@ -111,6 +111,8 @@ const Companies: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingCompany, setDeletingCompany] = useState<Company | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     website: '',
@@ -278,6 +280,33 @@ const Companies: React.FC = () => {
     resetForm();
   }, [resetForm]);
 
+  const handleDeleteCompany = useCallback(async () => {
+    if (!deletingCompany) return;
+    setApiError(null);
+
+    try {
+      await apiFetch(`/companies/${deletingCompany.id}`, {
+        method: 'DELETE',
+      });
+      setCompanies(prev => prev.filter(c => c.id !== deletingCompany.id));
+      handleCancelDelete();
+    } catch (error: any) {
+      console.error('Error deleting company:', error);
+      setApiError(error.message || 'Failed to delete company.');
+    }
+  }, [deletingCompany, apiFetch, handleCancelDelete]);
+
+  const openDeleteModal = useCallback((company: Company) => {
+    setDeletingCompany(company);
+    setIsDeleteModalOpen(true);
+  }, []);
+
+  const handleCancelDelete = useCallback(() => {
+    setIsDeleteModalOpen(false);
+    setDeletingCompany(null);
+    setApiError(null);
+  }, []);
+
   const filteredCompanies = companies.filter(company =>
     company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     company.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -405,11 +434,11 @@ const Companies: React.FC = () => {
                       Edit
                     </Button>
                     <Button
-                      variant={company.status === 'active' ? 'danger' : 'secondary'}
+                      variant="danger"
                       size="sm"
-                      onClick={() => handleToggleCompanyStatus(company.id, company.status)}
+                      onClick={() => openDeleteModal(company)}
                     >
-                      {company.status === 'active' ? 'Deactivate' : 'Activate'}
+                      Delete
                     </Button>
                   </div>
                 </div>
@@ -446,6 +475,32 @@ const Companies: React.FC = () => {
           buttonText="Save Changes"
         />
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && deletingCompany && (
+        <Modal
+          isOpen={isDeleteModalOpen}
+          onClose={handleCancelDelete}
+          title="Confirm Deletion"
+        >
+          <div className="space-y-4">
+            <p>Are you sure you want to delete the company <strong>{deletingCompany.name}</strong>? This action cannot be undone.</p>
+            {apiError && (
+              <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3" role="alert">
+                <p>{apiError}</p>
+              </div>
+            )}
+            <div className="flex justify-end space-x-2 mt-6">
+              <Button type="button" variant="outline" onClick={handleCancelDelete}>
+                Cancel
+              </Button>
+              <Button type="button" variant="danger" onClick={handleDeleteCompany}>
+                Delete Company
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {filteredCompanies.length === 0 && (
         <div className="text-center py-12">

@@ -151,9 +151,21 @@ export const getUserById = async (req, res, next) => {
   }
 };
 
-// Placeholder for deleteUser if needed later
 export const deleteUser = async (req, res, next) => {
-    // Logic for deleting a user (hard or soft delete)
-    // Ensure proper authorization
-    return next(new ApiError(501, 'Delete user not implemented yet.'));
+  const { id } = req.params;
+  try {
+    const db = getDb();
+    if (!ObjectId.isValid(id)) {
+      return next(new ApiError(400, "Invalid user ID format"));
+    }
+    const result = await db.collection('users').deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) {
+      return next(new ApiError(404, 'User not found or already deleted.'));
+    }
+    res.status(200).json({ status: 'success', message: 'User deleted successfully' });
+  } catch (err) {
+    console.error(`Error in deleteUser controller for userId ${id}:`, err);
+    if (err instanceof ApiError) return next(err);
+    return next(new ApiError(500, err.message || 'Server error while deleting user.'));
+  }
 };
