@@ -67,7 +67,6 @@ const DraggableItem = ({ id, index, moveItem, children }) => {
 const ClientDashboard: React.FC = () => {
   const [annotations, setAnnotations] = useState([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
-  const [filteredSurveys, setFilteredSurveys] = useState<Survey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [chartType, setChartType] = useState('bar');
@@ -92,13 +91,20 @@ const ClientDashboard: React.FC = () => {
       setIsLoading(true);
       setError(null);
       try {
+        // Construct query parameters for filtering
+        const params = new URLSearchParams();
+        if (region !== 'all') params.append('region', region);
+        if (timePeriod !== 'all') params.append('timePeriod', timePeriod);
+        if (demographics !== 'all') params.append('demographics', demographics);
+        if (outletType !== 'all') params.append('outletType', outletType);
+        const queryString = params.toString();
+
         const [surveysResponse, prefsResponse] = await Promise.all([
-          apiFetch('/surveys'),
+          apiFetch(`/surveys?${queryString}`),
           apiFetch('/dashboard/preferences')
         ]);
 
         setSurveys(surveysResponse.data || []);
-        setFilteredSurveys(surveysResponse.data || []);
 
         if (prefsResponse.data) {
           setDashboardItems(prefsResponse.data.layoutOrder || ['stats', 'surveys', 'chart']);
@@ -116,13 +122,7 @@ const ClientDashboard: React.FC = () => {
     if (user) {
       fetchDashboardData();
     }
-  }, [user, apiFetch]);
-
-  useEffect(() => {
-    let newFilteredSurveys = [...surveys];
-    // Filtering logic remains the same
-    setFilteredSurveys(newFilteredSurveys);
-  }, [surveys, region, timePeriod, demographics, outletType]);
+  }, [user, apiFetch, region, timePeriod, demographics, outletType]);
 
   const handleHeaderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -198,44 +198,43 @@ const ClientDashboard: React.FC = () => {
             </button>
           </div>
         </div>
-        {/* Filtering UI remains the same */}
         <div className="flex flex-col sm:flex-row sm:space-x-4">
           <div className="flex-1">
             <label htmlFor="region" className="block text-sm font-medium">Region</label>
-            <select id="region" name="region" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
-              <option>All</option>
-              <option>North</option>
-              <option>South</option>
-              <option>East</option>
-              <option>West</option>
+            <select id="region" name="region" value={region} onChange={(e) => setRegion(e.target.value)} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+              <option value="all">All</option>
+              <option value="North">North</option>
+              <option value="South">South</option>
+              <option value="East">East</option>
+              <option value="West">West</option>
             </select>
           </div>
           <div className="flex-1">
             <label htmlFor="timePeriod" className="block text-sm font-medium">Time Period</label>
-            <select id="timePeriod" name="timePeriod" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
-              <option>All Time</option>
-              <option>Last 30 Days</option>
-              <option>Last 90 Days</option>
-              <option>Last Year</option>
+            <select id="timePeriod" name="timePeriod" value={timePeriod} onChange={(e) => setTimePeriod(e.target.value)} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+              <option value="all">All Time</option>
+              <option value="Last 30 Days">Last 30 Days</option>
+              <option value="Last 90 Days">Last 90 Days</option>
+              <option value="Last Year">Last Year</option>
             </select>
           </div>
           <div className="flex-1">
             <label htmlFor="demographics" className="block text-sm font-medium">Demographics</label>
-            <select id="demographics" name="demographics" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
-              <option>All</option>
-              <option>Age</option>
-              <option>Gender</option>
-              <option>Occupation</option>
-              <option>Income</option>
+            <select id="demographics" name="demographics" value={demographics} onChange={(e) => setDemographics(e.target.value)} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+              <option value="all">All</option>
+              <option value="age">Age</option>
+              <option value="gender">Gender</option>
+              <option value="occupation">Occupation</option>
+              <option value="income">Income</option>
             </select>
           </div>
           <div className="flex-1">
             <label htmlFor="outletType" className="block text-sm font-medium">Outlet Type</label>
-            <select id="outletType" name="outletType" className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
-              <option>All</option>
-              <option>Retail</option>
-              <option>Food Service</option>
-              <option>Other</option>
+            <select id="outletType" name="outletType" value={outletType} onChange={(e) => setOutletType(e.target.value)} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
+              <option value="all">All</option>
+              <option value="Retail">Retail</option>
+              <option value="Food Service">Food Service</option>
+              <option value="Other">Other</option>
             </select>
           </div>
         </div>
