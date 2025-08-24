@@ -27,6 +27,18 @@ router.post('/', verifyToken, authorizeRole(['admin', 'agent']), async (req, res
   }
 });
 
+// Get all survey groups
+router.get('/', verifyToken, authorizeRole(['admin', 'agent']), async (req, res) => {
+  try {
+    const db = getDb();
+    const groups = await db.collection('survey_groups').find({}).toArray();
+    res.json(groups);
+  } catch (err) {
+    console.error('Failed to get survey groups:', err);
+    res.status(500).json({ error: 'Failed to get survey groups' });
+  }
+});
+
 // Get a survey group
 router.get('/:id', verifyToken, authorizeRole(['admin', 'agent']), async (req, res) => {
   try {
