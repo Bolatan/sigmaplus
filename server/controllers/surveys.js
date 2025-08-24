@@ -86,39 +86,95 @@ export const createSurvey = async (req, res, next) => {
 export const getSurveys = async (req, res, next) => {
   try {
     const db = getDb();
-    const { region, demographics, outletType, projectId } = req.query;
-    const query = {};
+    const { region, demographics, outletType, timePeriod, projectId } = req.query;
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
 
-    if (userRole === 'admin') {
-      // Admin gets all surveys, so no specific query is added here.
-    } else if (userRole === 'client') {
+    // Base query for surveys, includes authorization and project filtering
+    const surveyFilter = {};
+    if (userRole === 'client') {
       if (!userCompanyId) {
         return res.json({ status: 'success', data: [] });
       }
-      query.companyIds = new ObjectId(userCompanyId);
+      surveyFilter.companyIds = new ObjectId(userCompanyId);
     } else if (userRole === 'agent') {
-      query.$or = [
+      surveyFilter.$or = [
         { agentId: new ObjectId(userId) },
         { createdBy: new ObjectId(userId) }
       ];
     }
-
-    if (region && region !== 'all') {
-      query['location.region'] = region;
+    if (projectId && ObjectId.isValid(projectId)) {
+      surveyFilter.projectId = new ObjectId(projectId);
     }
-    if (demographics && demographics !== 'all') {
-      query[`demographics.${demographics}`] = { $exists: true };
+
+    const hasDataFilters = (region && region !== 'all') ||
+                           (demographics && demographics !== 'all') ||
+                           (outletType && outletType !== 'all') ||
+                           (timePeriod && timePeriod !== 'all');
+
+    if (!hasDataFilters) {
+      // Original behavior: no response-based filters, just fetch surveys
+      const surveysData = await db.collection('surveys').find(surveyFilter).toArray();
+      return res.json({ status: 'success', data: surveysData });
+    }
+
+    // New behavior: filter based on responses
+    const responseMatch = {};
+    if (region && region !== 'all') {
+      // WARNING: This assumes the 'region' sent from the frontend (e.g., 'North')
+      // directly matches a 'region' field in the 'location' object of a response.
+      // The current data structure seems to have 'state' (e.g., 'NY'), not 'region'.
+      // This will require a data mapping or a frontend change to work correctly.
+      responseMatch['location.region'] = region;
     }
     if (outletType && outletType !== 'all') {
-      query.outletType = outletType;
+        responseMatch.outletType = outletType;
     }
-    if (projectId && ObjectId.isValid(projectId)) {
-      query.projectId = new ObjectId(projectId);
+    if (demographics && demographics !== 'all') {
+        // WARNING: This only checks for the existence of a demographic key (e.g., 'age'),
+        // not its value. The frontend needs to be updated to support value-based filtering.
+        responseMatch[`demographics.${demographics}`] = { $exists: true };
+    }
+    if (timePeriod && timePeriod !== 'all') {
+        const now = new Date();
+        let startDate;
+        // The values match what's in ClientDashboard.tsx
+        if (timePeriod === 'Last 30 Days') {
+            startDate = new Date(new Date().setDate(now.getDate() - 30));
+        } else if (timePeriod === 'Last 90 Days') {
+            startDate = new Date(new Date().setDate(now.getDate() - 90));
+        } else if (timePeriod === 'Last Year') {
+            startDate = new Date(new Date().setFullYear(now.getFullYear() - 1));
+        }
+        if (startDate) {
+            responseMatch.submittedAt = { $gte: startDate };
+        }
     }
 
-    const surveysData = await db.collection('surveys').find(query).toArray();
+    if (Object.keys(responseMatch).length === 0) {
+        const surveysData = await db.collection('surveys').find(surveyFilter).toArray();
+        return res.json({ status: 'success', data: surveysData });
+    }
+
+    // Aggregation pipeline to find survey IDs that have matching responses
+    const pipeline = [
+      { $match: responseMatch },
+      { $group: { _id: '$surveyId' } },
+    ];
+
+    const responseCollection = db.collection('responses');
+    const matchingAgg = await responseCollection.aggregate(pipeline).toArray();
+    const surveyIds = matchingAgg.map(item => item._id);
+
+    if (surveyIds.length === 0) {
+      return res.json({ status: 'success', data: [] });
+    }
+
+    // Add the filtered survey IDs to the main survey query
+    surveyFilter._id = { $in: surveyIds };
+
+    const surveysData = await db.collection('surveys').find(surveyFilter).toArray();
     res.json({ status: 'success', data: surveysData });
+
   } catch (error) {
     console.error("Error in getSurveys controller:", error);
     next(error);
