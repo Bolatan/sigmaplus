@@ -60,7 +60,7 @@ export interface Survey {
   customerId?: string;
   createdAt: string;
   updatedAt: string;
-  status: 'draft' | 'pilot' | 'active' | 'completed';
+  status: 'draft' | 'active' | 'completed';
   responseCount: number;
   questions: SurveyQuestion[]; // Array of questions
   createdBy?: string; // ObjectId as string, ref User

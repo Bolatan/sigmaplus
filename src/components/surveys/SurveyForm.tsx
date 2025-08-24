@@ -53,15 +53,10 @@ const DraggableQuestion = ({ id, index, moveQuestion, children }) => {
 };
 
 
-const SurveyForm = ({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, companies, projects, user, onDrop }) => {
+const SurveyForm = ({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, companies, projects, user }) => {
   const [questions, setQuestions] = useState(formData.questions || []);
   const [isLogicModalOpen, setIsLogicModalOpen] = useState(false);
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null);
-
-  const [, drop] = useDrop({
-    accept: 'questionBankItem',
-    drop: (item) => onDrop(item),
-  });
 
   const handleOpenLogicModal = (index: number) => {
     setSelectedQuestionIndex(index);
@@ -153,7 +148,7 @@ const SurveyForm = ({ formData, onFormDataChange, onSubmit, onCancel, buttonText
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <form onSubmit={onSubmit} ref={drop}>
+      <form onSubmit={onSubmit}>
         <div className="mb-4">
           <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
           <input
@@ -230,16 +225,10 @@ const SurveyForm = ({ formData, onFormDataChange, onSubmit, onCancel, buttonText
             <button type="button" onClick={() => addQuestion('ranking')} className="btn-secondary">Ranking</button>
             <button type="button" onClick={() => addQuestion('matrix')} className="btn-secondary">Matrix</button>
             <button type="button" onClick={() => addQuestion('open-ended')} className="btn-secondary">Open-Ended</button>
-            <button type="button" onClick={() => addQuestion('page-break')} className="btn-secondary">Page Break</button>
           </div>
         </div>
 
         {questions.map((q, qIndex) => (
-          q.type === 'page-break' ? (
-            <div key={q.id} className="p-4 border rounded-md mb-4 text-center bg-gray-100">
-              --- Page Break ---
-            </div>
-          ) : (
           <DraggableQuestion key={q.id} id={q.id} index={qIndex} moveQuestion={moveQuestion}>
             <div className="p-4 border rounded-md mb-4">
               <input
@@ -249,24 +238,8 @@ const SurveyForm = ({ formData, onFormDataChange, onSubmit, onCancel, buttonText
                 onChange={(e) => handleQuestionChange(qIndex, e.target.value)}
                 className="input mb-2 w-full"
               />
-              <div className="flex justify-end items-center">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={q.isRequired || false}
-                    onChange={(e) => {
-                      const newQuestions = [...questions];
-                      newQuestions[qIndex].isRequired = e.target.checked;
-                      setQuestions(newQuestions);
-                      onFormDataChange({ ...formData, questions: newQuestions });
-                    }}
-                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                  />
-                  <label className="ml-2 block text-sm text-gray-900">
-                    Required
-                  </label>
-                </div>
-                <button type="button" onClick={() => handleOpenLogicModal(qIndex)} className="text-sm text-blue-600 hover:text-blue-800 ml-4">Logic</button>
+              <div className="flex justify-end">
+                <button type="button" onClick={() => handleOpenLogicModal(qIndex)} className="text-sm text-blue-600 hover:text-blue-800">Logic</button>
               </div>
               {q.type === 'multiple-choice' && (
                 <div>
@@ -333,7 +306,6 @@ const SurveyForm = ({ formData, onFormDataChange, onSubmit, onCancel, buttonText
               )}
             </div>
           </DraggableQuestion>
-          )
         ))}
 
         <div className="flex justify-end space-x-2 mt-4">

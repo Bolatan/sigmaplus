@@ -9,6 +9,7 @@ import CoreInsightAreas from './sections/coreInsightAreas.js';
 import RegionalAndOutletLevelFindings from './sections/regionalAndOutletLevelFindings.js';
 import Recommendations from './sections/recommendations.js';
 import BrandAwarenessAndPerception from './sections/brandAwarenessAndPerception.js';
+import BrandUsageAndPurchaseBehavior from './sections/brandUsageAndPurchaseBehavior.js';
 
 // Map section IDs from the template to their corresponding generator classes
 const sectionGenerators = {
@@ -19,6 +20,7 @@ const sectionGenerators = {
   'regional-and-outlet-level-findings': RegionalAndOutletLevelFindings,
   'recommendations': Recommendations,
   'brand-awareness-and-perception': BrandAwarenessAndPerception,
+  'brand-usage-and-purchase-behavior': BrandUsageAndPurchaseBehavior,
 };
 
 export default class Reporting {
@@ -41,7 +43,10 @@ export default class Reporting {
         if (GeneratorClass) {
           let generator;
           // Special handling for sections that need raw data
-          if (sectionConfig.id === 'brand-awareness-and-perception') {
+          if (
+            sectionConfig.id === 'brand-awareness-and-perception' ||
+            sectionConfig.id === 'brand-usage-and-purchase-behavior'
+          ) {
             generator = new GeneratorClass({ responses, company });
           } else {
             // Pass the entire dataProcessor instance to other generators

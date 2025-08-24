@@ -24,14 +24,10 @@ import projectRoutes from './routes/projects.js';
 import cronRoutes from './routes/cron.js';
 import marketResearchRoutes from './routes/market-research.js';
 import surveyBuilderRoutes from './routes/survey-builder.js';
-import questionBankRoutes from './routes/question-bank.js';
 import advancedAnalyticsRoutes from './routes/advanced-analytics.js';
 import collaborationRoutes from './routes/collaboration.js';
-import reminderRoutes from './routes/reminders.js';
 import multiSurveyAnalysisRoutes from './routes/multi-survey-analysis.js';
-import dashboardRoutes from './routes/dashboard.js';
 import scheduleReportGeneration from './services/reportingService.js';
-import { scheduleReminderJobs } from './services/reminderService.js';
 import multer from 'multer';
 import Reporting from './reporting/index.js';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
@@ -82,16 +78,13 @@ app.use('/api/auth', authRoutes); // Mount authentication routes
 app.use('/api/surveys', surveyRoutesFunction(upload));
 app.use('/api/projects', projectRoutes(upload));
 app.use('/api/users', userRoutes);
-app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/market-research', marketResearchRoutes);
 app.use('/api/survey-builder', surveyBuilderRoutes);
-app.use('/api/question-bank', questionBankRoutes);
 app.use('/api/advanced-analytics', advancedAnalyticsRoutes);
 app.use('/api/collaboration', collaborationRoutes);
-app.use('/api/reminders', reminderRoutes);
 app.use('/api/multi-survey-analysis', multiSurveyAnalysisRoutes);
 
 import statsRoutes from './routes/stats.js';
@@ -203,7 +196,6 @@ connectToServer()
     app.listen(port, () => {
       console.log(`Server running on port ${port} and connected to MongoDB.`);
       scheduleReportGeneration();
-      scheduleReminderJobs();
     });
   })
   .catch(err => {

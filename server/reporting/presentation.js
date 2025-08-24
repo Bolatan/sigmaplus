@@ -84,6 +84,31 @@ export default class Presentation {
     });
   }
 
+  addBrandUsageSlide(section) {
+    if (!section.content || !Array.isArray(section.content)) {
+      return;
+    }
+
+    section.content.forEach(subSection => {
+      const slide = this.pptx.addSlide({ masterName: 'CONTENT_SLIDE' });
+      slide.addText(subSection.title, layouts.contentTitle);
+
+      const content = subSection.content || 'No content available.';
+      slide.addText(content, { ...layouts.contentBody, bullet: false });
+
+      if (subSection.chartData) {
+        slide.addText(`[Chart: ${subSection.chartData.type}]`, {
+          x: 1,
+          y: 4,
+          w: '80%',
+          h: '20%',
+          align: 'center',
+          color: 'C0C0C0'
+        });
+      }
+    });
+  }
+
   addTitleSlide() {
     const slide = this.pptx.addSlide({ masterName: 'TITLE_SLIDE' });
     slide.addText(this.report.title, layouts.title);
@@ -213,6 +238,9 @@ export default class Presentation {
             break;
           case 'Brand Awareness & Perception':
             this.addBrandAwarenessSlide(section);
+            break;
+          case 'Brand Usage & Purchase Behavior':
+            this.addBrandUsageSlide(section);
             break;
           default:
             // Generic handling for other sections

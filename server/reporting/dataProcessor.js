@@ -1,105 +1,76 @@
-// server/reporting/dataProcessor.js
 export default class DataProcessor {
   constructor(clientData) {
     this.clientData = clientData;
-    this.responses = clientData.responses || [];
-    this.survey = clientData.survey || {};
-    this.processedData = null; // To cache processed data
+    this.summaryStatistics = {};
+    this.processed = false;
   }
 
-  // Main processing method, can be called to cache results
   process() {
-    if (this.processedData) {
-      return this.processedData;
+    if (this.processed) return this;
+    console.log('Processing data...');
+
+    const { responses } = this.clientData;
+    if (!responses) return this;
+
+    const responsesByQuestion = {};
+    responses.forEach(response => {
+      if (response.answers && Array.isArray(response.answers)) {
+        response.answers.forEach(answer => {
+          if (!responsesByQuestion[answer.questionId]) {
+            responsesByQuestion[answer.questionId] = [];
+          }
+          responsesByQuestion[answer.questionId].push(answer.value);
+        });
+      }
+    });
+
+    for (const questionId in responsesByQuestion) {
+      const values = responsesByQuestion[questionId];
+      this.summaryStatistics[questionId] = {
+        count: values.length,
+      };
     }
 
-    console.log('Processing data for reporting...');
-
-    this.processedData = {
-      totalResponses: this.responses.length,
-      demographicsProfile: this.getDemographicsProfile(),
-      questionAnalysis: this.analyzeQuestions(),
-    };
-
-    return this.processedData;
+    this.processed = true;
+    return this;
   }
 
-  getDemographicsProfile() {
-    const profile = {
-      location: {},
-      gender: {},
-      age: {},
-      occupation: {},
-      income: {},
-      outletType: {},
-    };
+  getTopChallenges(limit = 5) {
+    // Assuming a question with ID 'challenges' exists
+    const challenges = this.clientData.responses
+      .map(r => r.data?.challenges)
+      .filter(Boolean);
 
-    if (!this.responses || this.responses.length === 0) {
-      return profile;
-    }
+    const counts = challenges.reduce((acc, val) => {
+      acc[val] = (acc[val] || 0) + 1;
+      return acc;
+    }, {});
 
-    this.responses.forEach(response => {
-      // Aggregate location data (assuming location is an object with city/state)
-      if (response.location && response.location.state) {
-        const state = response.location.state;
-        profile.location[state] = (profile.location[state] || 0) + 1;
-      }
-
-      // Aggregate demographics data
-      if (response.demographics) {
-        Object.keys(profile).forEach(key => {
-          if (key !== 'location' && response.demographics[key]) {
-            const value = response.demographics[key];
-            profile[key][value] = (profile[key][value] || 0) + 1;
-          }
-        });
-      }
-    });
-
-    return profile;
+    return Object.entries(counts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, limit)
+      .map(([challenge]) => challenge);
   }
 
-  analyzeQuestions() {
-    const analysis = {};
-    const questions = this.survey.questions || [];
+  getImprovementOpportunities(limit = 5) {
+    // Assuming a question with ID 'improvements' exists
+    const improvements = this.clientData.responses
+      .map(r => r.data?.improvements)
+      .filter(Boolean);
 
-    questions.forEach(question => {
-      analysis[question.id] = {
-        text: question.text,
-        type: question.type,
-        responses: [],
-        summary: {},
-      };
-    });
+    const counts = improvements.reduce((acc, val) => {
+      acc[val] = (acc[val] || 0) + 1;
+      return acc;
+    }, {});
 
-    this.responses.forEach(response => {
-      if (response.responseData) {
-        Object.entries(response.responseData).forEach(([questionId, answer]) => {
-          if (analysis[questionId]) {
-            analysis[questionId].responses.push(answer);
-          }
-        });
-      }
-    });
+    return Object.entries(counts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, limit)
+      .map(([improvement]) => improvement);
+  }
 
-    // Generate summary statistics for each question
-    Object.keys(analysis).forEach(questionId => {
-      const question = analysis[questionId];
-      const responses = question.responses;
-      const summary = {
-        total: responses.length,
-        breakdown: {},
-      };
-
-      if (['single-choice', 'multiple-choice', 'rating'].includes(question.type)) {
-        responses.flat().forEach(answer => {
-          summary.breakdown[answer] = (summary.breakdown[answer] || 0) + 1;
-        });
-      }
-
-      analysis[questionId].summary = summary;
-    });
-
-    return analysis;
+  generateChartForChallenges() {
+    // Placeholder for chart generation logic
+    return 'base64-placeholder-chart-for-challenges';
   }
 }

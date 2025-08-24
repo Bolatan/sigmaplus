@@ -36,13 +36,14 @@ export const defaultTemplate = {
       content: [],
     },
     {
+      id: 'brand-usage-and-purchase-behavior',
+      title: 'Brand Usage & Purchase Behavior',
+      content: [],
+    },
+    {
       id: 'core-insight-areas',
       title: 'Core Insight Areas',
       content: [
-        {
-          title: 'Brand Usage & Purchase Behavior',
-          content: '',
-        },
         {
           title: 'Customer Satisfaction & Loyalty Metrics',
           content: '',

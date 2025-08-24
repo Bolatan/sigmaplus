@@ -16,7 +16,6 @@ export default class CoreInsightAreas {
   constructor(dataProcessor) {
     this.dataProcessor = dataProcessor;
     this.subSections = [
-      BrandUsageAndPurchaseBehavior,
       CustomerSatisfactionAndLoyalty,
       ChallengesAndImprovementOpportunities,
       OutletDynamics,

@@ -3,22 +3,17 @@ import ChartGenerator from './chartGenerator.js';
 
 // Mock dependencies
 jest.mock('./dataProcessor.js', () => {
-  return jest.fn().mockImplementation((clientData) => { // Accept clientData
+  return jest.fn().mockImplementation(() => {
     return {
-      clientData: clientData, // Pass clientData through
-      survey: clientData.survey, // Pass survey through for generators that use it
       process: jest.fn().mockReturnValue({
-        totalResponses: clientData.responses.length,
-        questionAnalysis: {}, // Mocked empty for now
-        getTopChallenges: jest.fn().mockReturnValue(['Mock Challenge 1']),
-        getImprovementOpportunities: jest.fn().mockReturnValue(['Mock Opportunity 1']),
-        summaryStatistics: { 'q1': { count: 10 }, 'q2': { count: 20 } },
+        summaryStatistics: {
+          q1: { count: 10 },
+          q2: { count: 20 },
+        },
+        getTopChallenges: jest.fn().mockReturnValue(['Challenge 1', 'Challenge 2']),
+        getImprovementOpportunities: jest.fn().mockReturnValue(['Opportunity 1', 'Opportunity 2']),
       }),
-      getDemographicsProfile: jest.fn().mockReturnValue({
-        location: { 'State A': 1, 'State B': 1 },
-        gender: { 'Male': 1, 'Female': 1 },
-      }),
-      generateChartForChallenges: jest.fn().mockResolvedValue('base64-encoded-chart'),
+      generateChartForChallenges: jest.fn().mockReturnValue('base64-encoded-chart'),
     };
   });
 });
@@ -48,17 +43,18 @@ describe('Reporting', () => {
     const report = await reporting.generateReport();
 
     // Check for the presence of all sections
-    expect(report.sections.length).toBe(7);
+    expect(report.sections.length).toBe(8);
     expect(report.sections[0].title).toBe('Study Overview');
     expect(report.sections[1].title).toBe('Respondent Profile');
     expect(report.sections[2].title).toBe('Executive Summary');
     expect(report.sections[3].title).toBe('Brand Awareness & Perception');
-    expect(report.sections[4].title).toBe('Core Insight Areas');
-    expect(report.sections[5].title).toBe('Regional and Outlet-Level Findings');
-    expect(report.sections[6].title).toBe('Recommendations');
+    expect(report.sections[4].title).toBe('Brand Usage & Purchase Behavior');
+    expect(report.sections[5].title).toBe('Core Insight Areas');
+    expect(report.sections[6].title).toBe('Regional and Outlet-Level Findings');
+    expect(report.sections[7].title).toBe('Recommendations');
 
     // Check the Core Insight Areas section
-    const coreInsightAreas = report.sections[4];
-    expect(coreInsightAreas.content.length).toBe(13); // 11 subsections + 2 charts
+    const coreInsightAreas = report.sections[5];
+    expect(coreInsightAreas.content.length).toBe(12); // 10 subsections + 2 charts
   });
 });
