@@ -5,7 +5,7 @@ import { Survey } from '../types'; // Assuming Survey type might need question s
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input'; // For basic text input
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
-
+import useApi from '../hooks/useApi';
 import { QuestionType } from '../types';
 
 // Define a simple question structure for now
@@ -33,6 +33,7 @@ const SurveyResponsePage: React.FC = () => {
   const { surveyId } = useParams<{ surveyId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const apiFetch = useApi();
 
   const [survey, setSurvey] = useState<SurveyWithQuestions | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,27 +52,9 @@ const SurveyResponsePage: React.FC = () => {
       }
       setIsLoading(true);
       setError(null);
-      const token = localStorage.getItem('authToken');
-
-      if (!token) {
-        setError("Authentication required. Please login.");
-        setIsLoading(false);
-        return;
-      }
 
       try {
-        const response = await fetch(`/api/surveys/${surveyId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.msg || errorData.error || `Failed to fetch survey details: ${response.statusText}`);
-        }
-
-        const surveyData = await response.json();
+        const surveyData = await apiFetch(`/surveys/${surveyId}`);
         const surveyFromApi = surveyData.data || surveyData;
 
         if (!surveyFromApi || !surveyFromApi._id) {
@@ -100,7 +83,7 @@ const SurveyResponsePage: React.FC = () => {
         setIsLoading(false);
     }
     // If token exists but user is null, AuthContext is loading, page will show its own loader.
-  }, [surveyId, user]);
+  }, [surveyId, user, apiFetch]);
 
   const handleFileUpload = async (questionId: string, file: File) => {
     const token = localStorage.getItem('authToken');
@@ -183,30 +166,13 @@ const SurveyResponsePage: React.FC = () => {
     setIsSubmitting(true);
     setError(null);
     setSuccessMessage(null);
-    const token = localStorage.getItem('authToken');
-
-    if (!token) {
-      setError("Authentication required. Please login again.");
-      setIsSubmitting(false);
-      return;
-    }
 
     try {
-      const response = await fetch(`/api/surveys/${surveyId}/responses`, {
+      await apiFetch(`/surveys/${surveyId}/responses`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
         body: JSON.stringify({ data: responses }), // Backend expects 'data' field for responseData
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.msg || errorData.error || `Failed to submit responses: ${response.statusText}`);
-      }
-
-      // const submissionResult = await response.json(); // Contains the created response
       setSuccessMessage("Your response has been submitted successfully!");
       // Optionally, disable the form or redirect:
       // navigate(`/surveys/${surveyId}/thankyou`); or set a state to disable form inputs

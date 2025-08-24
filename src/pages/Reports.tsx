@@ -7,6 +7,7 @@ import { Card, CardContent } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
 import { Report as ReportType, Section } from '../types';
+import useApi from '../hooks/useApi';
 
 const Reports: React.FC = () => {
   const [reports, setReports] = useState<ReportType[]>([]);
@@ -30,6 +31,7 @@ const Reports: React.FC = () => {
   const [isLoadingSurveys, setIsLoadingSurveys] = useState(false);
 
   const { user } = useAuth();
+  const apiFetch = useApi();
   const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,20 +46,12 @@ const Reports: React.FC = () => {
 
   const fetchAvailableSurveys = async () => {
     setIsLoadingSurveys(true);
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setIsLoadingSurveys(false);
-      return;
-    }
     try {
-      const response = await fetch('/api/surveys', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error('Failed to fetch surveys for dropdown.');
-      const data = await response.json();
+      const data = await apiFetch('/surveys');
       setAvailableSurveys((data.data || data || []).map((s: any) => ({ id: s._id || s.id, title: s.title })));
     } catch (error) {
       console.error("Error fetching available surveys:", error);
+      // Optionally set an error state for the modal
     } finally {
       setIsLoadingSurveys(false);
     }
@@ -67,32 +61,7 @@ const Reports: React.FC = () => {
     setIsLoading(true);
     setApiError(null);
     try {
-      const token = localStorage.getItem('authToken');
-      const apiUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/reports` : '/api/reports';
-
-      const headers: HeadersInit = {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        };
-
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const response = await fetch(apiUrl, { headers });
-
-      if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch (e) {
-          errorMessage = response.statusText || errorMessage;
-        }
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
+      const data = await apiFetch('/reports');
       const fetchedReports = (data.data || data || []).map((r: any) => ({
         ...r,
         id: r._id,
@@ -111,12 +80,6 @@ const Reports: React.FC = () => {
     e.preventDefault();
     setApiError(null);
 
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setApiError("Authentication token not found. Please log in again.");
-      return;
-    }
-
     if (!newReport.title || !newReport.description || !newReport.surveyId) {
       setApiError("Title, description, and survey selection are required.");
       return;
@@ -131,26 +94,10 @@ const Reports: React.FC = () => {
     };
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/reports` : '/api/reports';
-      const response = await fetch(apiUrl, {
+      await apiFetch('/reports', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
         body: JSON.stringify(reportPayload),
       });
-
-      if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch (parseError) {
-          errorMessage = response.statusText || errorMessage;
-        }
-        throw new Error(errorMessage);
-      }
 
       setIsAddModalOpen(false);
       setNewReport({
@@ -186,7 +133,7 @@ const Reports: React.FC = () => {
     setIsDetailModalOpen(true);
   };
 
-  const handleDownloadReport = async (report: ReportType, format: 'pdf' | 'pptx' = 'pdf') => {
+  const handleDownloadReport = async (report: ReportType, format: 'pdf' | 'pptx' | 'xlsx') => {
     const token = localStorage.getItem('authToken');
     if (!token) {
       setApiError('Authentication required to download reports.');
