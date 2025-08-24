@@ -7,7 +7,7 @@ const ItemTypes = {
   QUESTION: 'question',
 };
 
-const DraggableQuestion = ({ id, index, moveQuestion, children }) => {
+function DraggableQuestion({ id, index, moveQuestion, children }) {
   const ref = React.useRef(null);
   const [, drop] = useDrop({
     accept: ItemTypes.QUESTION,
@@ -50,7 +50,7 @@ const DraggableQuestion = ({ id, index, moveQuestion, children }) => {
       {children}
     </div>
   );
-};
+}
 
 
 const SurveyForm = ({ formData, onFormDataChange, onSubmit, onCancel, buttonText, agents, companies, projects, user, onDrop }) => {
