@@ -255,13 +255,6 @@ const Users: React.FC = () => {
     setIsLoading(true);
     setApiError(null);
 
-    if (loggedInUser?.role !== UserRole.ADMIN) {
-      setApiError("Access Denied: You do not have permission to view users.");
-      setIsLoading(false);
-      setUsers([]);
-      return;
-    }
-
     try {
       const result = await apiFetch('/users');
       const fetchedUsers = (result.data || []).map((u: any) => ({
@@ -282,14 +275,9 @@ const Users: React.FC = () => {
 
 // This useEffect handles initial data fetch and re-fetch on user change
 useEffect(() => {
-  if (loggedInUser && loggedInUser.role === UserRole.ADMIN) {
+  if (loggedInUser) {
     fetchUsers();
-  } else if (loggedInUser && loggedInUser.role !== UserRole.ADMIN) { 
-    // If logged in but not admin
-    setApiError("Access Denied: You do not have permission to view users.");
-    setIsLoading(false);
-    setUsers([]);
-  } else if (!loggedInUser && !localStorage.getItem('authToken')) { 
+  } else if (!localStorage.getItem('authToken')) {
     // Explicitly not logged in (no token)
     setApiError("No authentication token found. Please login.");
     setIsLoading(false);
