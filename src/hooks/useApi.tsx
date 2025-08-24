@@ -56,6 +56,10 @@ const useApi = () => {
           const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
           throw new Error(errorData.message || 'An error occurred');
         }
+        // Handle 204 No Content
+        if (response.status === 204) {
+          return null;
+        }
         return response.json();
       }
 
