@@ -94,6 +94,13 @@ const SurveyForm = ({ formData, onFormDataChange, onSubmit, onCancel, buttonText
     onFormDataChange({ ...formData, questions: newQuestions });
   };
 
+  const removeQuestion = (qIndex) => {
+    const newQuestions = [...questions];
+    newQuestions.splice(qIndex, 1);
+    setQuestions(newQuestions);
+    onFormDataChange({ ...formData, questions: newQuestions });
+  };
+
   const moveQuestion = (dragIndex, hoverIndex) => {
     const newQuestions = [...questions];
     const [removed] = newQuestions.splice(dragIndex, 1);
@@ -267,6 +274,7 @@ const SurveyForm = ({ formData, onFormDataChange, onSubmit, onCancel, buttonText
                   </label>
                 </div>
                 <button type="button" onClick={() => handleOpenLogicModal(qIndex)} className="text-sm text-blue-600 hover:text-blue-800 ml-4">Logic</button>
+                <button type="button" onClick={() => removeQuestion(qIndex)} className="text-sm text-red-600 hover:text-red-800 ml-4">Remove</button>
               </div>
               {q.type === 'multiple-choice' && (
                 <div>
