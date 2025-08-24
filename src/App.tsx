@@ -112,7 +112,7 @@ const AppRoutes: React.FC = () => {
         } />
         <Route path="/users" element={
           <ProtectedRoute>
-            {user?.role === 'admin' ? <Users /> : <Navigate to="/" />}
+            <Users />
           </ProtectedRoute>
         } />
         <Route path="/settings" element={
@@ -122,7 +122,7 @@ const AppRoutes: React.FC = () => {
         } />
         <Route path="/companies" element={
           <ProtectedRoute>
-            {user?.role === 'admin' ? <Companies /> : <Navigate to="/" />}
+            <Companies />
           </ProtectedRoute>
         } />
         <Route path="/surveys/:surveyId/respond" element={
