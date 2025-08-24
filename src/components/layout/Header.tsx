@@ -15,10 +15,10 @@ const Header: React.FC = () => {
     <header className="bg-white shadow-md">
       <div className="container mx-auto px-4 py-2 flex justify-between items-center">
         <div className="flex items-center space-x-8">
-          <a href="/" className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center space-x-2">
             <img src="/logo.png" alt="SignaPlus Logo" className="h-8" />
             <span className="text-2xl font-bold text-gray-800">SignaPlus</span>
-          </a>
+          </Link>
           <nav className="hidden md:flex space-x-4">
             <NavLink to="/dashboard">Dashboard</NavLink>
             <NavLink to="/projects">Projects</NavLink>
