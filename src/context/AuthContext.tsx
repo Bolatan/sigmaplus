@@ -44,18 +44,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    const savedUserString = localStorage.getItem('user');
-    if (token && savedUserString) {
-      try {
-        const savedUser = JSON.parse(savedUserString);
-        setUser(savedUser);
-      } catch (e) {
-        console.error("Error parsing saved user from localStorage", e);
-        logout(); // Clear corrupted data
+    const verifyUserSession = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setIsLoading(false);
+        return;
       }
-    }
-    setIsLoading(false);
+
+      try {
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+        const response = await fetch(`${baseUrl}/api/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Session expired or invalid.');
+        }
+
+        const data = await response.json();
+        if (data.token && data.user) {
+          setAuthToken(data.token);
+          setUser(data.user);
+          localStorage.setItem('user', JSON.stringify(data.user));
+        } else {
+          throw new Error('Invalid refresh response.');
+        }
+      } catch (error) {
+        console.error('Session verification failed:', error);
+        logout(); // Clear invalid token and user data
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    verifyUserSession();
   }, []);
 
   const login = async (email: string, password: string) => {
