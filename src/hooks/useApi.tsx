@@ -40,9 +40,7 @@ const useApi = () => {
   };
 
   const apiFetch = async (url: string, options: RequestInit = {}) => {
-    let token = localStorage.getItem('authToken');
-
-    const makeRequest = async (): Promise<any> => {
+    const makeRequest = async (token: string | null): Promise<any> => {
       const headers = {
         'Content-Type': 'application/json',
         ...options.headers,
@@ -68,16 +66,16 @@ const useApi = () => {
 
       try {
         const newToken = await refreshTokenPromise;
-        token = newToken;
         // Retry the original request with the new token
-        return makeRequest();
+        return makeRequest(newToken);
       } catch (error) {
         // This will be caught if handleRefreshToken throws an error
         throw new Error('Session expired. Please log in again.');
       }
     };
 
-    return makeRequest();
+    const initialToken = localStorage.getItem('authToken');
+    return makeRequest(initialToken);
   };
 
   return apiFetch;
