@@ -22,7 +22,7 @@ const MarketResearchPage: React.FC = () => {
   };
 
   return (
-    <Layout>
+    <Layout show_header={false} show_footer={false}>
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold">Market Research</h1>
         <p className="mt-4 text-lg">This module provides market research tools and data.</p>
