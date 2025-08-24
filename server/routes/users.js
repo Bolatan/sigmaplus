@@ -12,11 +12,10 @@ import {
 
 const router = express.Router();
 
-// GET all users (Admin only)
+// GET all users
 router.get(
     '/',
     verifyToken,
-    authorizeRole(['admin']),
     getUsers
 );
 
