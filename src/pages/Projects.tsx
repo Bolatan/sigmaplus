@@ -6,6 +6,7 @@ import { Card, CardContent } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import useApi from '../hooks/useApi';
 
 interface Project {
   id: string;
@@ -25,11 +26,12 @@ const Projects: React.FC = () => {
   });
   const { user } = useAuth();
   const navigate = useNavigate();
+  const apiFetch = useApi();
   const [apiError, setApiError] = useState<string | null>(null);
 
-  const triggerRefetch = () => {
+  const triggerRefetch = useCallback(() => {
     fetchProjects();
-  };
+  }, []);
 
   const resetForm = useCallback(() => {
     setFormData({
@@ -38,58 +40,32 @@ const Projects: React.FC = () => {
     });
   }, []);
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     setIsLoading(true);
     setApiError(null);
-    const token = localStorage.getItem('authToken');
-
-    if (!token) {
-      setApiError("No authentication token found. Please login.");
-      setIsLoading(false);
-      setProjects([]);
-      return;
-    }
-
     try {
-      const response = await fetch('/api/projects', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        setApiError(errorData.msg || errorData.error || `HTTP error! status: ${response.status}`);
-        setProjects([]);
-      } else {
-        const result = await response.json();
-        const fetchedProjects = (result.data || []).map((p: any) => ({
-          ...p,
-          id: p._id,
-          createdAt: p.createdAt || new Date().toISOString(),
-        }));
-        setProjects(fetchedProjects);
-      }
+      const result = await apiFetch('/projects');
+      const fetchedProjects = (result.data || []).map((p: any) => ({
+        ...p,
+        id: p._id,
+        createdAt: p.createdAt || new Date().toISOString(),
+      }));
+      setProjects(fetchedProjects);
     } catch (error: any) {
-      if (!apiError) setApiError(error.message || 'Failed to fetch projects from API.');
+      setApiError(error.message || 'Failed to fetch projects from API.');
       setProjects([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [apiFetch]);
 
   useEffect(() => {
     fetchProjects();
-  }, [user]);
+  }, [user, fetchProjects]);
 
   const handleAddProject = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setApiError(null);
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setApiError("Authentication required. Please login.");
-      return;
-    }
 
     if (!formData.title.trim()) {
       setApiError("Project title is required.");
@@ -97,53 +73,27 @@ const Projects: React.FC = () => {
     }
 
     try {
-      const response = await fetch('/api/projects', {
+      await apiFetch('/projects', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
         body: JSON.stringify(formData),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to create project: ${response.statusText}`);
-      }
-
       setIsAddModalOpen(false);
       resetForm();
       triggerRefetch();
     } catch (error: any) {
       setApiError(error.message || 'An unexpected error occurred while adding the project.');
     }
-  }, [formData, resetForm]);
+  }, [formData, resetForm, triggerRefetch, apiFetch]);
 
   const handleDelete = async (projectId: string) => {
     if (!window.confirm('Are you sure you want to delete this project and all its surveys?')) {
       return;
     }
-
     setApiError(null);
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setApiError("Authentication required. Please login.");
-      return;
-    }
-
     try {
-      const response = await fetch(`/api/projects/${projectId}`, {
+      await apiFetch(`/projects/${projectId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.msg || errorData.error || `Failed to delete project: ${response.statusText}`);
-      }
-
       triggerRefetch();
     } catch (error: any) {
       setApiError(error.message || 'An unexpected error occurred while deleting the project.');

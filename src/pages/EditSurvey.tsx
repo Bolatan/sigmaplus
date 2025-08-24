@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { SurveyQuestion } from '../types';
 import SurveyForm from '../components/surveys/SurveyForm';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import useApi from '../hooks/useApi';
 
 interface SurveyFormData {
   title: string;
@@ -20,6 +21,7 @@ const EditSurvey: React.FC = () => {
   const [apiError, setApiError] = useState<string | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const apiFetch = useApi();
   const [agents, setAgents] = useState<Record<string, unknown>[]>([]);
   const [companies, setCompanies] = useState<Record<string, unknown>[]>([]);
   const [surveys, setSurveys] = useState<Record<string, unknown>[]>([]);
@@ -28,23 +30,8 @@ const EditSurvey: React.FC = () => {
   useEffect(() => {
     const fetchSurvey = async () => {
       setIsLoading(true);
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        setApiError("Authentication required.");
-        setIsLoading(false);
-        return;
-      }
-
       try {
-        const response = await fetch(`/api/surveys/${surveyId}`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch survey data.');
-        }
-
-        const { data } = await response.json();
+        const { data } = await apiFetch(`/surveys/${surveyId}`);
         setFormData({
           title: data.title,
           description: data.description,
@@ -52,72 +39,53 @@ const EditSurvey: React.FC = () => {
           agentId: data.agentId,
           companyIds: data.companyIds,
         });
-      } catch (error) {
-        setApiError((error as Error).message);
+      } catch (error: any) {
+        setApiError(error.message);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchSurvey();
-  }, [surveyId]);
+  }, [surveyId, apiFetch]);
 
   useEffect(() => {
     const fetchRelatedData = async () => {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
-
       try {
-        const [agentsRes, companiesRes, surveysRes, projectsRes] = await Promise.all([
-          fetch('/api/users?role=agent', { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch('/api/companies', { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch('/api/surveys', { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch('/api/projects', { headers: { 'Authorization': `Bearer ${token}` } }),
+        const [agentsData, companiesData, surveysData, projectsData] = await Promise.all([
+          apiFetch('/users?role=agent'),
+          apiFetch('/companies'),
+          apiFetch('/surveys'),
+          apiFetch('/projects'),
         ]);
 
-        if (agentsRes.ok) setAgents((await agentsRes.json()).data || []);
-        if (companiesRes.ok) setCompanies((await companiesRes.json()).data || []);
-        if (surveysRes.ok) setSurveys((await surveysRes.json()).data || []);
-        if (projectsRes.ok) setProjects((await projectsRes.json()).data || []);
+        setAgents(agentsData.data || []);
+        setCompanies(companiesData.data || []);
+        setSurveys(surveysData.data || []);
+        setProjects(projectsData.data || []);
       } catch (error) {
         console.error("Failed to fetch related data:", error);
       }
     };
 
     fetchRelatedData();
-  }, []);
+  }, [apiFetch]);
 
   const handleFormSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData) return;
 
     setApiError(null);
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setApiError("Authentication required.");
-      return;
-    }
-
     try {
-      const response = await fetch(`/api/surveys/${surveyId}`, {
+      await apiFetch(`/surveys/${surveyId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
         body: JSON.stringify(formData),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update survey.');
-      }
-
       navigate(`/surveys/${surveyId}`);
-    } catch (error) {
-      setApiError((error as Error).message);
+    } catch (error: any) {
+      setApiError(error.message);
     }
-  }, [formData, surveyId, navigate]);
+  }, [formData, surveyId, navigate, apiFetch]);
 
   if (isLoading) return <div>Loading...</div>;
   if (apiError) return <div className="text-red-500">{apiError}</div>;

@@ -5,6 +5,7 @@ import { Input } from '../components/ui/Input';
 import { Card, CardContent } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
+import useApi from '../hooks/useApi';
 
 interface Company {
   id: string;
@@ -119,6 +120,7 @@ const Companies: React.FC = () => {
     employeeCount: 0
   });
   const { user: loggedInUser } = useAuth();
+  const apiFetch = useApi();
   const [apiError, setApiError] = useState<string | null>(null);
 
   // Moved resetForm to the top, before other functions that might use it
@@ -142,53 +144,23 @@ const Companies: React.FC = () => {
   // Optimized fetchCompanies useCallback
   const fetchCompanies = useCallback(async () => {
     setIsLoading(true);
-    setApiError(null); // Clear any previous API errors at the start of a new fetch attempt
-    const token = localStorage.getItem('authToken');
-
-    if (!token) {
-      setApiError("No authentication token found. Please login.");
-      setIsLoading(false);
-      setCompanies([]);
-      return;
-    }
-
+    setApiError(null);
     try {
-      const response = await fetch('/api/companies', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        let errorMsg = `Error fetching companies: ${response.statusText}`;
-        if (response.status === 401 || response.status === 403) {
-          try {
-            const errorData = await response.json();
-            errorMsg = errorData.msg || errorData.error || errorMsg;
-          } catch (e) { /* ignore if error response not json */ }
-        }
-        setApiError(errorMsg);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
+      const result = await apiFetch('/companies');
       const fetchedCompanies = (result.data || []).map((c: any) => ({
         ...c,
         id: c._id,
         logo: c.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=random`,
       }));
       setCompanies(fetchedCompanies);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching companies from API:', error);
-      // Only set the error if it hasn't been set by the response.ok check above
-      if (!apiError) { // Check if apiError is null before setting a generic message
-        setApiError('Failed to fetch companies. Please try again.');
-      }
+      setApiError(error.message || 'Failed to fetch companies. Please try again.');
       setCompanies([]);
     } finally {
       setIsLoading(false);
     }
-  }, [loggedInUser]); // Correct dependencies: only depends on loggedInUser
+  }, [apiFetch]);
 
   // Simplified useEffect for initial data fetch
   useEffect(() => {
@@ -203,14 +175,8 @@ const Companies: React.FC = () => {
 
   const handleAddCompany = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    setApiError(null); // Clear previous errors
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setApiError("Authentication required.");
-      return;
-    }
+    setApiError(null);
 
-    // Basic frontend validation (backend will also validate)
     if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.address.trim()) {
       setApiError("Name, Email, Phone, and Address are required.");
       return;
@@ -221,22 +187,10 @@ const Companies: React.FC = () => {
     }
 
     try {
-      const response = await fetch('/api/companies', {
+      await apiFetch('/companies', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData), // Send all formData
+        body: JSON.stringify(formData),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to add company: ${response.statusText}`);
-      }
-
-      // Instead of relying on the API response for the new company data,
-      // re-fetch the entire list to ensure consistency and proper IDs from the backend.
       await fetchCompanies();
       setIsAddModalOpen(false);
       resetForm();
@@ -244,7 +198,7 @@ const Companies: React.FC = () => {
       console.error('Error adding company via API:', error);
       setApiError(error.message || 'An unexpected error occurred while adding the company.');
     }
-  }, [formData, resetForm, fetchCompanies]); // Dependencies are correct
+  }, [formData, resetForm, fetchCompanies, apiFetch]);
 
   const handleEditCompany = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -252,14 +206,8 @@ const Companies: React.FC = () => {
       setApiError("No company selected for editing or company ID is missing.");
       return;
     }
-    setApiError(null); // Clear previous errors
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setApiError("Authentication required.");
-      return;
-    }
+    setApiError(null);
 
-    // Basic frontend validation (backend will also validate)
     if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.address.trim()) {
       setApiError("Name, Email, Phone, and Address are required for editing.");
       return;
@@ -270,21 +218,10 @@ const Companies: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`/api/companies/${editingCompany.id}`, {
+      await apiFetch(`/companies/${editingCompany.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData), // Send all formData for update
+        body: JSON.stringify(formData),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update company: ${response.statusText}`);
-      }
-
-      // Re-fetch the companies list to ensure consistency after an update.
       await fetchCompanies();
       setIsEditModalOpen(false);
       resetForm();
@@ -292,20 +229,13 @@ const Companies: React.FC = () => {
       console.error('Error updating company via API:', error);
       setApiError(error.message || 'An unexpected error occurred while updating the company.');
     }
-  }, [formData, editingCompany, resetForm, fetchCompanies]); // Dependencies are correct
+  }, [formData, editingCompany, resetForm, fetchCompanies, apiFetch]);
 
   const handleToggleCompanyStatus = useCallback(async (companyId: string, currentStatus: 'active' | 'inactive') => {
-    setApiError(null); // Clear previous errors
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setApiError("Authentication required.");
-      return;
-    }
-
+    setApiError(null);
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     const originalCompanies = [...companies];
 
-    // Optimistic UI update
     setCompanies(prevCompanies =>
       prevCompanies.map(c =>
         c.id === companyId ? { ...c, status: newStatus } : c
@@ -313,43 +243,17 @@ const Companies: React.FC = () => {
     );
 
     try {
-      const response = await fetch(`/api/companies/${companyId}`, {
+      await apiFetch(`/companies/${companyId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: newStatus }), // Only send the status to update
+        body: JSON.stringify({ status: newStatus }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        setCompanies(originalCompanies); // Revert optimistic update
-        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update company status: ${response.statusText}`);
-      }
-
-      // If the API confirms the update, no need to re-fetch the entire list
-      // if the backend response gives the updated company.
-      // However, re-fetching is safer to guarantee full consistency if backend logic is complex.
-      // For simplicity and robustness, staying with a re-fetch for now.
-      await fetchCompanies(); // Re-fetch to ensure full consistency, especially if backend has other side effects
-      // OR: update state with the response for slight optimization if you trust backend response fully:
-      // const updatedCompanyFromApi = await response.json();
-      // const finalUpdatedCompany = {
-      //   ...(updatedCompanyFromApi.data || updatedCompanyFromApi),
-      //   id: (updatedCompanyFromApi.data || updatedCompanyFromApi)._id,
-      //   logo: (updatedCompanyFromApi.data || updatedCompanyFromApi).logo || `https://ui-avatars.com/api/?name=${encodeURIComponent((updatedCompanyFromApi.data || updatedCompanyFromApi).name)}&background=random`
-      // };
-      // setCompanies(prevCompanies =>
-      //   prevCompanies.map(c => (c.id === finalUpdatedCompany.id ? { ...c, ...finalUpdatedCompany } : c))
-      // );
-
+      await fetchCompanies();
     } catch (error: any) {
       console.error('Error updating company status via API:', error);
       setApiError(error.message || 'An unexpected error occurred while updating company status.');
-      setCompanies(originalCompanies); // Ensure reversion on any catch
+      setCompanies(originalCompanies);
     }
-  }, [companies, fetchCompanies]); // `companies` for optimistic update, `fetchCompanies` for refetch
+  }, [companies, fetchCompanies, apiFetch]);
 
   const startEdit = useCallback((company: Company) => {
     setEditingCompany(company);

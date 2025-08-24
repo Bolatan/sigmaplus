@@ -6,6 +6,7 @@ import { Card, CardContent } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types'; // Assuming UserRole is defined here
+import useApi from '../hooks/useApi';
 
 interface User {
   id: string;
@@ -167,6 +168,7 @@ const Users: React.FC = () => {
     confirmPassword: '',
   });
   const { user: loggedInUser } = useAuth();
+  const apiFetch = useApi();
   const [apiError, setApiError] = useState<string | null>(null);
   const [passwordChangeError, setPasswordChangeError] = useState<string | null>(null); // Specific error for password modal
 
@@ -238,16 +240,7 @@ const Users: React.FC = () => {
 
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
-    setApiError(null); // Clear previous API errors
-
-    const token = localStorage.getItem('authToken');
-
-    if (!token) {
-      setApiError("Authentication token not found. Please log in.");
-      setIsLoading(false);
-      setUsers([]);
-      return;
-    }
+    setApiError(null);
 
     if (loggedInUser?.role !== UserRole.ADMIN) {
       setApiError("Access Denied: You do not have permission to view users.");
@@ -257,20 +250,7 @@ const Users: React.FC = () => {
     }
 
     try {
-      const response = await fetch('/api/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.msg || errorData.error || `Error fetching users: ${response.statusText}`;
-        setApiError(errorMessage);
-        throw new Error(errorMessage);
-      }
-
-      const result = await response.json();
+      const result = await apiFetch('/users');
       const fetchedUsers = (result.data || []).map((u: any) => ({
         ...u,
         id: u._id,
@@ -280,13 +260,12 @@ const Users: React.FC = () => {
       setUsers(fetchedUsers);
     } catch (error: any) {
       console.error('Error fetching users from API:', error);
-      // apiError is already set by the response.ok check, only set if no specific error
-      if (!apiError) setApiError(error.message || 'Failed to fetch users. Please try again.');
+      setApiError(error.message || 'Failed to fetch users. Please try again.');
       setUsers([]);
     } finally {
       setIsLoading(false);
     }
-}, [loggedInUser]); // Removed apiError dependency to prevent loops
+  }, [loggedInUser, apiFetch]);
 
 // This useEffect handles initial data fetch and re-fetch on user change
 useEffect(() => {
@@ -309,32 +288,16 @@ useEffect(() => {
 
 const fetchCompanies = useCallback(async () => {
   setIsLoadingCompanies(true);
-  const token = localStorage.getItem('authToken');
-  // Assuming all authenticated users can fetch companies for the dropdown
-  if (!token) {
-    // Not setting apiError here as it's for the main user list,
-    // but logging for debug. The dropdown will just be empty or show loading.
-    console.error("No auth token for fetching companies.");
-    setIsLoadingCompanies(false);
-    return;
-  }
   try {
-    const response = await fetch('/api/companies', { // Assuming this is the endpoint
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
-    if (!response.ok) {
-      throw new Error('Failed to fetch companies');
-    }
-    const result = await response.json();
-    // Assuming result.data is an array of { _id: string, name: string, ... }
+    const result = await apiFetch('/companies');
     setCompanies((result.data || []).map((c: any) => ({ id: c._id || c.id, name: c.name })));
   } catch (error) {
     console.error("Error fetching companies:", error);
-    setCompanies([]); // Clear on error
+    setCompanies([]);
   } finally {
     setIsLoadingCompanies(false);
   }
-}, []); // No dependencies, fetches once or on demand
+}, [apiFetch]);
 
 // Fetch companies when component mounts (or when modals are about to open - later optimization)
 useEffect(() => {
@@ -344,12 +307,7 @@ useEffect(() => {
   const handleAddUser = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setApiError(null);
-    const token = localStorage.getItem('authToken');
 
-    if (!token) {
-      setApiError("Authentication required.");
-      return;
-    }
     if (formData.password !== formData.confirmPassword) {
       setApiError("Passwords do not match.");
       return;
@@ -364,12 +322,8 @@ useEffect(() => {
     }
 
     try {
-      const response = await fetch('/api/auth/register', {
+      await apiFetch('/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
@@ -379,19 +333,14 @@ useEffect(() => {
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to add user: ${response.statusText}`);
-      }
-
-      await fetchUsers(); // Re-fetch the user list to include the new user
+      await fetchUsers();
       setIsAddModalOpen(false);
       resetForm();
     } catch (error: any) {
       console.error('Error adding user via API:', error);
       setApiError(error.message || 'An unexpected error occurred while adding the user.');
     }
-  }, [formData, resetForm, fetchUsers]);
+  }, [formData, resetForm, fetchUsers, apiFetch]);
 
   const handleEditUser = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -400,11 +349,6 @@ useEffect(() => {
       return;
     }
     setApiError(null);
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setApiError("Authentication required.");
-      return;
-    }
 
     if (formData.role === UserRole.CLIENT && !formData.companyId) {
         setApiError("Company ID is required for Client role.");
@@ -416,25 +360,14 @@ useEffect(() => {
       role: formData.role,
       status: editingUser.status, // Preserve existing status
     };
-    // Send companyId as null if empty string to explicitly unset it on backend
     payload.companyId = formData.companyId === '' ? null : formData.companyId;
 
     try {
-      const response = await fetch(`/api/users/${editingUser.id}`, {
+      const updatedUserFromApi = await apiFetch(`/users/${editingUser.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update user: ${response.statusText}`);
-      }
-
-      const updatedUserFromApi = await response.json();
       const updatedUser = {
         ...(updatedUserFromApi.data || updatedUserFromApi),
         id: (updatedUserFromApi.data || updatedUserFromApi)._id,
@@ -449,16 +382,10 @@ useEffect(() => {
       console.error('Error updating user via API:', error);
       setApiError(error.message || 'An unexpected error occurred while updating the user.');
     }
-  }, [formData, editingUser, resetForm]);
+  }, [formData, editingUser, resetForm, apiFetch]);
 
   const handleToggleUserStatus = useCallback(async (userId: string, currentStatus: 'active' | 'inactive') => {
     setApiError(null);
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setApiError("Authentication required.");
-      return;
-    }
-
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     const originalUsers = [...users];
 
@@ -469,22 +396,11 @@ useEffect(() => {
     );
 
     try {
-      const response = await fetch(`/api/users/${userId}`, {
+      const updatedUserFromApi = await apiFetch(`/users/${userId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
         body: JSON.stringify({ status: newStatus }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        setUsers(originalUsers); // Revert optimistic update
-        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update user status: ${response.statusText}`);
-      }
-
-      const updatedUserFromApi = await response.json();
       const finalUpdatedUser = {
         ...(updatedUserFromApi.data || updatedUserFromApi),
         id: (updatedUserFromApi.data || updatedUserFromApi)._id,
@@ -492,13 +408,12 @@ useEffect(() => {
       setUsers(prevUsers =>
         prevUsers.map(u => (u.id === finalUpdatedUser.id ? { ...u, ...finalUpdatedUser, avatar: u.avatar } : u))
       );
-
     } catch (error: any) {
       console.error('Error updating user status via API:', error);
       setApiError(error.message || 'An unexpected error occurred while updating user status.');
-      setUsers(originalUsers); // Ensure reversion on any catch
+      setUsers(originalUsers);
     }
-  }, [users]);
+  }, [users, apiFetch]);
 
   const startEdit = useCallback((user: User) => {
     setEditingUser(user);
@@ -538,26 +453,11 @@ useEffect(() => {
       return;
     }
 
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setPasswordChangeError("Authentication error. Please log in again.");
-      return;
-    }
-
     try {
-      const response = await fetch(`/api/users/${changePasswordUserId}/set-password`, {
+      await apiFetch(`/users/${changePasswordUserId}/set-password`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
         body: JSON.stringify({ newPassword }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.errors?.[0]?.msg || errorData.msg || errorData.error || `Failed to change password: ${response.statusText}`);
-      }
 
       alert('Password updated successfully!');
       handleCancelChangePassword();
@@ -566,7 +466,7 @@ useEffect(() => {
       console.error('Error changing password:', error);
       setPasswordChangeError(error.message || 'Could not update password.');
     }
-  }, [newPassword, confirmNewPassword, changePasswordUserId, handleCancelChangePassword]);
+  }, [newPassword, confirmNewPassword, changePasswordUserId, handleCancelChangePassword, apiFetch]);
 
   // --- Effects ---
   useEffect(() => {

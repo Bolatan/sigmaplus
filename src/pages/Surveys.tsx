@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Survey, SurveyQuestion } from '../types';
 import SurveyForm from '../components/surveys/SurveyForm';
+import useApi from '../hooks/useApi';
 
 const Surveys: React.FC = () => {
   const [formData, setFormData] = useState<{
@@ -20,6 +21,7 @@ const Surveys: React.FC = () => {
   });
   const { user } = useAuth();
   const navigate = useNavigate();
+  const apiFetch = useApi();
   const [apiError, setApiError] = useState<string | null>(null);
   const [agents, setAgents] = useState<{ _id: string; name: string }[]>([]);
   const [companies, setCompanies] = useState<{ _id: string; name: string }[]>([]);
@@ -36,44 +38,26 @@ const Surveys: React.FC = () => {
 
   useEffect(() => {
     const fetchInitialData = async () => {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
-
       try {
-        const [agentsRes, companiesRes, projectsRes] = await Promise.all([
-          fetch('/api/users?role=agent', { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch('/api/companies', { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch('/api/projects', { headers: { 'Authorization': `Bearer ${token}` } })
+        const [agentsData, companiesData, projectsData] = await Promise.all([
+          apiFetch('/users?role=agent'),
+          apiFetch('/companies'),
+          apiFetch('/projects')
         ]);
-
-        if (agentsRes.ok) {
-          const { data } = await agentsRes.json();
-          setAgents(data || []);
-        }
-        if (companiesRes.ok) {
-          const { data } = await companiesRes.json();
-          setCompanies(data || []);
-        }
-        if (projectsRes.ok) {
-          const { data } = await projectsRes.json();
-          setProjects(data || []);
-        }
+        setAgents(agentsData.data || []);
+        setCompanies(companiesData.data || []);
+        setProjects(projectsData.data || []);
       } catch (error) {
         console.error("Failed to fetch initial data:", error);
       }
     };
 
     fetchInitialData();
-  }, []);
+  }, [apiFetch]);
 
   const handleAddSurvey = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setApiError(null);
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setApiError("Authentication required. Please login.");
-      return;
-    }
 
     if (!formData.title.trim()) {
       setApiError("Survey title is required.");
@@ -86,26 +70,17 @@ const Surveys: React.FC = () => {
     }
 
     try {
-      const surveyResponse = await fetch('/api/surveys', {
+      await apiFetch('/surveys', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
         body: JSON.stringify(formData),
       });
-
-      if (!surveyResponse.ok) {
-        const errorData = await surveyResponse.json().catch(() => ({}));
-        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to create survey: ${surveyResponse.statusText}`);
-      }
 
       resetForm();
       navigate('/surveys');
     } catch (error: any) {
       setApiError(error.message || 'An unexpected error occurred while adding the survey.');
     }
-  }, [formData, resetForm, navigate]);
+  }, [formData, resetForm, navigate, apiFetch]);
 
   return (
     <div className="p-6">

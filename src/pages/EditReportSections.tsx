@@ -2,27 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Report as ReportType, Section } from '../types';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
+import useApi from '../hooks/useApi';
 
 const EditReportSections: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [report, setReport] = useState<ReportType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const apiFetch = useApi();
 
   useEffect(() => {
     const fetchReport = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        const response = await fetch(`/api/reports/${id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        if (!response.ok) {
-          throw new Error('Failed to fetch report');
-        }
-        const data = await response.json();
+        const data = await apiFetch(`/reports/${id}`);
         setReport(data.data);
       } catch (err: any) {
         setError(err.message);
@@ -32,7 +24,7 @@ const EditReportSections: React.FC = () => {
     };
 
     fetchReport();
-  }, [id]);
+  }, [id, apiFetch]);
 
   const handleSectionChange = (sectionIndex: number, subSectionIndex: number, value: string) => {
     if (report) {
@@ -46,18 +38,10 @@ const EditReportSections: React.FC = () => {
   const handleSaveChanges = async () => {
     if (report) {
       try {
-        const token = localStorage.getItem('authToken');
-        const response = await fetch(`/api/reports/${id}`, {
+        await apiFetch(`/reports/${id}`, {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
           body: JSON.stringify({ sections: report.sections }),
         });
-        if (!response.ok) {
-          throw new Error('Failed to save changes');
-        }
         alert('Changes saved successfully!');
       } catch (err: any) {
         setError(err.message);

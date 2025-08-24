@@ -4,9 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
+import useApi from '../hooks/useApi';
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
+  const apiFetch = useApi();
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -42,10 +44,6 @@ const Settings: React.FC = () => {
     console.log('Settings updated:', formData);
 
     if (user?.role === 'admin' && user.companyId) {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
-
-      const brandingData = new FormData();
       if (branding.logo) {
         // In a real app, you'd upload the logo to a file storage service
         // and get back a URL to save in the database.
@@ -53,19 +51,14 @@ const Settings: React.FC = () => {
         console.log('Logo would be uploaded here.');
       }
 
-      const response = await fetch(`/api/companies/${user.companyId}/branding`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ color: branding.color }),
-      });
-
-      if (response.ok) {
+      try {
+        await apiFetch(`/companies/${user.companyId}/branding`, {
+          method: 'PUT',
+          body: JSON.stringify({ color: branding.color }),
+        });
         console.log('Branding updated successfully');
-      } else {
-        console.error('Failed to update branding');
+      } catch (error) {
+        console.error('Failed to update branding', error);
       }
     }
   };

@@ -6,6 +6,7 @@ import { Card, CardContent } from '../ui/Card';
 import { Modal } from '../ui/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import useApi from '../../hooks/useApi';
 
 interface Survey {
   id: string;
@@ -25,6 +26,7 @@ const SurveysList: React.FC = () => {
   });
   const { user } = useAuth();
   const navigate = useNavigate();
+  const apiFetch = useApi();
   const [apiError, setApiError] = useState<string | null>(null);
 
   const triggerRefetch = () => {
@@ -41,40 +43,21 @@ const SurveysList: React.FC = () => {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setApiError(null);
-    const token = localStorage.getItem('authToken');
-
-    if (!token) {
-      setApiError("No authentication token found. Please login.");
-      setIsLoading(false);
-      setSurveys([]);
-      return;
-    }
-
     try {
-      const surveysResponse = await fetch('/api/surveys', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-
-      if (!surveysResponse.ok) {
-        const errorData = await surveysResponse.json().catch(() => ({}));
-        throw new Error(errorData.msg || errorData.error || `HTTP error! status: ${surveysResponse.status}`);
-      }
-
-      const surveysResult = await surveysResponse.json();
+      const surveysResult = await apiFetch('/surveys');
       const fetchedSurveys = (surveysResult.data || []).map((s: Record<string, unknown>) => ({
         ...s,
         id: s._id,
         createdAt: s.createdAt || new Date().toISOString(),
       }));
       setSurveys(fetchedSurveys as Survey[]);
-
-    } catch (error) {
-      if (!apiError) setApiError((error as Error).message || 'Failed to fetch data from API.');
+    } catch (error: any) {
+      setApiError(error.message || 'Failed to fetch data from API.');
       setSurveys([]);
     } finally {
       setIsLoading(false);
     }
-  }, [apiError]);
+  }, [apiFetch]);
 
   useEffect(() => {
     fetchData();
@@ -83,11 +66,6 @@ const SurveysList: React.FC = () => {
   const handleAddSurvey = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setApiError(null);
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setApiError("Authentication required. Please login.");
-      return;
-    }
 
     if (!formData.title.trim()) {
       setApiError("Survey title is required.");
@@ -95,56 +73,31 @@ const SurveysList: React.FC = () => {
     }
 
     try {
-      const response = await fetch('/api/surveys', {
+      await apiFetch('/surveys', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
         body: JSON.stringify(formData),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to create survey: ${response.statusText}`);
-      }
 
       setIsAddModalOpen(false);
       resetForm();
       triggerRefetch();
-    } catch (error) {
-      setApiError((error as Error).message || 'An unexpected error occurred while adding the survey.');
+    } catch (error: any) {
+      setApiError(error.message || 'An unexpected error occurred while adding the survey.');
     }
-  }, [formData, resetForm, triggerRefetch]);
+  }, [formData, resetForm, triggerRefetch, apiFetch]);
 
   const handleDelete = async (surveyId: string) => {
     if (!window.confirm('Are you sure you want to delete this survey?')) {
       return;
     }
-
     setApiError(null);
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setApiError("Authentication required. Please login.");
-      return;
-    }
-
     try {
-      const response = await fetch(`/api/surveys/${surveyId}`, {
+      await apiFetch(`/surveys/${surveyId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.msg || errorData.error || `Failed to delete survey: ${response.statusText}`);
-      }
-
       triggerRefetch();
-    } catch (error) {
-      setApiError((error as Error).message || 'An unexpected error occurred while deleting the survey.');
+    } catch (error: any) {
+      setApiError(error.message || 'An unexpected error occurred while deleting the survey.');
     }
   };
 

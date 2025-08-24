@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { Survey, SurveyQuestion } from '../types';
 import SurveyForm from '../components/surveys/SurveyForm';
 import EditProjectModal from '../components/projects/EditProjectModal';
+import useApi from '../hooks/useApi';
 
 interface Project {
   id: string;
@@ -40,6 +41,7 @@ const ProjectDetails: React.FC = () => {
   });
   const { user } = useAuth();
   const navigate = useNavigate();
+  const apiFetch = useApi();
   const [apiError, setApiError] = useState<string | null>(null);
   const [agents, setAgents] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
@@ -59,121 +61,59 @@ const ProjectDetails: React.FC = () => {
     });
   }, [projectId]);
 
-  const fetchProjectAndSurveys = async () => {
+  const fetchProjectAndSurveys = useCallback(async () => {
     setIsLoading(true);
     setApiError(null);
-    const token = localStorage.getItem('authToken');
-
-    if (!token) {
-      setApiError("No authentication token found. Please login.");
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      // Fetch project details
-      const projectResponse = await fetch(`/api/projects/${projectId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!projectResponse.ok) {
-        const errorData = await projectResponse.json().catch(() => ({}));
-        setApiError(errorData.msg || errorData.error || `HTTP error! status: ${projectResponse.status}`);
-        setIsLoading(false);
-        return;
-      }
-
-      const projectResult = await projectResponse.json();
+      const projectResult = await apiFetch(`/projects/${projectId}`);
       setProject({ ...projectResult.data, id: projectResult.data._id });
 
-      // Fetch surveys for the project
-      const surveyResponse = await fetch(`/api/surveys?projectId=${projectId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!surveyResponse.ok) {
-        const errorData = await surveyResponse.json().catch(() => ({}));
-        setApiError(errorData.msg || errorData.error || `HTTP error! status: ${surveyResponse.status}`);
-      } else {
-        const surveyResult = await surveyResponse.json();
-        const fetchedSurveys = (surveyResult.data || []).map((s: any) => ({
-          ...s,
-          id: s._id,
-          createdAt: s.createdAt || new Date().toISOString(),
-          responseCount: s.responseCount || 0,
-          status: s.status || 'draft',
-          questions: s.questions || [],
-        }));
-        setSurveys(fetchedSurveys);
-      }
+      const surveyResult = await apiFetch(`/surveys?projectId=${projectId}`);
+      const fetchedSurveys = (surveyResult.data || []).map((s: any) => ({
+        ...s,
+        id: s._id,
+        createdAt: s.createdAt || new Date().toISOString(),
+        responseCount: s.responseCount || 0,
+        status: s.status || 'draft',
+        questions: s.questions || [],
+      }));
+      setSurveys(fetchedSurveys);
     } catch (error: any) {
-      if (!apiError) setApiError(error.message || 'Failed to fetch project details from API.');
+      setApiError(error.message || 'Failed to fetch project details from API.');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [projectId, apiFetch]);
 
   useEffect(() => {
     fetchProjectAndSurveys();
-  }, [projectId]);
+  }, [fetchProjectAndSurveys]);
 
   useEffect(() => {
     const fetchAgentsAndCompanies = async () => {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
-
       try {
-        const agentsResponse = await fetch('/api/users?role=agent', {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (agentsResponse.ok) {
-          const { data } = await agentsResponse.json();
-          setAgents(data || []);
-        }
+        const [agentsData, companiesData, allSurveysData, allProjectsData] = await Promise.all([
+          apiFetch('/users?role=agent'),
+          apiFetch('/companies'),
+          apiFetch('/surveys'),
+          apiFetch('/projects'),
+        ]);
 
-        const companiesResponse = await fetch('/api/companies', {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (companiesResponse.ok) {
-          const { data } = await companiesResponse.json();
-          setCompanies(data || []);
-        }
-
-        const allSurveysResponse = await fetch('/api/surveys', {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (allSurveysResponse.ok) {
-          const { data } = await allSurveysResponse.json();
-          setAllSurveys(data || []);
-        }
-
-        const allProjectsResponse = await fetch('/api/projects', {
-            headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (allProjectsResponse.ok) {
-            const { data } = await allProjectsResponse.json();
-            setAllProjects(data || []);
-        }
+        setAgents(agentsData.data || []);
+        setCompanies(companiesData.data || []);
+        setAllSurveys(allSurveysData.data || []);
+        setAllProjects(allProjectsData.data || []);
       } catch (error) {
         console.error("Failed to fetch agents, companies, or all surveys:", error);
       }
     };
 
     fetchAgentsAndCompanies();
-  }, []);
+  }, [apiFetch]);
 
   const handleAddSurvey = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setApiError(null);
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setApiError("Authentication required. Please login.");
-      return;
-    }
 
     if (!formData.title.trim()) {
       setApiError("Survey title is required.");
@@ -181,19 +121,10 @@ const ProjectDetails: React.FC = () => {
     }
 
     try {
-      const surveyResponse = await fetch('/api/surveys', {
+      await apiFetch('/surveys', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
         body: JSON.stringify(formData),
       });
-
-      if (!surveyResponse.ok) {
-        const errorData = await surveyResponse.json().catch(() => ({}));
-        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to create survey: ${surveyResponse.statusText}`);
-      }
 
       setIsAddSurveyModalOpen(false);
       resetForm();
@@ -201,30 +132,15 @@ const ProjectDetails: React.FC = () => {
     } catch (error: any) {
       setApiError(error.message || 'An unexpected error occurred while adding the survey.');
     }
-  }, [formData, resetForm]);
+  }, [formData, resetForm, apiFetch]);
 
   const handleUpdateProject = async (updatedProject: Project) => {
     setApiError(null);
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setApiError("Authentication required. Please login.");
-      return;
-    }
-
     try {
-      const response = await fetch(`/api/projects/${updatedProject.id}`, {
+      await apiFetch(`/projects/${updatedProject.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
         body: JSON.stringify(updatedProject),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.errors?.[0]?.msg || errorData.error || errorData.msg || `Failed to update project: ${response.statusText}`);
-      }
 
       setIsEditProjectModalOpen(false);
       triggerRefetch();
