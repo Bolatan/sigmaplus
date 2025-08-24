@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import useApi from '../hooks/useApi';
-import Layout from '../components/layout/Layout';
 
 const AdvancedAnalyticsPage: React.FC = () => {
   const [analyticsData, setAnalyticsData] = useState<any>(null);
@@ -22,8 +21,8 @@ const AdvancedAnalyticsPage: React.FC = () => {
   };
 
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-8">
+    <div className="flex flex-col min-h-screen">
+      <main className="flex-grow container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold">Advanced Analytics & Reporting</h1>
         <p className="mt-4 text-lg">This module provides advanced analytics and reporting capabilities.</p>
 
@@ -49,8 +48,8 @@ const AdvancedAnalyticsPage: React.FC = () => {
             <pre className="mt-4 whitespace-pre-wrap">{JSON.stringify(analyticsData, null, 2)}</pre>
           </div>
         )}
-      </div>
-    </Layout>
+      </main>
+    </div>
   );
 };
 
