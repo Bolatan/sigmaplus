@@ -26,7 +26,6 @@ const Header: React.FC = () => {
             <NavLink to="/market-research">Market Research</NavLink>
             <NavLink to="/advanced-analytics">Advanced Analytics</NavLink>
             <NavLink to="/reports">Reports</NavLink>
-            <NavLink to="/collaboration">Collaboration</NavLink>
             <NavLink to="/multi-survey-dashboard">Multi-Survey Analysis</NavLink>
             {user?.role === 'admin' && (
               <>
