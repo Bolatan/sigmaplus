@@ -95,7 +95,7 @@ export const generateReport = async (req, res) => {
 // @route   GET /api/reports
 // @access  Private (Admins, Agents, Clients)
 export const getReports = async (req, res) => {
-  const useDummyData = true; // Set to true to use dummy data
+  const useDummyData = false; // Set to true to use dummy data
 
   if (useDummyData) {
     const dummyReports = [
