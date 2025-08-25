@@ -70,6 +70,11 @@ export const Sidebar: React.FC = () => {
         icon: <Users />,
         label: 'Users',
       },
+      {
+        to: '/companies',
+        icon: <Building2 />,
+        label: 'Companies',
+      },
     ];
 
     // Role-specific nav items
@@ -114,11 +119,6 @@ export const Sidebar: React.FC = () => {
           to: '/multi-survey-dashboard',
           icon: <AreaChart />,
           label: 'Multi-Survey Analysis',
-        },
-        {
-          to: '/companies',
-          icon: <Building2 />,
-          label: 'Companies',
         },
         {
           to: '/settings',
