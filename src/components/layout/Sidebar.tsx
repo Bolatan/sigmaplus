@@ -137,6 +137,7 @@ export const Sidebar: React.FC = () => {
           to: '/market-research',
           icon: <Search />,
           label: 'Market Research',
+
         }
       );
     } else if (user?.role === UserRole.CLIENT) {

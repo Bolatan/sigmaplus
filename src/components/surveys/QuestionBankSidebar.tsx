@@ -28,6 +28,7 @@ const QuestionBankItem = ({ question }) => {
 
 const QuestionBankSidebar = () => {
   const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const api = useApi();
 
   useEffect(() => {
@@ -37,6 +38,8 @@ const QuestionBankSidebar = () => {
         setQuestions(response.data.questions);
       } catch (error) {
         console.error('Failed to fetch question bank', error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -47,9 +50,15 @@ const QuestionBankSidebar = () => {
     <div className="p-4 border-l">
       <h3 className="text-lg font-medium mb-4">Question Bank</h3>
       <div>
-        {questions.map((q) => (
-          <QuestionBankItem key={q.id} question={q} />
-        ))}
+        {loading ? (
+          <p>Loading questions...</p>
+        ) : questions.length > 0 ? (
+          questions.map((q) => (
+            <QuestionBankItem key={q.id} question={q} />
+          ))
+        ) : (
+          <p>No questions in the bank.</p>
+        )}
       </div>
     </div>
   );
