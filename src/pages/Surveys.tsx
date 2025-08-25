@@ -18,6 +18,7 @@ const Surveys: React.FC = () => {
     description: '',
     questions: [],
     projectId: '',
+    companyIds: [],
   });
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ const Surveys: React.FC = () => {
       description: '',
       questions: [],
       projectId: '',
+      companyIds: [],
     });
   }, []);
 
