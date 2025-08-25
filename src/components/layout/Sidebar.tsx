@@ -132,6 +132,11 @@ export const Sidebar: React.FC = () => {
           to: '/reports',
           icon: <BarChart3 />,
           label: 'Reports',
+        },
+        {
+          to: '/market-research',
+          icon: <Search />,
+          label: 'Market Research',
         }
       );
     } else if (user?.role === UserRole.CLIENT) {
