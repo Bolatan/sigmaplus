@@ -134,9 +134,10 @@ export const Sidebar: React.FC = () => {
           label: 'Reports',
         },
         {
-          to: '/advanced-analytics',
-          icon: <PieChart />,
-          label: 'Advanced Analytics',
+          to: '/market-research',
+          icon: <Search />,
+          label: 'Market Research',
+
         }
       );
     } else if (user?.role === UserRole.CLIENT) {
