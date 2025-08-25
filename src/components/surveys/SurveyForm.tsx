@@ -171,6 +171,32 @@ const SurveyForm = ({ formData, onFormDataChange, onSubmit, onCancel, buttonText
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
           />
         </div>
+
+        {/* Conditional fields for Silnat 1.3 survey */}
+        {formData.title.includes('Silnat 1.3') && (
+          <>
+            <div className="mb-4">
+              <label htmlFor="headTeacherName" className="block text-sm font-medium text-gray-700">Head Teacher/Manager Name</label>
+              <input
+                type="text"
+                id="headTeacherName"
+                value={formData.headTeacherName || ''}
+                onChange={(e) => onFormDataChange({ ...formData, headTeacherName: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="contactNumber" className="block text-sm font-medium text-gray-700">Contact Number</label>
+              <input
+                type="text"
+                id="contactNumber"
+                value={formData.contactNumber || ''}
+                onChange={(e) => onFormDataChange({ ...formData, contactNumber: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+              />
+            </div>
+          </>
+        )}
         <div className="mb-4">
           <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
           <textarea

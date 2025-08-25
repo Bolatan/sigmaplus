@@ -12,6 +12,8 @@ interface SurveyFormData {
   questions: SurveyQuestion[];
   agentId?: string;
   companyIds?: string[];
+  headTeacherName?: string;
+  contactNumber?: string;
 }
 
 const EditSurvey: React.FC = () => {
@@ -38,6 +40,8 @@ const EditSurvey: React.FC = () => {
           questions: data.questions || [],
           agentId: data.agentId,
           companyIds: data.companyIds,
+          headTeacherName: data.headTeacherName,
+          contactNumber: data.contactNumber,
         });
       } catch (error: any) {
         setApiError(error.message);

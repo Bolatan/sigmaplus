@@ -7,7 +7,7 @@ import { Readable } from 'stream';
 export const createSurvey = async (req, res, next) => {
   console.log('createSurvey: Received request');
   try {
-    const { title, description, questions: inputQuestions, status, companyIds, agentId, customerId, projectId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyIds, agentId, customerId, projectId, headTeacherName, contactNumber } = req.body;
     console.log('createSurvey: Request body:', req.body);
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
     console.log('createSurvey: User:', req.user);
@@ -53,6 +53,8 @@ export const createSurvey = async (req, res, next) => {
       responseCount: 0,
       companyIds: [],
       projectId: new ObjectId(projectId),
+      headTeacherName: headTeacherName || '',
+      contactNumber: contactNumber || '',
     };
     console.log('createSurvey: New survey data:', newSurveyData);
 
@@ -225,7 +227,7 @@ export const updateSurvey = async (req, res, next) => {
     console.log('updateSurvey: Survey ID:', surveyId);
     const { id: userId, role: userRole } = req.user;
     console.log('updateSurvey: User:', req.user);
-    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId, customerId, projectId } = req.body;
+    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId, customerId, projectId, headTeacherName, contactNumber } = req.body;
     console.log('updateSurvey: Request body:', req.body);
 
     if (!ObjectId.isValid(surveyId)) {
@@ -248,6 +250,8 @@ export const updateSurvey = async (req, res, next) => {
     if (title !== undefined) updateFields.title = title.trim();
     if (description !== undefined) updateFields.description = description.trim();
     if (status !== undefined) updateFields.status = status;
+    if (headTeacherName !== undefined) updateFields.headTeacherName = headTeacherName.trim();
+    if (contactNumber !== undefined) updateFields.contactNumber = contactNumber.trim();
 
     if (projectId !== undefined) {
       if (!ObjectId.isValid(projectId)) {
