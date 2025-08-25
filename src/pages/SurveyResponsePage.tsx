@@ -146,7 +146,13 @@ const SurveyResponsePage: React.FC = () => {
   const handleSubmitResponse = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const requiredQuestionsOnPage = visibleQuestions.filter(q => q.isRequired);
+    const requiredQuestionsOnPage = visibleQuestions.filter(q => {
+      // Specific override to make a question non-compulsory
+      if (q.text.includes('Reason(s) for operating the classes as Multigrade')) {
+        return false;
+      }
+      return q.isRequired;
+    });
     const unansweredRequiredQuestions = requiredQuestionsOnPage.filter(q => !responses[q.id]);
 
     if (unansweredRequiredQuestions.length > 0) {
