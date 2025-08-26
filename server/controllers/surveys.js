@@ -7,7 +7,7 @@ import { Readable } from 'stream';
 export const createSurvey = async (req, res, next) => {
   console.log('createSurvey: Received request');
   try {
-    const { title, description, questions: inputQuestions, status, companyIds, agentId, customerId, projectId, headTeacherName, contactNumber } = req.body;
+    const { title, description, questions: inputQuestions, status, companyIds, agentId, customerId, projectId, headTeacherName, contactNumber, type } = req.body;
     console.log('createSurvey: Request body:', req.body);
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
     console.log('createSurvey: User:', req.user);
@@ -45,6 +45,7 @@ export const createSurvey = async (req, res, next) => {
     const newSurveyData = {
       title,
       description: description || '',
+      type: type || 'descriptive',
       questions: validatedQuestions,
       status: 'active', // Always set status to active
       createdBy: new ObjectId(userId),

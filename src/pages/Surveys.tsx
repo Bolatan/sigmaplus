@@ -13,12 +13,14 @@ const Surveys: React.FC = () => {
     agentId?: string;
     companyIds?: string[];
     projectId?: string;
+    type: string;
   }>({
     title: '',
     description: '',
     questions: [],
     projectId: '',
     companyIds: [],
+    type: 'descriptive',
   });
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -35,6 +37,7 @@ const Surveys: React.FC = () => {
       questions: [],
       projectId: '',
       companyIds: [],
+      type: 'descriptive',
     });
   }, []);
 
