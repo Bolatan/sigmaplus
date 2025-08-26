@@ -75,6 +75,11 @@ export const Sidebar: React.FC = () => {
         icon: <Building2 />,
         label: 'Companies',
       },
+      {
+        to: '/market-research',
+        icon: <Search />,
+        label: 'Market Research',
+      },
     ];
 
     // Role-specific nav items
@@ -94,11 +99,6 @@ export const Sidebar: React.FC = () => {
           to: '/reports',
           icon: <BarChart3 />,
           label: 'Reports',
-        },
-        {
-          to: '/market-research',
-          icon: <Search />,
-          label: 'Market Research',
         },
         {
           to: '/survey-builder',
@@ -142,6 +142,7 @@ export const Sidebar: React.FC = () => {
           to: '/advanced-analytics',
           icon: <PieChart />,
           label: 'Advanced Analytics',
+
         }
       );
     } else if (user?.role === UserRole.CLIENT) {
