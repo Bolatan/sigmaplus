@@ -280,6 +280,12 @@ const Companies: React.FC = () => {
     resetForm();
   }, [resetForm]);
 
+  const handleCancelDelete = useCallback(() => {
+    setIsDeleteModalOpen(false);
+    setDeletingCompany(null);
+    setApiError(null);
+  }, []);
+
   const handleDeleteCompany = useCallback(async () => {
     if (!deletingCompany) return;
     setApiError(null);
@@ -299,12 +305,6 @@ const Companies: React.FC = () => {
   const openDeleteModal = useCallback((company: Company) => {
     setDeletingCompany(company);
     setIsDeleteModalOpen(true);
-  }, []);
-
-  const handleCancelDelete = useCallback(() => {
-    setIsDeleteModalOpen(false);
-    setDeletingCompany(null);
-    setApiError(null);
   }, []);
 
   const filteredCompanies = companies.filter(company =>
