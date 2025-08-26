@@ -207,6 +207,21 @@ const SurveyForm = ({ formData, onFormDataChange, onSubmit, onCancel, buttonText
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
           />
         </div>
+
+        <div className="mb-4">
+          <label htmlFor="type" className="block text-sm font-medium text-gray-700">Survey Type</label>
+          <select
+            id="type"
+            value={formData.type}
+            onChange={(e) => onFormDataChange({ ...formData, type: e.target.value })}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+          >
+            <option value="descriptive">Descriptive</option>
+            <option value="exploratory">Exploratory</option>
+            <option value="causal">Causal</option>
+          </select>
+        </div>
+
         <div className="mb-4">
             <label htmlFor="project" className="block text-sm font-medium text-gray-700">Project</label>
             <select
