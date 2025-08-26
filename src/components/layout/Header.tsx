@@ -20,8 +20,8 @@ const Header: React.FC = () => {
             <span className="text-2xl font-bold text-gray-800">SignaPlus</span>
           </Link>
           <nav className="hidden md:flex space-x-4">
-            <NavLink to="/dashboard">Dashboard</NavLink>
             <NavLink to="/projects">Projects</NavLink>
+            <NavLink to="/dashboard">Dashboard</NavLink>
             <NavLink to="/survey-builder">Survey Builder</NavLink>
             <NavLink to="/advanced-analytics">Advanced Analytics</NavLink>
             <NavLink to="/reports">Reports</NavLink>
