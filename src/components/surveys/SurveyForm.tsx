@@ -253,20 +253,22 @@ const SurveyForm = ({ formData, onFormDataChange, onSubmit, onCancel, buttonText
             </select>
           </div>
         )}
-        <div className="mb-4">
-          <label htmlFor="companies" className="block text-sm font-medium text-gray-700">Companies</label>
-          <select
-            id="companies"
-            multiple
-            value={formData.companyIds}
-            onChange={(e) => onFormDataChange({ ...formData, companyIds: Array.from(e.target.selectedOptions, option => option.value) })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-          >
-            {companies.map(company => (
-              <option key={company._id} value={company._id}>{company.name}</option>
-            ))}
-          </select>
-        </div>
+        {user?.role === 'admin' && (
+          <div className="mb-4">
+            <label htmlFor="companies" className="block text-sm font-medium text-gray-700">Companies</label>
+            <select
+              id="companies"
+              multiple
+              value={formData.companyIds}
+              onChange={(e) => onFormDataChange({ ...formData, companyIds: Array.from(e.target.selectedOptions, option => option.value) })}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+            >
+              {companies.map(company => (
+                <option key={company._id} value={company._id}>{company.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="mb-4">
           <h3 className="text-lg font-medium text-gray-900">Questions</h3>
