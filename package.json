@@ -14,7 +14,8 @@
     "test:backend": "jest --config jest.config.backend.cjs --runInBand --no-cache",
     "test:frontend": "jest --config jest.frontend.config.cjs --no-cache",
     "db:migrate": "knex migrate:latest --knexfile knexfile.cjs",
-    "db:seed": "knex seed:run --knexfile knexfile.cjs"
+    "db:seed": "knex seed:run --knexfile knexfile.cjs",
+    "seed": "node server/seeds/dev.cjs"
   },
   "dependencies": {
     "@eslint/js": "^9.31.0",
