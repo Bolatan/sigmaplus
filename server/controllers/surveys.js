@@ -311,13 +311,26 @@ export const updateSurvey = async (req, res, next) => {
       });
     }
 
-    if ((userRole === 'admin' || userRole === 'agent') && req.body.companyIds !== undefined) {
-      if (Array.isArray(req.body.companyIds)) {
-        updateFields.companyIds = req.body.companyIds
-          .filter(id => ObjectId.isValid(id))
-          .map(id => new ObjectId(id));
-      } else {
-        throw new ApiError(400, 'companyIds must be an array.');
+    if (req.body.companyIds !== undefined) {
+      if (userRole === 'admin') {
+        if (Array.isArray(req.body.companyIds)) {
+          updateFields.companyIds = req.body.companyIds
+            .filter(id => ObjectId.isValid(id))
+            .map(id => new ObjectId(id));
+        } else {
+          throw new ApiError(400, 'companyIds must be an array.');
+        }
+      } else if (userRole === 'agent') {
+        // Agents can only assign surveys to their own company.
+        // We will ignore any companyIds passed in the body and use the agent's companyId.
+        const { companyId: userCompanyId } = req.user;
+        if (userCompanyId && ObjectId.isValid(userCompanyId)) {
+            updateFields.companyIds = [new ObjectId(userCompanyId)];
+        } else {
+            // This case should ideally not happen if agents are always associated with a company.
+            // But as a safeguard, we prevent them from setting companyIds if they don't have one.
+            updateFields.companyIds = [];
+        }
       }
     }
 
