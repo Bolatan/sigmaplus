@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { UserRole } from '../../types';
 
 const NavLink: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
   <Link to={to} className="text-gray-600 hover:text-gray-800">
@@ -27,8 +28,12 @@ const Header: React.FC = () => {
             <NavLink to="/reports">Reports</NavLink>
             <NavLink to="/multi-survey-dashboard">Multi-Survey Analysis</NavLink>
             <NavLink to="/market-research">Market Research</NavLink>
-            <NavLink to="/users">Users</NavLink>
-            <NavLink to="/companies">Companies</NavLink>
+            {user?.role === UserRole.ADMIN && (
+              <>
+                <NavLink to="/users">Users</NavLink>
+                <NavLink to="/companies">Companies</NavLink>
+              </>
+            )}
             <NavLink to="/settings">Settings</NavLink>
           </nav>
         </div>

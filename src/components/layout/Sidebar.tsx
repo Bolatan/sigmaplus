@@ -65,21 +65,21 @@ export const Sidebar: React.FC = () => {
         icon: <Briefcase />,
         label: 'Projects',
       },
-      {
-        to: '/users',
-        icon: <Users />,
-        label: 'Users',
-      },
-      {
-        to: '/companies',
-        icon: <Building2 />,
-        label: 'Companies',
-      },
     ];
 
     // Role-specific nav items
     if (user?.role === UserRole.ADMIN) {
       items.push(
+        {
+          to: '/users',
+          icon: <Users />,
+          label: 'Users',
+        },
+        {
+          to: '/companies',
+          icon: <Building2 />,
+          label: 'Companies',
+        },
         {
           to: '/dashboard-module',
           icon: <Grid />,
