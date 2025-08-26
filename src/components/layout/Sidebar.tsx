@@ -65,6 +65,22 @@ export const Sidebar: React.FC = () => {
         icon: <Briefcase />,
         label: 'Projects',
       },
+
+      {
+        to: '/users',
+        icon: <Users />,
+        label: 'Users',
+      },
+      {
+        to: '/companies',
+        icon: <Building2 />,
+        label: 'Companies',
+      },
+      {
+        to: '/market-research',
+        icon: <Search />,
+        label: 'Market Research',
+      },
     ];
 
     // Role-specific nav items
@@ -94,11 +110,6 @@ export const Sidebar: React.FC = () => {
           to: '/reports',
           icon: <BarChart3 />,
           label: 'Reports',
-        },
-        {
-          to: '/market-research',
-          icon: <Search />,
-          label: 'Market Research',
         },
         {
           to: '/survey-builder',
@@ -132,12 +143,6 @@ export const Sidebar: React.FC = () => {
           to: '/reports',
           icon: <BarChart3 />,
           label: 'Reports',
-        },
-        {
-          to: '/market-research',
-          icon: <Search />,
-          label: 'Market Research',
-
         }
       );
     } else if (user?.role === UserRole.CLIENT) {
