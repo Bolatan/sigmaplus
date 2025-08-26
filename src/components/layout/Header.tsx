@@ -20,16 +20,20 @@ const Header: React.FC = () => {
             <span className="text-2xl font-bold text-gray-800">SignaPlus</span>
           </Link>
           <nav className="hidden md:flex space-x-4">
-            <NavLink to="/dashboard">Dashboard</NavLink>
-            <NavLink to="/projects">Projects</NavLink>
-            <NavLink to="/survey-builder">Survey Builder</NavLink>
-            <NavLink to="/advanced-analytics">Advanced Analytics</NavLink>
-            <NavLink to="/reports">Reports</NavLink>
-            <NavLink to="/multi-survey-dashboard">Multi-Survey Analysis</NavLink>
-            <NavLink to="/market-research">Market Research</NavLink>
-            <NavLink to="/users">Users</NavLink>
-            <NavLink to="/companies">Companies</NavLink>
-            <NavLink to="/settings">Settings</NavLink>
+            {user && (
+              <>
+                <NavLink to="/dashboard">Dashboard</NavLink>
+                <NavLink to="/projects">Projects</NavLink>
+                {['admin'].includes(user.role) && <NavLink to="/survey-builder">Survey Builder</NavLink>}
+                {['admin', 'agent'].includes(user.role) && <NavLink to="/advanced-analytics">Advanced Analytics</NavLink>}
+                {['admin', 'agent', 'client'].includes(user.role) && <NavLink to="/reports">Reports</NavLink>}
+                {['admin'].includes(user.role) && <NavLink to="/multi-survey-dashboard">Multi-Survey Analysis</NavLink>}
+                {['admin', 'agent'].includes(user.role) && <NavLink to="/market-research">Market Research</NavLink>}
+                <NavLink to="/users">Users</NavLink>
+                <NavLink to="/companies">Companies</NavLink>
+                {['admin', 'client'].includes(user.role) && <NavLink to="/settings">Settings</NavLink>}
+              </>
+            )}
           </nav>
         </div>
         <div className="flex items-center space-x-4">
