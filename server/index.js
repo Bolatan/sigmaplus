@@ -9,8 +9,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { ObjectId } from 'mongodb'; // Import ObjectId
 import { connectToServer, getDb } from './utils/db.js';
-import authRoutes from './routes/auth.js';
-import { verifyToken, authorizeRole } from './middleware/auth.js';
 import { body, validationResult } from 'express-validator';
 import { logger } from './middleware/logger.js';
 import fs from 'fs';
@@ -76,8 +74,16 @@ const upload = multer({
 // For a typical setup where /api/* is backend and everything else is frontend, this order is fine.
 app.use(express.static(path.join(__dirname, '..', 'dist')));
 
-// --- Auth Routes ---
-app.use('/api/auth', authRoutes); // Mount authentication routes
+// Middleware to simulate a logged-in admin user
+app.use((req, res, next) => {
+  req.user = {
+    id: '60d5ecb8b4854b323c108a8a', // A mock ObjectId
+    email: 'admin@example.com',
+    role: 'admin',
+    name: 'Admin User'
+  };
+  next();
+});
 
 // --- Application API Routes ---
 app.use('/api/surveys', surveyRoutesFunction(upload));

@@ -1,6 +1,5 @@
 import express from 'express';
 import { body, param, validationResult } from 'express-validator';
-import { verifyToken, authorizeRole } from '../middleware/auth.js';
 import { validateRequest } from '../middleware/validator.js'; // Assuming you want to keep this
 import {
   getUsers,
@@ -15,15 +14,12 @@ const router = express.Router();
 // GET all users
 router.get(
     '/',
-    verifyToken,
     getUsers
 );
 
 // GET user by ID (Admin only - or potentially user themselves, but admin focus for now)
 router.get(
     '/:id',
-    verifyToken,
-    authorizeRole(['admin']),
     param('id').isMongoId().withMessage('Invalid user ID format.'),
     (req, res, next) => { // Handle validation result before controller
         const errors = validationResult(req);
@@ -39,8 +35,6 @@ router.get(
 router.put(
   '/:userId', // Changed param name to userId to match controller
   [
-    verifyToken,
-    authorizeRole(['admin']),
     param('userId').isMongoId().withMessage('Invalid user ID format.'),
     body('name').optional().notEmpty().withMessage('Name cannot be empty.').trim().escape(),
     body('role').optional().isIn(['admin', 'agent', 'client']).withMessage('Invalid role specified.'),
@@ -93,8 +87,6 @@ router.put(
 // DELETE user by ID (Admin only) - Placeholder controller
 router.delete(
     '/:id',
-    verifyToken,
-    authorizeRole(['admin']),
     param('id').isMongoId().withMessage('Invalid user ID format.'),
     (req, res, next) => {
         const errors = validationResult(req);
@@ -112,8 +104,6 @@ router.delete(
 router.put(
     '/:userId/set-password',
     [
-        verifyToken,
-        authorizeRole(['admin']),
         param('userId').isMongoId().withMessage('Invalid user ID format.'),
         body('newPassword')
             .isLength({ min: 6 })

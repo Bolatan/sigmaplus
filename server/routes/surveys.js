@@ -8,29 +8,28 @@ import {
   submitSurveyResponse,
   bulkUploadSurveyResponses,
 } from '../controllers/surveys.js';
-import { verifyToken, authorizeRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
 const surveyRoutesFunction = (upload) => {
   // Public or general routes
-  router.get('/', verifyToken, getSurveys);
-  router.get('/:id', verifyToken, getSurveyById);
+  router.get('/', getSurveys);
+  router.get('/:id', getSurveyById);
 
   // Routes for creating surveys, restricted to admin and agents
-  router.post('/', verifyToken, authorizeRole(['admin', 'agent']), createSurvey);
+  router.post('/', createSurvey);
 
   // Routes for updating surveys
-  router.put('/:id', verifyToken, authorizeRole(['admin', 'agent']), updateSurvey);
+  router.put('/:id', updateSurvey);
 
   // Route for deleting surveys
-  router.delete('/:id', verifyToken, authorizeRole(['admin', 'agent']), deleteSurvey);
+  router.delete('/:id', deleteSurvey);
 
   // Route for submitting a single survey response
-  router.post('/:id/responses', verifyToken, submitSurveyResponse);
+  router.post('/:id/responses', submitSurveyResponse);
 
   // Route for bulk uploading survey responses, using the upload middleware
-  router.post('/:surveyId/responses/bulk-upload', verifyToken, authorizeRole(['admin', 'agent']), upload.single('file'), bulkUploadSurveyResponses);
+  router.post('/:surveyId/responses/bulk-upload', upload.single('file'), bulkUploadSurveyResponses);
 
   return router;
 };

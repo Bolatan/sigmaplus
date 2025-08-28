@@ -1,8 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { UserRole } from '../../types';
-
 const NavLink: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
   <Link to={to} className="text-gray-600 hover:text-gray-800">
     {children}
@@ -10,8 +7,6 @@ const NavLink: React.FC<{ to: string; children: React.ReactNode }> = ({ to, chil
 );
 
 const Header: React.FC = () => {
-  const { isAuthenticated, user } = useAuth();
-
   return (
     <header className="bg-white shadow-md">
       <div className="container mx-auto px-4 py-2 flex justify-between items-center">
@@ -28,36 +23,10 @@ const Header: React.FC = () => {
             <NavLink to="/reports">Reports</NavLink>
             <NavLink to="/multi-survey-dashboard">Multi-Survey Analysis</NavLink>
             <NavLink to="/market-research">Market Research</NavLink>
-            {user?.role === UserRole.ADMIN && (
-              <>
-                <NavLink to="/users">Users</NavLink>
-                <NavLink to="/companies">Companies</NavLink>
-              </>
-            )}
+            <NavLink to="/users">Users</NavLink>
+            <NavLink to="/companies">Companies</NavLink>
             <NavLink to="/settings">Settings</NavLink>
           </nav>
-        </div>
-        <div className="flex items-center space-x-4">
-          {isAuthenticated ? (
-            <a
-              href="/logout"
-              className="bg-primary-500 text-white px-4 py-2 rounded hover:bg-primary-600"
-            >
-              Log out
-            </a>
-          ) : (
-            <>
-              <a href="/login" className="text-gray-600 hover:text-gray-800">
-                Log in
-              </a>
-              <a
-                href="/signup"
-                className="bg-primary-500 text-white px-4 py-2 rounded hover:bg-primary-600"
-              >
-                Sign up free
-              </a>
-            </>
-          )}
         </div>
       </div>
     </header>

@@ -1,6 +1,5 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { verifyToken, authorizeRole } from '../middleware/auth.js';
 import { validateRequest } from '../middleware/validator.js';
 import {
   createProject,
@@ -16,29 +15,23 @@ const router = express.Router();
 
 // Create Project
 router.post('/', [
-  verifyToken,
-  authorizeRole(['admin', 'agent']),
   body('title').notEmpty().withMessage('Title is required').trim(),
   body('description').optional().trim(),
   validateRequest
 ], createProject);
 
 // Get All Projects
-router.get('/', verifyToken, getProjects);
+router.get('/', getProjects);
 
 // Get Project By ID
-router.get('/:id', verifyToken, getProjectById);
+router.get('/:id', getProjectById);
 
 // Delete Project
 router.delete('/:id', [
-  verifyToken,
-  authorizeRole(['admin', 'agent']),
 ], deleteProject);
 
 // Update Project
 router.put('/:id', [
-  verifyToken,
-  authorizeRole(['admin', 'agent']),
   body('title').notEmpty().withMessage('Title is required').trim(),
   body('description').optional().trim(),
   validateRequest
@@ -46,7 +39,6 @@ router.put('/:id', [
 
 export default function(upload) {
   router.post('/upload', [
-    verifyToken,
     (req, res, next) => {
       const multerUpload = upload.single('file');
       multerUpload(req, res, function (err) {
