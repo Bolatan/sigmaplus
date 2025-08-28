@@ -70,6 +70,27 @@ describe('Auth Routes', () => {
     expect(res.statusCode).toEqual(400);
   });
 
+  it('should login an existing user with their username', async () => {
+    const hashedPassword = await argon2.hash('Password123');
+    mockDb.collection('users').findOne.mockResolvedValue({
+      _id: '123',
+      username: 'testuser',
+      email: 'test@example.com',
+      password: hashedPassword,
+      status: 'active',
+    });
+
+    const res = await request(app)
+      .post('/auth/login')
+      .send({
+        email: 'testuser', // Using username in the email field
+        password: 'Password123',
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body).toHaveProperty('token');
+  });
+
   it('should login an existing user', async () => {
     const hashedPassword = await argon2.hash('Password123');
     mockDb.collection('users').findOne.mockResolvedValue({

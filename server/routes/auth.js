@@ -65,9 +65,9 @@ const registerValidation = [
 
 const loginValidation = [
   body('email')
-    .isEmail()
-    .withMessage('Please include a valid email')
-    .normalizeEmail(),
+    .notEmpty()
+    .withMessage('Email or username is required')
+    .trim(),
     
   body('password')
     .notEmpty()
@@ -240,8 +240,13 @@ router.post('/login', loginValidation, async (req, res) => {
     const { email, password } = req.body;
     const db = getDb();
 
-    // Find user by email
-    const user = await db.collection('users').findOne({ email: email.toLowerCase() });
+    // Find user by email or username, case-insensitively for email
+    const user = await db.collection('users').findOne({
+      $or: [
+        { email: email.toLowerCase() },
+        { username: email }
+      ]
+    });
     if (!user) {
       return res.status(400).json({ 
         success: false,
