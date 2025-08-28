@@ -1,5 +1,4 @@
 import express from 'express';
-import { verifyToken } from '../middleware/auth.js';
 import {
   getReports,
   getReportById,
@@ -13,12 +12,11 @@ import { validateRequest } from '../middleware/validator.js';
 
 const router = express.Router();
 
-router.get('/', verifyToken, getReports);
-router.get('/:id', verifyToken, getReportById);
-router.get('/:id/download', verifyToken, downloadReport);
+router.get('/', getReports);
+router.get('/:id', getReportById);
+router.get('/:id/download', downloadReport);
 
 router.post('/', [
-  verifyToken,
   body('surveyId').notEmpty().isMongoId(),
   body('title').notEmpty().trim(),
   body('clientId').optional().isMongoId(),
@@ -26,11 +24,10 @@ router.post('/', [
 ], generateReport);
 
 router.put('/:id', [
-  verifyToken,
   body('title').optional().notEmpty().trim(),
   validateRequest
 ], updateReport);
 
-router.delete('/:id', verifyToken, deleteReport);
+router.delete('/:id', deleteReport);
 
 export default router;

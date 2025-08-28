@@ -1,6 +1,5 @@
 import express from 'express';
 import { body, param, validationResult } from 'express-validator';
-import { verifyToken, authorizeRole } from '../middleware/auth.js';
 import { validateRequest } from '../middleware/validator.js'; // Assuming you have this
 import {
   createCompany,
@@ -19,8 +18,6 @@ const router = express.Router();
 router.post(
   '/',
   [
-    verifyToken,
-    authorizeRole(['admin']), // Only admins can create companies
     body('name').notEmpty().withMessage('Company name is required.').trim().escape(),
     body('email').isEmail().withMessage('Valid company email is required.').normalizeEmail(),
     body('phone').notEmpty().withMessage('Company phone is required.').trim(),
@@ -38,7 +35,6 @@ router.post(
 // @access  Authenticated (any role for now, controller can refine if needed)
 router.get(
   '/',
-  verifyToken,
   getCompanies
 );
 
@@ -47,7 +43,6 @@ router.get(
 // @access  Authenticated
 router.get(
   '/:id',
-  verifyToken,
   param('id').isMongoId().withMessage('Invalid Company ID format.'),
   (req, res, next) => { // Inline validation error handling
     const errors = validationResult(req);
@@ -65,8 +60,6 @@ router.get(
 router.put(
   '/:id',
   [
-    verifyToken,
-    authorizeRole(['admin']),
     param('id').isMongoId().withMessage('Invalid Company ID format.'),
     body('name').optional().notEmpty().withMessage('Company name cannot be empty.').trim().escape(),
     body('email').optional().isEmail().withMessage('Valid company email required.').normalizeEmail(),
@@ -85,8 +78,6 @@ router.put(
 // @access  Admin
 router.delete(
   '/:id',
-  verifyToken,
-  authorizeRole(['admin']),
   param('id').isMongoId().withMessage('Invalid Company ID format.'),
   (req, res, next) => { // Inline validation error handling
     const errors = validationResult(req);
@@ -104,8 +95,6 @@ router.delete(
 router.put(
   '/:id/branding',
   [
-    verifyToken,
-    authorizeRole(['admin']),
     param('id').isMongoId().withMessage('Invalid Company ID format.'),
     body('logo').optional().isURL().withMessage('Invalid logo URL.'),
     body('color').optional().isHexColor().withMessage('Invalid color format.'),

@@ -17,9 +17,8 @@ import {
   Users2,
   AreaChart
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { UserRole } from '../../types';
 import { cn } from '../../utils/cn';
+import { useAuth } from '../../context/AuthContext';
 
 interface NavItemProps {
   to: string;
@@ -49,119 +48,23 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label, end }) => {
 };
 
 export const Sidebar: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
-  const navItems = React.useMemo(() => {
-    // Common nav items for all roles
-    const items: NavItemProps[] = [
-      {
-        to: '/',
-        icon: <LayoutDashboard />,
-        label: 'Dashboard',
-        end: true,
-      },
-      {
-        to: '/projects',
-        icon: <Briefcase />,
-        label: 'Projects',
-      },
-
-      {
-        to: '/users',
-        icon: <Users />,
-        label: 'Users',
-      },
-      {
-        to: '/companies',
-        icon: <Building2 />,
-        label: 'Companies',
-      },
-      {
-        to: '/market-research',
-        icon: <Search />,
-        label: 'Market Research',
-      },
-    ];
-
-    // Role-specific nav items
-    if (user?.role === UserRole.ADMIN) {
-      items.push(
-        {
-          to: '/users',
-          icon: <Users />,
-          label: 'Users',
-        },
-        {
-          to: '/companies',
-          icon: <Building2 />,
-          label: 'Companies',
-        },
-        {
-          to: '/dashboard-module',
-          icon: <Grid />,
-          label: 'Dashboard Module',
-        },
-        {
-          to: '/surveys',
-          icon: <FileText />,
-          label: 'Surveys',
-        },
-        {
-          to: '/reports',
-          icon: <BarChart3 />,
-          label: 'Reports',
-        },
-        {
-          to: '/survey-builder',
-          icon: <Wrench />,
-          label: 'Survey Builder',
-        },
-        {
-          to: '/advanced-analytics',
-          icon: <PieChart />,
-          label: 'Advanced Analytics',
-        },
-        {
-          to: '/collaboration',
-          icon: <Users2 />,
-          label: 'Collaboration',
-        },
-        {
-          to: '/multi-survey-dashboard',
-          icon: <AreaChart />,
-          label: 'Multi-Survey Analysis',
-        },
-        {
-          to: '/settings',
-          icon: <Settings />,
-          label: 'Settings',
-        }
-      );
-    } else if (user?.role === UserRole.AGENT) {
-      items.push(
-        {
-          to: '/reports',
-          icon: <BarChart3 />,
-          label: 'Reports',
-        }
-      );
-    } else if (user?.role === UserRole.CLIENT) {
-      items.push(
-        {
-          to: '/reports',
-          icon: <BarChart3 />,
-          label: 'Reports',
-        },
-        {
-          to: '/settings',
-          icon: <Settings />,
-          label: 'Account',
-        }
-      );
-    }
-
-    return items;
-  }, [user?.role]);
+  const navItems: NavItemProps[] = [
+    { to: '/', icon: <LayoutDashboard />, label: 'Dashboard', end: true },
+    { to: '/projects', icon: <Briefcase />, label: 'Projects' },
+    { to: '/users', icon: <Users />, label: 'Users' },
+    { to: '/companies', icon: <Building2 />, label: 'Companies' },
+    { to: '/market-research', icon: <Search />, label: 'Market Research' },
+    { to: '/dashboard-module', icon: <Grid />, label: 'Dashboard Module' },
+    { to: '/surveys', icon: <FileText />, label: 'Surveys' },
+    { to: '/reports', icon: <BarChart3 />, label: 'Reports' },
+    { to: '/survey-builder', icon: <Wrench />, label: 'Survey Builder' },
+    { to: '/advanced-analytics', icon: <PieChart />, label: 'Advanced Analytics' },
+    { to: '/collaboration', icon: <Users2 />, label: 'Collaboration' },
+    { to: '/multi-survey-dashboard', icon: <AreaChart />, label: 'Multi-Survey Analysis' },
+    { to: '/settings', icon: <Settings />, label: 'Settings' },
+  ];
 
   return (
     <div className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col">
@@ -180,9 +83,9 @@ export const Sidebar: React.FC = () => {
 
       {user && (
         <div className="px-3 py-4 border-t border-gray-200">
-          <div className="flex items-center mb-4">
+          <div className="flex items-center">
             <img
-              src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=random`}
+              src={`https://ui-avatars.com/api/?name=${user.name}&background=random`}
               alt={user.name}
               className="h-8 w-8 rounded-full mr-3"
             />
@@ -191,13 +94,6 @@ export const Sidebar: React.FC = () => {
               <p className="text-xs text-gray-500">{user.role}</p>
             </div>
           </div>
-          <button
-            onClick={logout}
-            className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-100 hover:text-gray-900 w-full"
-          >
-            <LogOut className="mr-3 h-5 w-5" />
-            Sign out
-          </button>
         </div>
       )}
     </div>
