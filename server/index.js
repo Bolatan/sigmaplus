@@ -15,9 +15,6 @@ import fs from 'fs';
 import tmp from 'tmp';
 
 import surveyRoutesFunction from './routes/surveys.js';
-import userRoutes from './routes/users.js';
-import companyRoutes from './routes/companies.js';
-import reportRoutes from './routes/reports.js'; // Uncommented
 import projectRoutes from './routes/projects.js';
 import cronRoutes from './routes/cron.js';
 import marketResearchRoutes from './routes/market-research.js';
@@ -29,10 +26,8 @@ import reminderRoutes from './routes/reminders.js';
 import multiSurveyAnalysisRoutes from './routes/multi-survey-analysis.js';
 import surveyGroupsRoutes from './routes/surveyGroups.js';
 import dashboardRoutes from './routes/dashboard.js';
-import scheduleReportGeneration from './services/reportingService.js';
 import { scheduleReminderJobs } from './services/reminderService.js';
 import multer from 'multer';
-import Reporting from './reporting/index.js';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 
@@ -88,10 +83,7 @@ app.use((req, res, next) => {
 // --- Application API Routes ---
 app.use('/api/surveys', surveyRoutesFunction(upload));
 app.use('/api/projects', projectRoutes(upload));
-app.use('/api/users', userRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/companies', companyRoutes);
-app.use('/api/reports', reportRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/market-research', marketResearchRoutes);
 app.use('/api/survey-builder', surveyBuilderRoutes);
@@ -210,7 +202,6 @@ connectToServer()
   .then(() => {
     app.listen(port, () => {
       console.log(`Server running on port ${port} and connected to MongoDB.`);
-      scheduleReportGeneration();
       scheduleReminderJobs();
     });
   })
