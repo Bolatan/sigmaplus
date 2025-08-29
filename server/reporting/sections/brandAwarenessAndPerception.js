@@ -20,17 +20,17 @@ export default class BrandAwarenessAndPerception {
 
     // Unaided Recall: Count how many mentioned our brand
     const unaidedMentions = this.responses.filter(r =>
-      r.data?.brand_recall_unaided?.toLowerCase().includes(ourBrandName.toLowerCase())
+      r.responseData?.brand_recall_unaided?.toLowerCase().includes(ourBrandName.toLowerCase())
     ).length;
 
     // Aided Recall: Count how many recognized our brand from a list
     const aidedRecognitions = this.responses.filter(r =>
-      r.data?.brand_recall_aided && r.data.brand_recall_aided.includes(ourBrandName)
+      r.responseData?.brand_recall_aided && r.responseData.brand_recall_aided.includes(ourBrandName)
     ).length;
 
     // Perception Score: Average score for our brand (assuming a 1-5 scale)
     const perceptionScores = this.responses
-      .map(r => r.data[`brand_perception_${ourBrandName.toLowerCase()}`])
+      .map(r => r.responseData[`brand_perception_${ourBrandName.toLowerCase()}`])
       .filter(score => score && !isNaN(score));
 
     const averagePerception = perceptionScores.length > 0
