@@ -7,7 +7,7 @@ import { Readable } from 'stream';
 export const createSurvey = async (req, res, next) => {
   console.log('createSurvey: Received request');
   try {
-    const { title, description, questions: inputQuestions, status, companyIds, agentId, customerId, projectId, headTeacherName, contactNumber, type } = req.body;
+    const { title, description, questions: inputQuestions, status, companyIds, assignedAgents, customerId, projectId, headTeacherName, contactNumber, type } = req.body;
     console.log('createSurvey: Request body:', req.body);
     const { id: userId, role: userRole, companyId: userCompanyId } = req.user;
     console.log('createSurvey: User:', req.user);
@@ -65,10 +65,10 @@ export const createSurvey = async (req, res, next) => {
       newSurveyData.companyIds = [new ObjectId(userCompanyId)];
     }
 
-    if (userRole === 'admin' && agentId && ObjectId.isValid(agentId)) {
-      newSurveyData.agentId = new ObjectId(agentId);
+    if (userRole === 'admin' && assignedAgents && Array.isArray(assignedAgents)) {
+      newSurveyData.assignedAgents = assignedAgents.filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id));
     } else if (userRole === 'agent') {
-      newSurveyData.agentId = new ObjectId(userId);
+      newSurveyData.assignedAgents = [new ObjectId(userId)];
     }
 
     if (customerId && ObjectId.isValid(customerId)) {
@@ -101,7 +101,7 @@ export const getSurveys = async (req, res, next) => {
       surveyFilter.companyIds = new ObjectId(userCompanyId);
     } else if (userRole === 'agent') {
       surveyFilter.$or = [
-        { agentId: new ObjectId(userId) },
+        { assignedAgents: new ObjectId(userId) },
         { createdBy: new ObjectId(userId) }
       ];
     }
@@ -208,8 +208,8 @@ export const getSurveyById = async (req, res, next) => {
       }
     } else if (userRole === 'agent') {
       const isCreator = survey.createdBy.toString() === userId.toString();
-      const isAgent = survey.agentId && survey.agentId.toString() === userId.toString();
-      if (!isCreator && !isAgent) {
+      const isAssignedAgent = survey.assignedAgents && survey.assignedAgents.some(id => id.toString() === userId.toString());
+      if (!isCreator && !isAssignedAgent) {
         return next(new ApiError(403, 'Not authorized to access this survey'));
       }
     }
@@ -228,7 +228,7 @@ export const updateSurvey = async (req, res, next) => {
     console.log('updateSurvey: Survey ID:', surveyId);
     const { id: userId, role: userRole } = req.user;
     console.log('updateSurvey: User:', req.user);
-    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, agentId, customerId, projectId, headTeacherName, contactNumber } = req.body;
+    const { title, description, questions: inputQuestions, status, companyId: bodyCompanyId, assignedAgents, customerId, projectId, headTeacherName, contactNumber } = req.body;
     console.log('updateSurvey: Request body:', req.body);
 
     if (!ObjectId.isValid(surveyId)) {
@@ -334,13 +334,13 @@ export const updateSurvey = async (req, res, next) => {
       }
     }
 
-    if ((userRole === 'admin' || userRole === 'agent') && agentId !== undefined) {
-      if (agentId === null || agentId === '') {
-        updateFields.agentId = null;
-      } else if (ObjectId.isValid(agentId)) {
-        updateFields.agentId = new ObjectId(agentId);
+    if ((userRole === 'admin' || userRole === 'agent') && assignedAgents !== undefined) {
+      if (Array.isArray(assignedAgents)) {
+        updateFields.assignedAgents = assignedAgents
+          .filter(id => ObjectId.isValid(id))
+          .map(id => new ObjectId(id));
       } else {
-        throw new ApiError(400, 'Invalid Agent ID format provided for update by admin.');
+        throw new ApiError(400, 'assignedAgents must be an array.');
       }
     }
 

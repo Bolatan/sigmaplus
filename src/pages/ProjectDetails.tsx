@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { Survey, SurveyQuestion } from '../types';
 import SurveyForm from '../components/surveys/SurveyForm';
 import EditProjectModal from '../components/projects/EditProjectModal';
+import AssignedAgentsManager from '../components/projects/AssignedAgentsManager';
 import useApi from '../hooks/useApi';
 
 interface Project {
@@ -294,6 +295,12 @@ const ProjectDetails: React.FC = () => {
         project={project}
         onSave={handleUpdateProject}
       />
+
+      {user?.role === 'admin' && project && (
+        <div className="mt-8">
+          <AssignedAgentsManager project={project} onProjectUpdate={handleUpdateProject} />
+        </div>
+      )}
 
       {surveys.length === 0 && (
         <div className="text-center py-12">
