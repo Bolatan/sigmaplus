@@ -5,17 +5,13 @@ import Layout from './components/layout/Layout';
 import CookieConsent from 'react-cookie-consent';
 import Dashboard from './pages/Dashboard';
 
-import Reports from './pages/Reports';
-import Users from './pages/Users';
 import Settings from './pages/Settings';
-import Companies from './pages/Companies';
 import SurveyResponsePage from './pages/SurveyResponsePage';
 import SurveyDetails from './pages/SurveyDetails';
 import ClientDashboard from './pages/ClientDashboard';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Projects from './pages/Projects';
 import ProjectDetails from './pages/ProjectDetails';
-import EditReportSections from './pages/EditReportSections';
 import SurveyList from './pages/SurveyList';
 import EditSurvey from './pages/EditSurvey';
 import MarketResearch from './pages/MarketResearch';
@@ -34,15 +30,11 @@ const AppRoutes: React.FC = () => {
       <Route path="/surveys/:surveyId/edit" element={<EditSurvey />} />
       <Route path="/surveys" element={<SurveyList />} />
       <Route path="/surveys/new" element={<Surveys />} />
-      <Route path="/reports/:id/edit" element={<EditReportSections />} />
       <Route path="/projects" element={<Projects />} />
       <Route path="/projects/:projectId" element={<ProjectDetails />} />
       <Route path="/surveys/:surveyId" element={<SurveyDetails />} />
       <Route path="/client-dashboard" element={<ClientDashboard />} />
-      <Route path="/reports" element={<Reports />} />
-      <Route path="/users" element={<Users />} />
       <Route path="/settings" element={<Settings />} />
-      <Route path="/companies" element={<Companies />} />
       <Route path="/surveys/:surveyId/respond" element={<SurveyResponsePage />} />
       <Route path="/market-research" element={<MarketResearch />} />
       <Route path="/survey-builder" element={<SurveyBuilderPage />} />
